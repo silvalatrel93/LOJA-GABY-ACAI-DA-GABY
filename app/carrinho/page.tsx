@@ -45,13 +45,13 @@ function CartPageContent() {
     loadDeliveryFee()
   }, [])
 
-  const handleQuantityChange = async (id: number, size: string, newQuantity: number) => {
+  const handleQuantityChange = async (id: number, newQuantity: number) => {
     if (newQuantity < 1) return
-    await updateQuantity(id, size, newQuantity)
+    await updateQuantity(id, newQuantity)
   }
 
-  const handleRemoveItem = async (id: number, size: string) => {
-    await removeFromCart(id, size)
+  const handleRemoveItem = async (id: number) => {
+    await removeFromCart(id)
   }
 
   if (isLoading) {
@@ -162,21 +162,21 @@ function CartPageContent() {
                     <div className="flex items-center mt-2">
                       <div className="flex items-center border rounded-md mr-4">
                         <button
-                          onClick={() => handleQuantityChange(item.id, item.size, item.quantity - 1)}
+                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                           className="px-2 py-1 text-gray-600 hover:bg-gray-100"
                         >
                           <Minus size={16} />
                         </button>
                         <span className="px-3 py-1">{item.quantity}</span>
                         <button
-                          onClick={() => handleQuantityChange(item.id, item.size, item.quantity + 1)}
+                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
                           className="px-2 py-1 text-gray-600 hover:bg-gray-100"
                         >
                           <Plus size={16} />
                         </button>
                       </div>
                       <button
-                        onClick={() => handleRemoveItem(item.id, item.size)}
+                        onClick={() => handleRemoveItem(item.id)}
                         className="text-red-500 hover:text-red-700 text-sm flex items-center"
                       >
                         <Trash2 size={14} className="mr-1" /> Remover

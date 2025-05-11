@@ -10,8 +10,6 @@ import {
   Trash2,
   ShoppingBag,
   RefreshCw,
-  Download,
-  Upload,
   ImageIcon,
   Layers,
   PlusCircle,
@@ -28,10 +26,6 @@ import {
   getAllAdditionals,
   saveProduct,
   deleteProduct,
-  exportAllData,
-  importData,
-  backupData,
-  restoreFromBackup,
   type Product,
   type Category,
   type Additional,
@@ -47,10 +41,6 @@ export default function AdminPage() {
   const [isAdditionalsModalOpen, setIsAdditionalsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [deleteStatus, setDeleteStatus] = useState<{ id: number; status: "pending" | "success" | "error" } | null>(null)
-  const [backupStatus, setBackupStatus] = useState<"idle" | "backing-up" | "success" | "error">("idle")
-  const [restoreStatus, setRestoreStatus] = useState<"idle" | "restoring" | "success" | "error">("idle")
-  const [lastBackupDate, setLastBackupDate] = useState<string | null>(null)
-  const [isBackupSectionExpanded, setIsBackupSectionExpanded] = useState(false)
 
   // Função para carregar produtos, categorias e adicionais
   const loadData = async () => {
@@ -77,26 +67,6 @@ export default function AdminPage() {
   // Carregar produtos na montagem do componente
   useEffect(() => {
     loadData()
-
-    // Verificar se existe data do último backup
-    const backupDate = localStorage.getItem("acai_backup_date")
-    if (backupDate) {
-      setLastBackupDate(backupDate)
-    }
-
-    // Fazer backup automático a cada 5 minutos
-    const backupInterval = setInterval(
-      () => {
-        backupData()
-          .then(() => {
-            setLastBackupDate(new Date().toISOString())
-          })
-          .catch(console.error)
-      },
-      5 * 60 * 1000,
-    )
-
-    return () => clearInterval(backupInterval)
   }, [])
 
   const handleEditProduct = (product: Product) => {
@@ -144,10 +114,6 @@ export default function AdminPage() {
           setProducts(updatedProducts)
           setDeleteStatus({ id, status: "success" })
           console.log(`Produto com ID ${id} excluído com sucesso`)
-
-          // Fazer backup após exclusão
-          await backupData()
-          setLastBackupDate(new Date().toISOString())
         }
       } catch (error) {
         console.error("Erro ao excluir produto:", error)
@@ -172,10 +138,6 @@ export default function AdminPage() {
       const updatedProducts = await getAllProducts()
       setProducts(updatedProducts)
       setIsModalOpen(false)
-
-      // Fazer backup após salvar
-      await backupData()
-      setLastBackupDate(new Date().toISOString())
     } catch (error) {
       console.error("Erro ao salvar produto:", error)
       alert("Erro ao salvar produto. Tente novamente.")
@@ -243,122 +205,6 @@ export default function AdminPage() {
       ...editingProduct,
       allowedAdditionals: [],
     })
-  }
-
-  // Função para fazer backup manual
-  const handleBackup = async () => {
-    try {
-      setBackupStatus("backing-up")
-      await backupData()
-      setLastBackupDate(new Date().toISOString())
-      setBackupStatus("success")
-
-      setTimeout(() => {
-        setBackupStatus("idle")
-      }, 3000)
-    } catch (error) {
-      console.error("Erro ao fazer backup:", error)
-      setBackupStatus("error")
-
-      setTimeout(() => {
-        setBackupStatus("idle")
-      }, 3000)
-    }
-  }
-
-  // Função para restaurar backup
-  const handleRestore = async () => {
-    if (confirm("Tem certeza que deseja restaurar o último backup? Isso substituirá todos os dados atuais.")) {
-      try {
-        setRestoreStatus("restoring")
-        const success = await restoreFromBackup()
-
-        if (success) {
-          await loadData()
-          setRestoreStatus("success")
-        } else {
-          setRestoreStatus("error")
-          alert("Nenhum backup encontrado para restaurar.")
-        }
-
-        setTimeout(() => {
-          setRestoreStatus("idle")
-        }, 3000)
-      } catch (error) {
-        console.error("Erro ao restaurar backup:", error)
-        setRestoreStatus("error")
-        alert("Erro ao restaurar backup. Tente novamente.")
-
-        setTimeout(() => {
-          setRestoreStatus("idle")
-        }, 3000)
-      }
-    }
-  }
-
-  // Função para exportar dados
-  const handleExportData = async () => {
-    try {
-      const data = await exportAllData()
-      const dataStr = JSON.stringify(data, null, 2)
-      const dataBlob = new Blob([dataStr], { type: "application/json" })
-      const url = URL.createObjectURL(dataBlob)
-
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `acai-system-backup-${new Date().toISOString().split("T")[0]}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error("Erro ao exportar dados:", error)
-      alert("Erro ao exportar dados. Tente novamente.")
-    }
-  }
-
-  // Função para importar dados
-  const handleImportData = () => {
-    const input = document.createElement("input")
-    input.type = "file"
-    input.accept = "application/json"
-
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (!file) return
-
-      try {
-        const reader = new FileReader()
-        reader.onload = async (event) => {
-          try {
-            const data = JSON.parse(event.target?.result as string)
-
-            if (
-              confirm(
-                `Tem certeza que deseja importar ${data.products?.length || 0} produtos, ${data.categories?.length || 0} categorias e ${data.orders?.length || 0} pedidos? Isso substituirá todos os dados atuais.`,
-              )
-            ) {
-              await importData(data)
-              await loadData()
-              alert("Dados importados com sucesso!")
-
-              // Atualizar backup após importação
-              await backupData()
-              setLastBackupDate(new Date().toISOString())
-            }
-          } catch (error) {
-            console.error("Erro ao processar arquivo:", error)
-            alert("Erro ao processar arquivo. Verifique se é um arquivo JSON válido.")
-          }
-        }
-        reader.readAsText(file)
-      } catch (error) {
-        console.error("Erro ao ler arquivo:", error)
-        alert("Erro ao ler arquivo. Tente novamente.")
-      }
-    }
-
-    input.click()
   }
 
   // Função para obter o nome da categoria pelo ID
@@ -429,120 +275,6 @@ export default function AdminPage() {
       </header>
 
       <div className="flex-1 container mx-auto p-4">
-        {/* Seção de backup e restauração */}
-        <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-          <div
-            className="flex items-center justify-between cursor-pointer"
-            onClick={() => setIsBackupSectionExpanded(!isBackupSectionExpanded)}
-          >
-            <h2 className="text-lg font-semibold text-purple-900">Backup e Restauração</h2>
-            <div className={`transition-transform duration-300 ${isBackupSectionExpanded ? "rotate-180" : ""}`}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-purple-700"
-              >
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </div>
-          </div>
-
-          {isBackupSectionExpanded && (
-            <div className="mt-3">
-              <p className="text-sm text-gray-600 mb-3">
-                {lastBackupDate
-                  ? `Último backup: ${new Date(lastBackupDate).toLocaleString()}`
-                  : "Nenhum backup realizado ainda"}
-              </p>
-
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={handleBackup}
-                  disabled={backupStatus === "backing-up"}
-                  className={`px-4 py-2 rounded-md text-white flex items-center ${
-                    backupStatus === "backing-up"
-                      ? "bg-gray-400"
-                      : backupStatus === "success"
-                        ? "bg-green-600"
-                        : backupStatus === "error"
-                          ? "bg-red-600"
-                          : "bg-blue-600 hover:bg-blue-700"
-                  }`}
-                >
-                  {backupStatus === "backing-up" ? (
-                    <>
-                      <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent mr-2"></div>
-                      Salvando...
-                    </>
-                  ) : backupStatus === "success" ? (
-                    "Backup Concluído!"
-                  ) : backupStatus === "error" ? (
-                    "Erro ao Fazer Backup"
-                  ) : (
-                    <>
-                      <Save size={18} className="mr-1" />
-                      Fazer Backup
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={handleRestore}
-                  disabled={restoreStatus === "restoring"}
-                  className={`px-4 py-2 rounded-md text-white flex items-center ${
-                    restoreStatus === "restoring"
-                      ? "bg-gray-400"
-                      : restoreStatus === "success"
-                        ? "bg-green-600"
-                        : restoreStatus === "error"
-                          ? "bg-red-600"
-                          : "bg-yellow-600 hover:bg-yellow-700"
-                  }`}
-                >
-                  {restoreStatus === "restoring" ? (
-                    <>
-                      <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent mr-2"></div>
-                      Restaurando...
-                    </>
-                  ) : restoreStatus === "success" ? (
-                    "Restauração Concluída!"
-                  ) : restoreStatus === "error" ? (
-                    "Erro ao Restaurar"
-                  ) : (
-                    <>
-                      <RefreshCw size={18} className="mr-1" />
-                      Restaurar Backup
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={handleExportData}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md flex items-center"
-                >
-                  <Download size={18} className="mr-1" />
-                  Exportar Dados
-                </button>
-
-                <button
-                  onClick={handleImportData}
-                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-md flex items-center"
-                >
-                  <Upload size={18} className="mr-1" />
-                  Importar Dados
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Cards de navegação */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <Link

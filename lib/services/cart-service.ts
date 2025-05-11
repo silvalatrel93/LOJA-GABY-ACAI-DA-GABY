@@ -137,6 +137,12 @@ export const addCartItem = addToCart
 
 // Função para atualizar quantidade de um item
 export async function updateCartItemQuantity(id: number, quantity: number): Promise<boolean> {
+  // Verificar se id é um número válido
+  if (isNaN(Number(id))) {
+    console.error(`Erro: ID inválido ao atualizar quantidade: ${id}`)
+    return false
+  }
+
   const supabase = createSupabaseClient()
 
   const { error } = await supabase.from("cart").update({ quantity }).eq("id", id)
