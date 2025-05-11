@@ -55,27 +55,58 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [loadCart],
   )
 
-  // Atualizar quantidade de um item
+  // Atualizar quantidade de um item (com atualização otimista da UI)
   const handleUpdateQuantity = useCallback(
     async (id: number, quantity: number) => {
       try {
+        // Atualização otimista da UI
+        setCart((prevCart) => {
+          const newCart = prevCart.map((item) => {
+            if (item.id === id) {
+              return { ...item, quantity }
+            }
+            return item
+          })
+
+          // Atualizar contagem de itens
+          const newItemCount = newCart.reduce((count, item) => count + item.quantity, 0)
+          setItemCount(newItemCount)
+
+          return newCart
+        })
+
+        // Atualizar no banco de dados
         await updateCartItemQuantity(id, quantity)
-        await loadCart()
       } catch (error) {
         console.error("Erro ao atualizar quantidade:", error)
+        // Em caso de erro, recarregar o carrinho para garantir consistência
+        await loadCart()
       }
     },
     [loadCart],
   )
 
-  // Remover item do carrinho
+  // Remover item do carrinho (com atualização otimista da UI)
   const handleRemoveFromCart = useCallback(
     async (id: number) => {
       try {
+        // Atualização otimista da UI
+        setCart((prevCart) => {
+          const newCart = prevCart.filter((item) => item.id !== id)
+
+          // Atualizar contagem de itens
+          const newItemCount = newCart.reduce((count, item) => count + item.quantity, 0)
+          setItemCount(newItemCount)
+
+          return newCart
+        })
+
+        // Remover do banco de dados
         await removeFromCart(id)
-        await loadCart()
       } catch (error) {
         console.error("Erro ao remover item:", error)
+        // Em caso de erro, recarregar o carrinho para garantir consistência
+        await loadCart()
       }
     },
     [loadCart],
@@ -84,10 +115,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Limpar carrinho
   const handleClearCart = useCallback(async () => {
     try {
+      setCart([])
+      setItemCount(0)
       await clearCart()
-      await loadCart()
     } catch (error) {
       console.error("Erro ao limpar carrinho:", error)
+      await loadCart()
     }
   }, [loadCart])
 

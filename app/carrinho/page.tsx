@@ -24,9 +24,16 @@ function CartPageContent() {
   const { cart, removeFromCart, updateQuantity, isLoading } = useCart()
   const router = useRouter()
   const [deliveryFee, setDeliveryFee] = useState(5.0)
+  const [isUpdating, setIsUpdating] = useState<Record<number, boolean>>({})
 
   // Calcular subtotal e total
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const subtotal = cart.reduce((sum, item) => {
+    const itemTotal = item.price * item.quantity
+    const additionalsTotal =
+      (item.additionals || []).reduce((sum, additional) => sum + additional.price * additional.quantity, 0) *
+      item.quantity
+    return sum + itemTotal + additionalsTotal
+  }, 0)
   const total = subtotal + deliveryFee
 
   // Carregar taxa de entrega da configuração da loja
@@ -47,7 +54,16 @@ function CartPageContent() {
 
   const handleQuantityChange = async (id: number, newQuantity: number) => {
     if (newQuantity < 1) return
-    await updateQuantity(id, newQuantity)
+
+    // Marcar este item como atualizando
+    setIsUpdating((prev) => ({ ...prev, [id]: true }))
+
+    try {
+      await updateQuantity(id, newQuantity)
+    } finally {
+      // Desmarcar este item como atualizando
+      setIsUpdating((prev) => ({ ...prev, [id]: false }))
+    }
   }
 
   const handleRemoveItem = async (id: number) => {
@@ -123,7 +139,7 @@ function CartPageContent() {
 
           <ul className="divide-y divide-gray-200">
             {cart.map((item) => (
-              <li key={`${item.id}-${item.size}`} className="p-4">
+              <li key={`${item.id}`} className="p-4">
                 <div className="flex items-start">
                   {item.image && (
                     <div className="w-16 h-16 relative flex-shrink-0 mr-4">
@@ -160,17 +176,19 @@ function CartPageContent() {
                     )}
 
                     <div className="flex items-center mt-2">
-                      <div className="flex items-center border rounded-md mr-4">
+                      <div className="flex items-center border rounded-md mr-4 h-8">
                         <button
                           onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                          className="px-2 py-1 text-gray-600 hover:bg-gray-100"
+                          className="px-2 py-1 text-gray-600 hover:bg-gray-100 h-full w-8 flex items-center justify-center"
+                          disabled={isUpdating[item.id]}
                         >
                           <Minus size={16} />
                         </button>
-                        <span className="px-3 py-1">{item.quantity}</span>
+                        <span className="px-3 py-1 min-w-[2rem] text-center">{item.quantity}</span>
                         <button
                           onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                          className="px-2 py-1 text-gray-600 hover:bg-gray-100"
+                          className="px-2 py-1 text-gray-600 hover:bg-gray-100 h-full w-8 flex items-center justify-center"
+                          disabled={isUpdating[item.id]}
                         >
                           <Plus size={16} />
                         </button>
@@ -178,6 +196,7 @@ function CartPageContent() {
                       <button
                         onClick={() => handleRemoveItem(item.id)}
                         className="text-red-500 hover:text-red-700 text-sm flex items-center"
+                        disabled={isUpdating[item.id]}
                       >
                         <Trash2 size={14} className="mr-1" /> Remover
                       </button>
