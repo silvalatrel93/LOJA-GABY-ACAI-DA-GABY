@@ -66,7 +66,6 @@ export default function SobrePage() {
           <p>
             © {new Date().getFullYear()} {pageContent?.storeName || "Açaí Delícia"} - Todos os direitos reservados
           </p>
-          <p className="text-sm mt-2">Horário de funcionamento: 10h às 22h</p>
         </div>
       </footer>
     </main>

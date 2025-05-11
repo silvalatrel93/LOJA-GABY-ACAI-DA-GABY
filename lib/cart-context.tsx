@@ -1,101 +1,106 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import {
-  getCart,
-  addToCart as dbAddToCart,
-  removeFromCart as dbRemoveFromCart,
-  updateCartItemQuantity,
-  clearCart as dbClearCart,
-  type CartItem,
-} from "@/lib/db"
+import type React from "react"
+
+import { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { getCartItems, addToCart, updateCartItemQuantity, removeFromCart, clearCart } from "@/lib/services/cart-service"
+import type { CartItem } from "@/lib/types"
 
 interface CartContextType {
   cart: CartItem[]
-  addToCart: (item: CartItem) => Promise<void>
-  removeFromCart: (id: number, size: string) => Promise<void>
-  updateQuantity: (id: number, size: string, quantity: number) => Promise<void>
+  addToCart: (item: Omit<CartItem, "id">) => Promise<void>
+  updateQuantity: (id: number, quantity: number) => Promise<void>
+  removeFromCart: (id: number) => Promise<void>
   clearCart: () => Promise<void>
   isLoading: boolean
+  itemCount: number
 }
 
-interface CartProviderProps {
-  children: ReactNode
-}
+const CartContext = createContext<CartContextType | undefined>(undefined)
 
-const CartContext = createContext<CartContextType | null>(null)
-
-export function CartProvider({ children }: CartProviderProps) {
+export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [itemCount, setItemCount] = useState(0)
 
-  // Carregar carrinho do IndexedDB na inicialização
-  useEffect(() => {
-    const loadCart = async () => {
-      try {
-        const cartItems = await getCart()
-        setCart(cartItems)
-      } catch (error) {
-        console.error("Erro ao carregar o carrinho:", error)
-      } finally {
-        setIsLoading(false)
-      }
+  // Carregar itens do carrinho
+  const loadCart = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      const items = await getCartItems()
+      setCart(items)
+      setItemCount(items.reduce((count, item) => count + item.quantity, 0))
+    } catch (error) {
+      console.error("Erro ao carregar carrinho:", error)
+    } finally {
+      setIsLoading(false)
     }
-
-    loadCart()
   }, [])
 
-  const addToCart = async (item: CartItem) => {
-    try {
-      await dbAddToCart(item)
-      // Atualizar o estado local após a operação no banco de dados
-      const updatedCart = await getCart()
-      setCart(updatedCart)
-    } catch (error) {
-      console.error("Erro ao adicionar ao carrinho:", error)
-    }
-  }
+  // Carregar carrinho ao iniciar
+  useEffect(() => {
+    loadCart()
+  }, [loadCart])
 
-  const removeFromCart = async (id: number, size: string) => {
-    try {
-      await dbRemoveFromCart(id, size)
-      // Atualizar o estado local após a operação no banco de dados
-      const updatedCart = await getCart()
-      setCart(updatedCart)
-    } catch (error) {
-      console.error("Erro ao remover do carrinho:", error)
-    }
-  }
+  // Adicionar item ao carrinho
+  const handleAddToCart = useCallback(
+    async (item: Omit<CartItem, "id">) => {
+      try {
+        await addToCart(item)
+        await loadCart()
+      } catch (error) {
+        console.error("Erro ao adicionar item ao carrinho:", error)
+      }
+    },
+    [loadCart],
+  )
 
-  const updateQuantity = async (id: number, size: string, quantity: number) => {
-    try {
-      await updateCartItemQuantity(id, size, quantity)
-      // Atualizar o estado local após a operação no banco de dados
-      const updatedCart = await getCart()
-      setCart(updatedCart)
-    } catch (error) {
-      console.error("Erro ao atualizar quantidade:", error)
-    }
-  }
+  // Atualizar quantidade de um item
+  const handleUpdateQuantity = useCallback(
+    async (id: number, quantity: number) => {
+      try {
+        await updateCartItemQuantity(id, quantity)
+        await loadCart()
+      } catch (error) {
+        console.error("Erro ao atualizar quantidade:", error)
+      }
+    },
+    [loadCart],
+  )
 
-  const clearCart = async () => {
+  // Remover item do carrinho
+  const handleRemoveFromCart = useCallback(
+    async (id: number) => {
+      try {
+        await removeFromCart(id)
+        await loadCart()
+      } catch (error) {
+        console.error("Erro ao remover item:", error)
+      }
+    },
+    [loadCart],
+  )
+
+  // Limpar carrinho
+  const handleClearCart = useCallback(async () => {
     try {
-      await dbClearCart()
-      setCart([])
+      await clearCart()
+      await loadCart()
     } catch (error) {
-      console.error("Erro ao limpar o carrinho:", error)
+      console.error("Erro ao limpar carrinho:", error)
     }
-  }
+  }, [loadCart])
 
   return (
     <CartContext.Provider
       value={{
         cart,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        clearCart,
+        addToCart: handleAddToCart,
+        updateQuantity: handleUpdateQuantity,
+        removeFromCart: handleRemoveFromCart,
+        clearCart: handleClearCart,
         isLoading,
+        itemCount,
       }}
     >
       {children}
@@ -105,7 +110,7 @@ export function CartProvider({ children }: CartProviderProps) {
 
 export function useCart() {
   const context = useContext(CartContext)
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useCart deve ser usado dentro de um CartProvider")
   }
   return context

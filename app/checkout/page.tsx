@@ -1,15 +1,31 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useCart } from "@/lib/cart-context"
-import { formatCurrency } from "@/lib/utils"
-import { saveOrder, getStoreConfig } from "@/lib/db"
-import { getStoreStatus } from "@/lib/store-utils"
+import { useRouter } from "next/navigation"
 import { ArrowLeft, Clock } from "lucide-react"
+import { useCart, CartProvider } from "@/lib/cart-context"
+import { formatCurrency } from "@/lib/utils"
+import { saveOrder } from "@/lib/services/order-service"
+import { getStoreConfig } from "@/lib/services/store-config-service"
+import { getStoreStatus } from "@/lib/store-utils"
 
-export default function CheckoutPage() {
+// Componente para exibir um item com nome à esquerda e valor à direita
+function ItemRow({ name, value }: { name: string; value: string }) {
+  return (
+    <div className="flex items-center w-full">
+      <div className="flex-grow">{name}</div>
+      <div className="flex-shrink-0 w-16 text-right tabular-nums">{value}</div>
+    </div>
+  )
+}
+
+// Componente interno que usa o hook useCart
+function CheckoutPageContent() {
   const { cart, clearCart } = useCart()
+  const router = useRouter()
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -19,51 +35,60 @@ export default function CheckoutPage() {
     complement: "",
     paymentMethod: "pix",
   })
-
-  // Adicionar estado para a taxa de entrega
   const [deliveryFee, setDeliveryFee] = useState(5.0)
-
-  const [storeConfig, setStoreConfig] = useState<{ name: string; deliveryFee: number } | null>(null)
-
+  const [storeConfig, setStoreConfig] = useState<{ name: string; delivery_fee: number } | null>(null)
   const [storeStatus, setStoreStatus] = useState({ isOpen: true, statusText: "", statusClass: "" })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Adicionar useEffect para carregar a taxa de entrega e o nome da loja
+  // Carregar configurações da loja e status
   useEffect(() => {
     const loadStoreConfig = async () => {
       try {
         const config = await getStoreConfig()
-        setDeliveryFee(config.deliveryFee)
         setStoreConfig(config)
+        if (config && config.delivery_fee !== undefined) {
+          setDeliveryFee(config.delivery_fee)
+        }
       } catch (error) {
         console.error("Erro ao carregar configurações da loja:", error)
       }
     }
-
-    loadStoreConfig()
 
     const loadStoreStatus = async () => {
       const status = await getStoreStatus()
       setStoreStatus(status)
     }
 
+    loadStoreConfig()
     loadStoreStatus()
   }, [])
 
-  // Atualizar o cálculo do total
+  // Calcular subtotal e total
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const total = subtotal + deliveryFee
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Salvar o pedido no IndexedDB
+    if (!storeStatus.isOpen) {
+      alert("A loja está fechada no momento. Por favor, tente novamente quando estivermos abertos.")
+      return
+    }
+
+    if (cart.length === 0) {
+      alert("Seu carrinho está vazio. Adicione produtos antes de finalizar o pedido.")
+      return
+    }
+
+    setIsSubmitting(true)
+
     try {
-      // Atualizar o objeto de pedido para usar a taxa de entrega dinâmica
+      // Criar objeto do pedido
       const order = {
         customerName: formData.name,
         customerPhone: formData.phone,
@@ -90,53 +115,61 @@ export default function CheckoutPage() {
         printed: false,
       }
 
+      // Salvar pedido no banco de dados
       await saveOrder(order)
+
+      // Formatar mensagem para WhatsApp
+      let message = `*Novo Pedido de Açaí*\n\n`
+      message += `*Cliente:* ${formData.name}\n`
+      message += `*Telefone:* ${formData.phone}\n\n`
+
+      message += `*Endereço de Entrega:*\n`
+      message += `${formData.address}, ${formData.number}\n`
+      message += `Bairro: ${formData.neighborhood}\n`
+      if (formData.complement) message += `Complemento: ${formData.complement}\n\n`
+
+      message += `*Itens do Pedido:*\n`
+      cart.forEach((item) => {
+        message += `- ${item.quantity}x ${item.name} (${item.size}) - ${formatCurrency(item.price * item.quantity)}\n`
+
+        // Adicionar adicionais ao pedido
+        if (item.additionals && item.additionals.length > 0) {
+          message += `  *Adicionais:*\n`
+          item.additionals.forEach((additional) => {
+            message += `  • ${additional.quantity}x ${additional.name} - ${formatCurrency(additional.price * additional.quantity)}\n`
+          })
+        }
+      })
+
+      message += `\n*Subtotal:* ${formatCurrency(subtotal)}\n`
+      message += `*Taxa de Entrega:* ${formatCurrency(deliveryFee)}\n`
+      message += `*Total:* ${formatCurrency(total)}\n\n`
+
+      message += `*Forma de Pagamento:* ${formData.paymentMethod === "pix" ? "PIX" : "Cartão na Entrega"}`
+
+      // Codificar mensagem para URL do WhatsApp
+      const encodedMessage = encodeURIComponent(message)
+
+      // Número do WhatsApp da loja (substitua pelo número real)
+      const whatsappNumber = "5511999999999"
+
+      // Criar URL do WhatsApp
+      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`
+
+      // Limpar carrinho
+      await clearCart()
+
+      // Abrir WhatsApp
+      window.open(whatsappUrl, "_blank")
+
+      // Redirecionar para a página inicial
+      router.push("/")
     } catch (error) {
-      console.error("Erro ao salvar pedido:", error)
+      console.error("Erro ao finalizar pedido:", error)
+      alert("Ocorreu um erro ao finalizar o pedido. Por favor, tente novamente.")
+    } finally {
+      setIsSubmitting(false)
     }
-
-    // Format the order message for WhatsApp
-    let message = `*Novo Pedido de Açaí*\n\n`
-    message += `*Cliente:* ${formData.name}\n`
-    message += `*Telefone:* ${formData.phone}\n\n`
-
-    message += `*Endereço de Entrega:*\n`
-    message += `${formData.address}, ${formData.number}\n`
-    message += `Bairro: ${formData.neighborhood}\n`
-    if (formData.complement) message += `Complemento: ${formData.complement}\n\n`
-
-    message += `*Itens do Pedido:*\n`
-    cart.forEach((item) => {
-      message += `- ${item.quantity}x ${item.name} (${item.size}) - ${formatCurrency(item.price * item.quantity)}\n`
-
-      // Adicionar adicionais ao pedido
-      if (item.additionals && item.additionals.length > 0) {
-        message += `  *Adicionais:*\n`
-        item.additionals.forEach((additional) => {
-          message += `  • ${additional.quantity}x ${additional.name} - ${formatCurrency(additional.price * additional.quantity)}\n`
-        })
-      }
-    })
-
-    message += `\n*Subtotal:* ${formatCurrency(subtotal)}\n`
-    // Atualizar a mensagem do WhatsApp
-    message += `*Taxa de Entrega:* ${formatCurrency(deliveryFee)}\n`
-    message += `*Total:* ${formatCurrency(total)}\n\n`
-
-    message += `*Forma de Pagamento:* ${formData.paymentMethod === "pix" ? "PIX" : "Cartão na Entrega"}`
-
-    // Encode the message for WhatsApp URL
-    const encodedMessage = encodeURIComponent(message)
-
-    // Replace with your actual WhatsApp business number
-    const whatsappNumber = "5511999999999"
-
-    // Create WhatsApp URL
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`
-
-    // Clear cart and redirect to WhatsApp
-    clearCart()
-    window.open(whatsappUrl, "_blank")
   }
 
   if (cart.length === 0) {
@@ -338,24 +371,21 @@ export default function CheckoutPage() {
 
             <div className="space-y-2">
               {cart.map((item) => (
-                <div key={`${item.id}-${item.size}`} className="flex flex-col">
-                  <div className="flex justify-between">
-                    <span>
-                      {item.quantity}x {item.name} ({item.size})
-                    </span>
-                    <span>{formatCurrency(item.price * item.quantity)}</span>
-                  </div>
+                <div key={`${item.id}-${item.size}`} className="mb-2">
+                  <ItemRow
+                    name={`${item.quantity}x ${item.name} (${item.size})`}
+                    value={formatCurrency(item.price * item.quantity)}
+                  />
 
                   {/* Mostrar adicionais se houver */}
                   {item.additionals && item.additionals.length > 0 && (
-                    <div className="ml-4 text-sm text-gray-600">
+                    <div className="ml-4 text-sm text-gray-600 mt-1">
                       {item.additionals.map((additional, index) => (
-                        <div key={index} className="flex justify-between">
-                          <span>
-                            + {additional.quantity}x {additional.name}
-                          </span>
-                          <span>{formatCurrency(additional.price * additional.quantity)}</span>
-                        </div>
+                        <ItemRow
+                          key={index}
+                          name={`+ ${additional.quantity}x ${additional.name}`}
+                          value={formatCurrency(additional.price * additional.quantity)}
+                        />
                       ))}
                     </div>
                   )}
@@ -363,17 +393,10 @@ export default function CheckoutPage() {
               ))}
 
               <div className="border-t pt-2 mt-2">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>{formatCurrency(subtotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Taxa de entrega</span>
-                  <span>{deliveryFee > 0 ? formatCurrency(deliveryFee) : "Grátis"}</span>
-                </div>
-                <div className="flex justify-between font-bold text-lg pt-2 mt-2 border-t">
-                  <span>Total</span>
-                  <span>{formatCurrency(total)}</span>
+                <ItemRow name="Subtotal" value={formatCurrency(subtotal)} />
+                <ItemRow name="Taxa de entrega" value={deliveryFee > 0 ? formatCurrency(deliveryFee) : "Grátis"} />
+                <div className="font-bold text-lg pt-2 mt-2 border-t">
+                  <ItemRow name="Total" value={formatCurrency(total)} />
                 </div>
               </div>
             </div>
@@ -381,18 +404,21 @@ export default function CheckoutPage() {
 
           <button
             type="submit"
-            disabled={!storeStatus.isOpen}
+            disabled={!storeStatus.isOpen || isSubmitting}
             className={`w-full ${
-              storeStatus.isOpen ? "bg-green-600 hover:bg-green-700" : "bg-gray-400"
+              storeStatus.isOpen && !isSubmitting ? "bg-green-600 hover:bg-green-700" : "bg-gray-400"
             } text-white py-3 rounded-lg font-semibold flex items-center justify-center sticky bottom-4 shadow-lg`}
-            onClick={(e) => {
-              if (!storeStatus.isOpen) {
-                e.preventDefault()
-                alert("A loja está fechada no momento. Por favor, tente novamente quando estivermos abertos.")
-              }
-            }}
           >
-            {storeStatus.isOpen ? "Finalizar e Enviar pelo WhatsApp" : "Loja Fechada - Não é possível finalizar"}
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin h-5 w-5 mr-3 border-2 border-white border-t-transparent rounded-full"></div>
+                Processando...
+              </>
+            ) : storeStatus.isOpen ? (
+              "Finalizar e Enviar pelo WhatsApp"
+            ) : (
+              "Loja Fechada - Não é possível finalizar"
+            )}
           </button>
         </form>
       </div>
@@ -405,5 +431,14 @@ export default function CheckoutPage() {
         </div>
       </footer>
     </div>
+  )
+}
+
+// Componente principal que envolve o conteúdo com o CartProvider
+export default function CheckoutPage() {
+  return (
+    <CartProvider>
+      <CheckoutPageContent />
+    </CartProvider>
   )
 }

@@ -20,6 +20,7 @@ import {
   Settings,
   Clock,
   Bell,
+  Beaker,
 } from "lucide-react"
 import {
   getAllProducts,
@@ -705,6 +706,19 @@ export default function AdminPage() {
             <div>
               <h2 className="text-lg font-semibold text-purple-900">Status do Sistema</h2>
               <p className="text-gray-600">Verificar status do banco de dados e migração</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/testes"
+            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+          >
+            <div className="bg-purple-100 p-3 rounded-full mr-4">
+              <Beaker size={24} className="text-purple-700" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-purple-900">Ferramentas de Teste</h2>
+              <p className="text-gray-600">Testar funcionalidades e migrar dados para o Supabase</p>
             </div>
           </Link>
         </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ArrowLeft, Save, Plus, Trash2, ArrowUp, ArrowDown, Eye, EyeOff } from "lucide-react"
-import { getAllCategories, saveCategory, deleteCategory, backupData, type Category } from "@/lib/db"
+import { getAllCategories, saveCategory, deleteCategory, type Category } from "@/lib/services/category-service"
 
 export default function CategoriesAdminPage() {
   const [categories, setCategories] = useState<Category[]>([])
@@ -58,9 +58,6 @@ export default function CategoriesAdminPage() {
         // Atualizar a lista de categorias após excluir
         await loadCategories()
         setDeleteStatus({ id, status: "success" })
-
-        // Fazer backup após exclusão
-        await backupData()
       } catch (error) {
         console.error("Erro ao excluir categoria:", error)
         setDeleteStatus({ id, status: "error" })
@@ -83,9 +80,6 @@ export default function CategoriesAdminPage() {
       // Atualizar a lista de categorias após salvar
       await loadCategories()
       setIsModalOpen(false)
-
-      // Fazer backup após salvar
-      await backupData()
     } catch (error) {
       console.error("Erro ao salvar categoria:", error)
       alert("Erro ao salvar categoria. Tente novamente.")
@@ -97,7 +91,6 @@ export default function CategoriesAdminPage() {
       const updatedCategory = { ...category, active: !category.active }
       await saveCategory(updatedCategory)
       await loadCategories()
-      await backupData()
     } catch (error) {
       console.error("Erro ao atualizar status da categoria:", error)
       alert("Erro ao atualizar status da categoria. Tente novamente.")
@@ -119,7 +112,6 @@ export default function CategoriesAdminPage() {
       await saveCategory(updatedPrevCategory)
 
       await loadCategories()
-      await backupData()
     } catch (error) {
       console.error("Erro ao mover categoria para cima:", error)
       alert("Erro ao reordenar categorias. Tente novamente.")
@@ -141,7 +133,6 @@ export default function CategoriesAdminPage() {
       await saveCategory(updatedNextCategory)
 
       await loadCategories()
-      await backupData()
     } catch (error) {
       console.error("Erro ao mover categoria para baixo:", error)
       alert("Erro ao reordenar categorias. Tente novamente.")

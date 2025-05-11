@@ -3,50 +3,74 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Trash2, ArrowLeft, ShoppingBag, Clock } from "lucide-react"
-import { useCart } from "@/lib/cart-context"
+import { useRouter } from "next/navigation"
+import { ArrowLeft, Trash2, Plus, Minus } from "lucide-react"
+import { useCart, CartProvider } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
-// Adicionar importação do getStoreConfig
-import { getStoreConfig } from "@/lib/db"
-import { getStoreStatus } from "@/lib/store-utils"
+import { getStoreConfig } from "@/lib/services/store-config-service"
 
-export default function CartPage() {
-  const { cart, removeFromCart, updateQuantity, clearCart } = useCart()
-  const [total, setTotal] = useState(0)
-  // Adicionar estado para a taxa de entrega
+// Componente para exibir um item com nome à esquerda e valor à direita
+function ItemRow({ name, value }: { name: string; value: string }) {
+  return (
+    <div className="flex items-center w-full">
+      <div className="flex-grow">{name}</div>
+      <div className="flex-shrink-0 w-16 text-right tabular-nums">{value}</div>
+    </div>
+  )
+}
+
+// Componente interno que usa o hook useCart
+function CartPageContent() {
+  const { cart, removeFromCart, updateQuantity, isLoading } = useCart()
+  const router = useRouter()
   const [deliveryFee, setDeliveryFee] = useState(5.0)
-  const [storeConfig, setStoreConfig] = useState<{ name: string; deliveryFee: number } | null>(null)
-  const [storeStatus, setStoreStatus] = useState({ isOpen: true, statusText: "", statusClass: "" })
 
-  // Adicionar useEffect para carregar a taxa de entrega e o nome da loja
+  // Calcular subtotal e total
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const total = subtotal + deliveryFee
+
+  // Carregar taxa de entrega da configuração da loja
   useEffect(() => {
-    const loadStoreConfig = async () => {
+    const loadDeliveryFee = async () => {
       try {
-        const config = await getStoreConfig()
-        setDeliveryFee(config.deliveryFee)
-        setStoreConfig(config)
+        const storeConfig = await getStoreConfig()
+        if (storeConfig && storeConfig.delivery_fee !== undefined) {
+          setDeliveryFee(storeConfig.delivery_fee)
+        }
       } catch (error) {
-        console.error("Erro ao carregar configurações da loja:", error)
+        console.error("Erro ao carregar taxa de entrega:", error)
       }
     }
 
-    loadStoreConfig()
+    loadDeliveryFee()
   }, [])
 
-  useEffect(() => {
-    const loadStoreStatus = async () => {
-      const status = await getStoreStatus()
-      setStoreStatus(status)
-    }
+  const handleQuantityChange = async (id: number, size: string, newQuantity: number) => {
+    if (newQuantity < 1) return
+    await updateQuantity(id, size, newQuantity)
+  }
 
-    loadStoreStatus()
-  }, [])
+  const handleRemoveItem = async (id: number, size: string) => {
+    await removeFromCart(id, size)
+  }
 
-  // Atualizar o cálculo do total
-  useEffect(() => {
-    const newTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-    setTotal(newTotal)
-  }, [cart])
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
+          <div className="container mx-auto flex items-center">
+            <Link href="/" className="mr-4">
+              <ArrowLeft size={24} />
+            </Link>
+            <h1 className="text-xl font-bold">Carrinho</h1>
+          </div>
+        </header>
+        <div className="flex-1 flex justify-center items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700"></div>
+        </div>
+      </div>
+    )
+  }
 
   if (cart.length === 0) {
     return (
@@ -61,9 +85,8 @@ export default function CartPage() {
         </header>
 
         <div className="flex-1 flex flex-col items-center justify-center p-4">
-          <ShoppingBag size={64} className="text-purple-300 mb-4" />
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Seu carrinho está vazio</h2>
-          <p className="text-gray-500 mb-6 text-center">Adicione alguns produtos deliciosos para continuar</p>
+          <p className="text-gray-500 mb-6 text-center">Adicione alguns produtos antes de finalizar o pedido</p>
           <Link href="/">
             <button className="bg-purple-700 hover:bg-purple-800 text-white px-6 py-2 rounded-full">
               Ver produtos
@@ -77,141 +100,129 @@ export default function CartPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
-        <div className="container mx-auto flex items-center">
-          <Link href="/" className="mr-4">
-            <ArrowLeft size={24} />
-          </Link>
-          <h1 className="text-xl font-bold">Carrinho</h1>
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center">
+            <Link href="/" className="mr-4">
+              <ArrowLeft size={24} />
+            </Link>
+            <h1 className="text-xl font-bold">Carrinho</h1>
+          </div>
+          <div>
+            <span className="text-sm bg-white text-purple-900 px-2 py-1 rounded-full">
+              {cart.length} {cart.length === 1 ? "item" : "itens"}
+            </span>
+          </div>
         </div>
       </header>
 
       <div className="flex-1 container mx-auto p-4">
-        {!storeStatus.isOpen && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-md">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <Clock size={20} className="text-red-500" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">
-                  A loja está fechada no momento. Você pode visualizar seu carrinho, mas não poderá finalizar o pedido
-                  até que a loja esteja aberta.
-                </p>
-              </div>
-            </div>
+        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-4">
+          <div className="p-4 border-b">
+            <h2 className="text-lg font-semibold text-purple-900">Itens do Carrinho</h2>
           </div>
-        )}
 
-        <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-          <h2 className="text-lg font-semibold text-purple-900 mb-4">Itens do Carrinho</h2>
-
-          <div className="divide-y">
+          <ul className="divide-y divide-gray-200">
             {cart.map((item) => (
-              <div key={`${item.id}-${item.size}`} className="py-4">
-                <div className="flex items-center">
-                  <div className="w-16 h-16 relative mr-4">
-                    <Image
-                      src={item.image || "/placeholder.svg"}
-                      alt={item.name}
-                      fill
-                      className="object-cover rounded-md"
-                    />
-                  </div>
+              <li key={`${item.id}-${item.size}`} className="p-4">
+                <div className="flex items-start">
+                  {item.image && (
+                    <div className="w-16 h-16 relative flex-shrink-0 mr-4">
+                      <Image
+                        src={item.image || "/placeholder.svg"}
+                        alt={item.name}
+                        fill
+                        className="object-cover rounded-md"
+                      />
+                    </div>
+                  )}
 
                   <div className="flex-1">
-                    <h3 className="font-medium">{item.name}</h3>
-                    <p className="text-sm text-gray-500">Tamanho: {item.size}</p>
-                    <div className="flex items-center mt-1">
+                    <ItemRow
+                      name={`${item.quantity}x ${item.name} (${item.size})`}
+                      value={formatCurrency(item.price * item.quantity)}
+                    />
+
+                    {/* Adicionais */}
+                    {item.additionals && item.additionals.length > 0 && (
+                      <div className="mt-1 ml-4">
+                        <p className="text-xs text-gray-500 mb-1">Adicionais:</p>
+                        <ul className="text-xs text-gray-600 space-y-1">
+                          {item.additionals.map((additional, index) => (
+                            <li key={index}>
+                              <ItemRow
+                                name={`+ ${additional.quantity}x ${additional.name}`}
+                                value={formatCurrency(additional.price * additional.quantity)}
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="flex items-center mt-2">
+                      <div className="flex items-center border rounded-md mr-4">
+                        <button
+                          onClick={() => handleQuantityChange(item.id, item.size, item.quantity - 1)}
+                          className="px-2 py-1 text-gray-600 hover:bg-gray-100"
+                        >
+                          <Minus size={16} />
+                        </button>
+                        <span className="px-3 py-1">{item.quantity}</span>
+                        <button
+                          onClick={() => handleQuantityChange(item.id, item.size, item.quantity + 1)}
+                          className="px-2 py-1 text-gray-600 hover:bg-gray-100"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
                       <button
-                        className="w-8 h-8 bg-purple-100 text-purple-900 rounded-l-md flex items-center justify-center"
-                        onClick={() => updateQuantity(item.id, item.size, Math.max(1, item.quantity - 1))}
+                        onClick={() => handleRemoveItem(item.id, item.size)}
+                        className="text-red-500 hover:text-red-700 text-sm flex items-center"
                       >
-                        -
-                      </button>
-                      <span className="w-8 h-8 bg-purple-50 flex items-center justify-center text-sm">
-                        {item.quantity}
-                      </span>
-                      <button
-                        className="w-8 h-8 bg-purple-100 text-purple-900 rounded-r-md flex items-center justify-center"
-                        onClick={() => updateQuantity(item.id, item.size, item.quantity + 1)}
-                      >
-                        +
+                        <Trash2 size={14} className="mr-1" /> Remover
                       </button>
                     </div>
                   </div>
-
-                  <div className="text-right mt-6">
-                    <p className="font-semibold">{formatCurrency(item.price * item.quantity)}</p>
-                    <button
-                      className="text-red-500 mt-1 p-2"
-                      onClick={() => removeFromCart(item.id, item.size)}
-                      aria-label="Remover item"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
                 </div>
-
-                {/* Mostrar adicionais se houver */}
-                {item.additionals && item.additionals.length > 0 && (
-                  <div className="mt-2 ml-20 bg-purple-50 p-2 rounded-md">
-                    <p className="text-xs font-medium text-purple-900 mb-1">Adicionais:</p>
-                    <ul className="space-y-1">
-                      {item.additionals.map((additional, index) => (
-                        <li key={index} className="flex justify-between text-xs text-gray-700">
-                          <span>
-                            {additional.quantity}x {additional.name}
-                          </span>
-                          <span>{formatCurrency(additional.price * additional.quantity)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-          <div className="flex justify-between mb-2">
-            <span>Subtotal</span>
-            <span>{formatCurrency(total)}</span>
-          </div>
-          <div className="flex justify-between mb-2">
-            <span>Taxa de entrega</span>
-            <span>{deliveryFee > 0 ? formatCurrency(deliveryFee) : "Grátis"}</span>
-          </div>
-          <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
-            <span>Total</span>
-            <span>{formatCurrency(total + deliveryFee)}</span>
+          <h2 className="text-lg font-semibold text-purple-900 mb-4">Resumo do Pedido</h2>
+
+          <div className="space-y-2">
+            <ItemRow name="Subtotal" value={formatCurrency(subtotal)} />
+            <ItemRow name="Taxa de entrega" value={formatCurrency(deliveryFee)} />
+            <div className="pt-2 mt-2 border-t">
+              <ItemRow name="Total" value={formatCurrency(total)} />
+            </div>
           </div>
         </div>
 
-        <Link href={storeStatus.isOpen ? "/checkout" : "#"}>
-          <button
-            className={`w-full ${
-              storeStatus.isOpen ? "bg-purple-700 hover:bg-purple-800" : "bg-gray-400 cursor-not-allowed"
-            } text-white py-3 rounded-lg font-semibold`}
-            disabled={!storeStatus.isOpen}
-            onClick={(e) => {
-              if (!storeStatus.isOpen) {
-                e.preventDefault()
-                alert("A loja está fechada no momento. Por favor, tente novamente quando estivermos abertos.")
-              }
-            }}
-          >
-            {storeStatus.isOpen ? "Finalizar Pedido" : "Loja Fechada - Não é possível finalizar"}
-          </button>
-        </Link>
-      </div>
-      <footer className="bg-purple-900 text-white p-4 mt-auto">
-        <div className="text-center">
-          <p>
-            © {new Date().getFullYear()} {storeConfig?.name || "Açaí Delícia"} - Todos os direitos reservados
-          </p>
+        <div className="flex space-x-4">
+          <Link href="/" className="flex-1">
+            <button className="w-full border border-purple-700 text-purple-700 py-3 rounded-lg font-semibold">
+              Continuar Comprando
+            </button>
+          </Link>
+          <Link href="/checkout" className="flex-1">
+            <button className="w-full bg-purple-700 hover:bg-purple-800 text-white py-3 rounded-lg font-semibold">
+              Finalizar Pedido
+            </button>
+          </Link>
         </div>
-      </footer>
+      </div>
     </div>
+  )
+}
+
+// Componente principal que envolve o conteúdo com CartProvider
+export default function CartPage() {
+  return (
+    <CartProvider>
+      <CartPageContent />
+    </CartProvider>
   )
 }

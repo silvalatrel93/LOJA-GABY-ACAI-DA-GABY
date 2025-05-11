@@ -188,13 +188,13 @@ export default function NotificationBell() {
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={handleBellClick}
-          className={`relative p-1 text-gray-700 hover:text-purple-700 focus:outline-none ${bellAnimation}`}
+          className={`relative p-1 text-white hover:text-yellow-200 focus:outline-none ${bellAnimation}`}
           aria-label="Notificações"
         >
-          <Bell size={24} />
+          <Bell size={24} className="stroke-current stroke-2" />
           {unreadCount > 0 && (
             <span
-              className={`absolute top-0 right-0 inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-green-500 rounded-full ${newNotification ? "animate-pulse-custom" : ""}`}
+              className={`absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-green-500 rounded-full ${newNotification ? "animate-pulse-custom" : ""}`}
             >
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>

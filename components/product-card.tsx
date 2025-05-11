@@ -1,17 +1,25 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Plus, Maximize2, ChevronDown, ChevronUp } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
 import ImageViewer from "@/components/image-viewer"
-import { getActiveAdditionals, type Additional } from "@/lib/db"
+import { getActiveAdditionalsByProduct } from "@/lib/services/additional-service"
 import { getStoreStatus } from "@/lib/store-utils"
+import type { Product } from "@/lib/services/product-service"
+import type { Additional } from "@/lib/services/additional-service"
 
-export default function ProductCard({ product }) {
+interface ProductCardProps {
+  product: Product
+}
+
+export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart()
-  const [selectedSize, setSelectedSize] = useState(product.sizes[0].size)
+  const [selectedSize, setSelectedSize] = useState(product.sizes[0]?.size || "")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false)
   const [additionals, setAdditionals] = useState<Additional[]>([])
@@ -30,19 +38,9 @@ export default function ProductCard({ product }) {
       const loadAdditionals = async () => {
         try {
           setIsLoadingAdditionals(true)
-          const activeAdditionals = await getActiveAdditionals()
-
-          // Filtrar apenas os adicionais permitidos para este produto
-          if (product.allowedAdditionals && product.allowedAdditionals.length > 0) {
-            // Se o produto tem adicionais específicos permitidos, mostrar apenas esses
-            const filteredAdditionals = activeAdditionals.filter((additional) =>
-              product.allowedAdditionals?.includes(additional.id),
-            )
-            setAdditionals(filteredAdditionals)
-          } else {
-            // Se o produto não tem adicionais específicos, não mostrar nenhum
-            setAdditionals([])
-          }
+          // Usar o serviço do Supabase para obter adicionais
+          const activeAdditionals = await getActiveAdditionalsByProduct(product.id)
+          setAdditionals(activeAdditionals)
         } catch (error) {
           console.error("Erro ao carregar adicionais:", error)
         } finally {
@@ -52,7 +50,7 @@ export default function ProductCard({ product }) {
 
       loadAdditionals()
     }
-  }, [isModalOpen, product.allowedAdditionals])
+  }, [isModalOpen, product.id])
 
   useEffect(() => {
     const loadStoreStatus = async () => {
@@ -63,7 +61,9 @@ export default function ProductCard({ product }) {
     loadStoreStatus()
   }, [])
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
+    if (!selectedSizeInfo) return
+
     // Converter os adicionais selecionados para o formato do carrinho
     const cartAdditionals = Object.values(selectedAdditionals).map(({ additional, quantity }) => ({
       id: additional.id,
@@ -78,22 +78,23 @@ export default function ProductCard({ product }) {
       0,
     )
 
-    addToCart({
-      id: product.id,
+    await addToCart({
+      productId: product.id, // Alterado de id para productId
       name: product.name,
       price: selectedSizeInfo.price + additionalsTotal,
       size: selectedSize,
-      image: product.image,
+      image: product.image || "",
       quantity: 1,
       additionals: cartAdditionals.length > 0 ? cartAdditionals : undefined,
     })
+
     setIsModalOpen(false)
     // Limpar adicionais selecionados após adicionar ao carrinho
     setSelectedAdditionals({})
   }
 
   // Função para abrir o visualizador de imagem
-  const handleOpenImageViewer = (e) => {
+  const handleOpenImageViewer = (e: React.MouseEvent) => {
     e.stopPropagation() // Impedir que o evento se propague para outros elementos
     setIsImageViewerOpen(true)
   }
@@ -143,6 +144,8 @@ export default function ProductCard({ product }) {
 
   // Calcular o preço total incluindo adicionais
   const calculateTotal = () => {
+    if (!selectedSizeInfo) return 0
+
     const basePrice = selectedSizeInfo.price
     const additionalsTotal = Object.values(selectedAdditionals).reduce(
       (sum, { additional, quantity }) => sum + additional.price * quantity,
@@ -176,7 +179,7 @@ export default function ProductCard({ product }) {
           <p className="text-gray-600 text-xs mt-1 line-clamp-2">{product.description}</p>
           <div className="mt-2 flex justify-between items-center">
             <span className="font-bold text-purple-900 text-sm">
-              A partir de {formatCurrency(product.sizes[0].price)}
+              A partir de {formatCurrency(product.sizes[0]?.price || 0)}
             </span>
             <button
               onClick={() => (storeStatus.isOpen ? setIsModalOpen(true) : null)}
@@ -333,7 +336,7 @@ export default function ProductCard({ product }) {
               <button
                 onClick={handleAddToCart}
                 className="w-full bg-purple-700 hover:bg-purple-800 text-white py-3 rounded-lg font-semibold mt-6"
-                disabled={!storeStatus.isOpen}
+                disabled={!storeStatus.isOpen || !selectedSize}
               >
                 {storeStatus.isOpen
                   ? `Adicionar ao Carrinho • ${formatCurrency(calculateTotal())}`

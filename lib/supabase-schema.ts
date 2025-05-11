@@ -1,90 +1,191 @@
 import { createSupabaseClient } from "./supabase-client"
 
-// Verificar se as tabelas necessárias existem no Supabase
-export async function verifySupabaseTables(): Promise<boolean> {
-  try {
-    const supabase = createSupabaseClient()
+export async function createTables() {
+  const supabase = createSupabaseClient()
 
-    // Verificar se a tabela categories existe
-    const { error: categoriesError } = await supabase.from("categories").select("id").limit(1)
+  // Verificar se a função exec_sql existe
+  const { data: funcExists, error: funcError } = await supabase
+    .rpc("function_exists", {
+      function_name: "exec_sql",
+    })
+    .single()
 
-    if (categoriesError && categoriesError.code === "42P01") {
-      console.log("Tabela 'categories' não existe no Supabase")
-      return false
-    }
+  // Se a função não existir, criar
+  if (funcError || !funcExists) {
+    // Criar função para executar SQL
+    const createFuncSQL = `
+      CREATE OR REPLACE FUNCTION exec_sql(sql text)
+      RETURNS void
+      LANGUAGE plpgsql
+      SECURITY DEFINER
+      AS $$
+      BEGIN
+        EXECUTE sql;
+      END;
+      $$;
+    `
 
-    // Verificar se a tabela products existe
-    const { error: productsError } = await supabase.from("products").select("id").limit(1)
-
-    if (productsError && productsError.code === "42P01") {
-      console.log("Tabela 'products' não existe no Supabase")
-      return false
-    }
-
-    // Verificar se a tabela additionals existe
-    const { error: additionalsError } = await supabase.from("additionals").select("id").limit(1)
-
-    if (additionalsError && additionalsError.code === "42P01") {
-      console.log("Tabela 'additionals' não existe no Supabase")
-      return false
-    }
-
-    // Verificar se a tabela phrases existe
-    const { error: phrasesError } = await supabase.from("phrases").select("id").limit(1)
-
-    if (phrasesError && phrasesError.code === "42P01") {
-      console.log("Tabela 'phrases' não existe no Supabase")
-      return false
-    }
-
-    // Verificar se a tabela store_config existe
-    const { error: storeConfigError } = await supabase.from("store_config").select("id").limit(1)
-
-    if (storeConfigError && storeConfigError.code === "42P01") {
-      console.log("Tabela 'store_config' não existe no Supabase")
-      return false
-    }
-
-    // Verificar se a tabela carousel_slides existe
-    const { error: carouselError } = await supabase.from("carousel_slides").select("id").limit(1)
-
-    if (carouselError && carouselError.code === "42P01") {
-      console.log("Tabela 'carousel_slides' não existe no Supabase")
-      return false
-    }
-
-    // Verificar se a tabela page_content existe
-    const { error: pageContentError } = await supabase.from("page_content").select("id").limit(1)
-
-    if (pageContentError && pageContentError.code === "42P01") {
-      console.log("Tabela 'page_content' não existe no Supabase")
-      return false
-    }
-
-    // Todas as tabelas existem
-    return true
-  } catch (error) {
-    console.error("Erro ao verificar tabelas no Supabase:", error)
-    return false
-  }
-}
-
-// Criar tabelas no Supabase se necessário
-export async function createSupabaseTables(): Promise<boolean> {
-  try {
-    const supabase = createSupabaseClient()
-
-    // Executar o SQL para criar as tabelas
-    const { error } = await supabase.rpc("create_tables")
+    // Executar como SQL bruto (isso requer permissões de administrador)
+    const { error } = await supabase.rpc("exec_sql", { sql: createFuncSQL })
 
     if (error) {
-      console.error("Erro ao criar tabelas no Supabase:", error)
+      console.error("Erro ao criar função exec_sql:", error)
+      throw error
+    }
+  }
+
+  // SQL para criar tabelas
+  const createTablesSQL = `
+    -- Tabela de categorias
+    CREATE TABLE IF NOT EXISTS categories (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      "order" INTEGER NOT NULL DEFAULT 0,
+      active BOOLEAN NOT NULL DEFAULT true
+    );
+
+    -- Tabela de produtos
+    CREATE TABLE IF NOT EXISTS products (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      image VARCHAR(255),
+      sizes JSONB NOT NULL,
+      category_id INTEGER REFERENCES categories(id),
+      active BOOLEAN NOT NULL DEFAULT true,
+      allowed_additionals INTEGER[] DEFAULT '{}'::INTEGER[]
+    );
+
+    -- Tabela de adicionais
+    CREATE TABLE IF NOT EXISTS additionals (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      price DECIMAL(10, 2) NOT NULL,
+      category_id INTEGER REFERENCES categories(id),
+      active BOOLEAN NOT NULL DEFAULT true,
+      image VARCHAR(255)
+    );
+
+    -- Tabela de slides do carrossel
+    CREATE TABLE IF NOT EXISTS carousel_slides (
+      id SERIAL PRIMARY KEY,
+      image VARCHAR(255) NOT NULL,
+      title VARCHAR(255),
+      subtitle VARCHAR(255),
+      "order" INTEGER NOT NULL DEFAULT 0,
+      active BOOLEAN NOT NULL DEFAULT true
+    );
+
+    -- Tabela de frases
+    CREATE TABLE IF NOT EXISTS phrases (
+      id SERIAL PRIMARY KEY,
+      text TEXT NOT NULL,
+      "order" INTEGER NOT NULL DEFAULT 0,
+      active BOOLEAN NOT NULL DEFAULT true
+    );
+
+    -- Tabela de configuração da loja
+    CREATE TABLE IF NOT EXISTS store_config (
+      id VARCHAR(50) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      logo_url VARCHAR(255),
+      delivery_fee DECIMAL(10, 2) NOT NULL DEFAULT 0,
+      is_open BOOLEAN NOT NULL DEFAULT true,
+      operating_hours JSONB NOT NULL,
+      special_dates JSONB,
+      last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Tabela de conteúdo das páginas
+    CREATE TABLE IF NOT EXISTS page_content (
+      id VARCHAR(50) PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      content TEXT NOT NULL,
+      last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Tabela de notificações
+    CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      message TEXT NOT NULL,
+      type VARCHAR(50) NOT NULL,
+      active BOOLEAN NOT NULL DEFAULT true,
+      start_date TIMESTAMP WITH TIME ZONE NOT NULL,
+      end_date TIMESTAMP WITH TIME ZONE NOT NULL,
+      priority INTEGER NOT NULL DEFAULT 0,
+      read BOOLEAN NOT NULL DEFAULT false,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Tabela de pedidos
+    CREATE TABLE IF NOT EXISTS orders (
+      id SERIAL PRIMARY KEY,
+      customer_name VARCHAR(255) NOT NULL,
+      customer_phone VARCHAR(50) NOT NULL,
+      address JSONB NOT NULL,
+      items JSONB NOT NULL,
+      subtotal DECIMAL(10, 2) NOT NULL,
+      delivery_fee DECIMAL(10, 2) NOT NULL,
+      total DECIMAL(10, 2) NOT NULL,
+      payment_method VARCHAR(50) NOT NULL,
+      status VARCHAR(50) NOT NULL,
+      date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      printed BOOLEAN NOT NULL DEFAULT false
+    );
+
+    -- Tabela de carrinho
+    CREATE TABLE IF NOT EXISTS cart (
+      id SERIAL PRIMARY KEY,
+      session_id VARCHAR(255) NOT NULL,
+      product_id INTEGER NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      price DECIMAL(10, 2) NOT NULL,
+      quantity INTEGER NOT NULL,
+      image VARCHAR(255),
+      size VARCHAR(50) NOT NULL,
+      additionals JSONB,
+      UNIQUE(session_id, product_id, size)
+    );
+
+    -- Tabela de backups
+    CREATE TABLE IF NOT EXISTS backups (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      data JSONB NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `
+
+  // Executar SQL para criar tabelas
+  const { error: createTablesError } = await supabase.rpc("exec_sql", { sql: createTablesSQL })
+
+  if (createTablesError) {
+    console.error("Erro ao criar tabelas:", createTablesError)
+    throw createTablesError
+  }
+
+  return true
+}
+
+export async function checkTablesExist() {
+  const supabase = createSupabaseClient()
+
+  try {
+    // Verificar se a tabela categories existe
+    const { data, error } = await supabase.from("categories").select("count")
+
+    if (error && error.code === "PGRST116") {
+      // Tabela não existe
       return false
+    } else if (error) {
+      console.error("Erro ao verificar tabelas:", error)
+      throw error
     }
 
     return true
   } catch (error) {
-    console.error("Erro ao criar tabelas no Supabase:", error)
+    console.error("Erro ao verificar tabelas:", error)
     return false
   }
 }

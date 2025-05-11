@@ -55,8 +55,8 @@ export interface Database {
           name: string
           order: number
           active?: boolean
-          created_at?: string
-          updated_at?: string
+          created_at: string
+          updated_at: string
         }
         Update: {
           id?: number
@@ -85,8 +85,8 @@ export interface Database {
           category_id: number
           active?: boolean
           image?: string | null
-          created_at?: string
-          updated_at?: string
+          created_at: string
+          updated_at: string
         }
         Update: {
           id?: number
@@ -230,7 +230,7 @@ export interface Database {
           special_dates?: Json
           last_updated: string
           created_at?: string
-          updated_at: string
+          updated_at?: string
         }
         Update: {
           id?: string

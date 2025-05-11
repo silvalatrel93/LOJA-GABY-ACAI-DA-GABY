@@ -1,103 +1,59 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getActivePhrases } from "@/lib/db"
+import type { Phrase } from "@/lib/services/phrase-service"
 
 interface TextCarouselProps {
-  phrases?: string[] // Opcional agora, pois vamos buscar do banco de dados
+  phrases: Phrase[]
 }
 
-export default function TextCarousel({ phrases: defaultPhrases }: TextCarouselProps) {
+export default function TextCarousel({ phrases }: TextCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [isTransitioning, setIsTransitioning] = useState(false)
-  const [phrases, setPhrases] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true)
 
-  // Carregar frases do banco de dados
+  // Avançar para o próximo slide automaticamente
   useEffect(() => {
-    const loadPhrases = async () => {
-      try {
-        setIsLoading(true)
-        const activePhrases = await getActivePhrases()
-
-        if (activePhrases.length > 0) {
-          // Usar frases do banco de dados
-          setPhrases(activePhrases.map((phrase) => phrase.text))
-        } else if (defaultPhrases && defaultPhrases.length > 0) {
-          // Fallback para frases padrão passadas como prop
-          setPhrases(defaultPhrases)
-        } else {
-          // Fallback para frases padrão hardcoded
-          setPhrases([
-            "O melhor açaí da cidade! 🍇",
-            "Experimente nossos adicionais exclusivos! ✨",
-            "Entrega rápida para toda a região! 🚚",
-          ])
-        }
-      } catch (error) {
-        console.error("Erro ao carregar frases:", error)
-        // Fallback para frases padrão em caso de erro
-        if (defaultPhrases && defaultPhrases.length > 0) {
-          setPhrases(defaultPhrases)
-        } else {
-          setPhrases([
-            "O melhor açaí da cidade! 🍇",
-            "Experimente nossos adicionais exclusivos! ✨",
-            "Entrega rápida para toda a região! 🚚",
-          ])
-        }
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadPhrases()
-  }, [defaultPhrases])
-
-  // Alternar frases automaticamente a cada 4 segundos
-  useEffect(() => {
-    if (phrases.length <= 1) return // Não alternar se houver apenas uma frase
+    if (!isAutoPlaying || phrases.length <= 1) return
 
     const interval = setInterval(() => {
-      setIsTransitioning(true)
-
-      // Aguardar a animação de fade-out antes de mudar a frase
-      setTimeout(() => {
-        setCurrentIndex((prevIndex) => (prevIndex === phrases.length - 1 ? 0 : prevIndex + 1))
-
-        // Iniciar a animação de fade-in
-        setTimeout(() => {
-          setIsTransitioning(false)
-        }, 50)
-      }, 500) // Tempo da animação de fade-out
-    }, 4000)
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % phrases.length)
+    }, 5000)
 
     return () => clearInterval(interval)
-  }, [phrases.length])
+  }, [isAutoPlaying, phrases.length])
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4">
-        <div className="h-6 md:h-8 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </div>
-    )
+  // Pausar a reprodução automática quando o usuário interage
+  const handleManualNavigation = (index: number) => {
+    setCurrentIndex(index)
+    setIsAutoPlaying(false)
+
+    // Retomar a reprodução automática após 10 segundos de inatividade
+    setTimeout(() => {
+      setIsAutoPlaying(true)
+    }, 10000)
   }
 
-  if (phrases.length === 0) {
+  if (!phrases || phrases.length === 0) {
     return null
   }
 
   return (
-    <div className="container mx-auto px-4">
-      <div className="relative h-6 md:h-8 overflow-hidden">
-        <div
-          className={`absolute inset-0 flex items-center justify-center text-center transition-opacity duration-500 ${
-            isTransitioning ? "opacity-0" : "opacity-100"
-          }`}
-        >
-          <p className="font-medium text-xs md:text-sm">{phrases[currentIndex]}</p>
+    <div className="relative overflow-hidden bg-purple-900 text-white py-2 shadow-md">
+      <div className="container mx-auto px-4 flex items-center justify-center h-full">
+        <div className="w-full overflow-hidden">
+          <div
+            className="transition-transform duration-500 ease-in-out flex"
+            style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+          >
+            {phrases.map((phrase, index) => (
+              <div
+                key={phrase.id}
+                className="min-w-full flex items-center justify-center text-center text-white text-sm md:text-base font-medium px-4"
+              >
+                {phrase.text}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

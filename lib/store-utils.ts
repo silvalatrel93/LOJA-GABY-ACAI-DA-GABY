@@ -1,165 +1,132 @@
-import { getStoreConfig } from "@/lib/db"
+import { getStoreConfig } from "@/lib/services/store-config-service"
 
-// Dias da semana em português
-const weekDays = {
-  0: "sunday",
-  1: "monday",
-  2: "tuesday",
-  3: "wednesday",
-  4: "thursday",
-  5: "friday",
-  6: "saturday",
-}
+export async function getStoreStatus() {
+  try {
+    const storeConfig = await getStoreConfig()
 
-// Função para verificar se a loja está aberta no momento
-export async function isStoreOpen(): Promise<{
-  isOpen: boolean
-  message: string
-  nextOpeningTime?: string
-}> {
-  const config = await getStoreConfig()
-
-  // Se a loja estiver manualmente fechada, retorna fechado
-  if (!config.isOpen) {
-    return { isOpen: false, message: "Loja temporariamente fechada" }
-  }
-
-  // IMPORTANTE: Se a loja estiver manualmente marcada como aberta, retorna aberto
-  // independentemente dos horários configurados
-  if (config.isOpen === true) {
-    return { isOpen: true, message: "Loja aberta" }
-  }
-
-  const now = new Date()
-  const today = now.toISOString().split("T")[0] // Formato YYYY-MM-DD
-
-  // Verificar se é uma data especial
-  const specialDate = config.specialDates.find((date) => date.date === today)
-  if (specialDate) {
-    if (!specialDate.isOpen) {
+    // Se a loja estiver fechada manualmente
+    if (storeConfig && storeConfig.isOpen === false) {
       return {
         isOpen: false,
-        message: specialDate.note || "Loja fechada hoje",
+        statusText: "Loja fechada temporariamente",
+        statusClass: "text-red-500 font-medium",
       }
     }
-    // Se for uma data especial mas estiver aberta, continua a verificação normal
-  }
 
-  // Obter o dia da semana atual (0 = domingo, 1 = segunda, etc.)
-  const dayOfWeek = now.getDay()
-  const dayName = weekDays[dayOfWeek]
+    // Verificar horário de funcionamento
+    const now = new Date()
 
-  // Verificar se o dia está configurado para aberto
-  const dayConfig = config.operatingHours[dayName]
-  if (!dayConfig.open) {
-    // Encontrar o próximo dia aberto
-    let nextOpenDay = null
-    let daysToAdd = 1
-    while (daysToAdd <= 7 && !nextOpenDay) {
-      const nextDayIndex = (dayOfWeek + daysToAdd) % 7
-      const nextDayName = weekDays[nextDayIndex]
-      if (config.operatingHours[nextDayName].open) {
-        nextOpenDay = {
-          day: nextDayName,
-          hours: config.operatingHours[nextDayName].hours,
+    // Dias da semana em inglês
+    const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+    const today = days[now.getDay()]
+
+    // Verificar se há configuração para o dia atual
+    if (storeConfig?.operatingHours && storeConfig.operatingHours[today]) {
+      const todayConfig = storeConfig.operatingHours[today]
+
+      // Se o dia estiver marcado como fechado
+      if (!todayConfig.open) {
+        return {
+          isOpen: false,
+          statusText: "Loja fechada hoje",
+          statusClass: "text-red-500 font-medium",
         }
       }
-      daysToAdd++
-    }
 
-    const nextDayMessage = nextOpenDay
-      ? `Abriremos ${getDayName(nextOpenDay.day)} às ${nextOpenDay.hours.split(" - ")[0]}`
-      : "Consulte nossos horários"
+      // Verificar horário
+      if (todayConfig.hours) {
+        const [openTime, closeTime] = todayConfig.hours.split("-").map((time) => time.trim())
 
-    return {
-      isOpen: false,
-      message: `Fechado hoje`,
-      nextOpeningTime: nextDayMessage,
-    }
-  }
+        // Converter para objetos Date para comparação
+        const [openHour, openMinute] = openTime.split(":").map(Number)
+        const [closeHour, closeMinute] = closeTime.split(":").map(Number)
 
-  // Verificar se está dentro do horário de funcionamento
-  const [openTime, closeTime] = dayConfig.hours.split(" - ")
-  const [openHour, openMinute] = openTime.split(":").map(Number)
-  const [closeHour, closeMinute] = closeTime.split(":").map(Number)
+        const openDate = new Date()
+        openDate.setHours(openHour, openMinute, 0)
 
-  const currentHour = now.getHours()
-  const currentMinute = now.getMinutes()
+        const closeDate = new Date()
+        closeDate.setHours(closeHour, closeMinute, 0)
 
-  // Converter para minutos para facilitar a comparação
-  const currentTimeInMinutes = currentHour * 60 + currentMinute
-  const openTimeInMinutes = openHour * 60 + openMinute
-  const closeTimeInMinutes = closeHour * 60 + closeMinute
+        // Verificar se está dentro do horário de funcionamento
+        if (now >= openDate && now <= closeDate) {
+          return {
+            isOpen: true,
+            statusText: "Loja aberta",
+            statusClass: "text-green-500 font-medium",
+          }
+        } else {
+          // Calcular quanto tempo falta para abrir ou quanto tempo passou do fechamento
+          let timeMessage = ""
 
-  if (currentTimeInMinutes >= openTimeInMinutes && currentTimeInMinutes < closeTimeInMinutes) {
-    return {
-      isOpen: true,
-      message: `Aberto hoje: ${dayConfig.hours}`,
-    }
-  } else {
-    // Verificar se já passou do horário de fechamento ou ainda não abriu
-    if (currentTimeInMinutes < openTimeInMinutes) {
-      return {
-        isOpen: false,
-        message: `Abriremos hoje às ${openTime}`,
-        nextOpeningTime: `Hoje às ${openTime}`,
-      }
-    } else {
-      // Encontrar o próximo dia aberto
-      let nextOpenDay = null
-      let daysToAdd = 1
-      while (daysToAdd <= 7 && !nextOpenDay) {
-        const nextDayIndex = (dayOfWeek + daysToAdd) % 7
-        const nextDayName = weekDays[nextDayIndex]
-        if (config.operatingHours[nextDayName].open) {
-          nextOpenDay = {
-            day: nextDayName,
-            hours: config.operatingHours[nextDayName].hours,
+          if (now < openDate) {
+            // Loja ainda não abriu
+            const diffMinutes = Math.floor((openDate.getTime() - now.getTime()) / (1000 * 60))
+
+            if (diffMinutes < 60) {
+              timeMessage = `Abre em ${diffMinutes} minutos`
+            } else {
+              const hours = Math.floor(diffMinutes / 60)
+              const minutes = diffMinutes % 60
+              timeMessage = `Abre em ${hours}h${minutes > 0 ? ` e ${minutes}min` : ""}`
+            }
+          } else {
+            // Loja já fechou
+            timeMessage = "Fechado por hoje"
+          }
+
+          return {
+            isOpen: false,
+            statusText: timeMessage,
+            statusClass: "text-red-500 font-medium",
           }
         }
-        daysToAdd++
       }
+    }
 
-      const nextDayMessage = nextOpenDay
-        ? `Abriremos ${getDayName(nextOpenDay.day)} às ${nextOpenDay.hours.split(" - ")[0]}`
-        : "Consulte nossos horários"
+    // Verificar datas especiais
+    if (storeConfig?.specialDates && storeConfig.specialDates.length > 0) {
+      const today = new Date()
+      const todayString = today.toISOString().split("T")[0] // Formato YYYY-MM-DD
 
-      return {
-        isOpen: false,
-        message: `Fechado agora`,
-        nextOpeningTime: nextDayMessage,
+      const specialDate = storeConfig.specialDates.find((date) => date.date === todayString)
+
+      if (specialDate) {
+        return {
+          isOpen: specialDate.isOpen,
+          statusText: specialDate.isOpen
+            ? "Loja aberta (horário especial)"
+            : `Loja fechada: ${specialDate.description || "Data especial"}`,
+          statusClass: specialDate.isOpen ? "text-green-500 font-medium" : "text-red-500 font-medium",
+        }
       }
+    }
+
+    // Padrão: considerar aberto se não houver configuração específica
+    return {
+      isOpen: true,
+      statusText: "Loja aberta",
+      statusClass: "text-green-500 font-medium",
+    }
+  } catch (error) {
+    console.error("Erro ao verificar status da loja:", error)
+
+    // Em caso de erro, assumir que está aberto para não impedir vendas
+    return {
+      isOpen: true,
+      statusText: "Loja aberta",
+      statusClass: "text-green-500 font-medium",
     }
   }
 }
 
-// Função auxiliar para obter o nome do dia em português
-function getDayName(day: string): string {
-  const dayNames = {
-    monday: "Segunda-feira",
-    tuesday: "Terça-feira",
-    wednesday: "Quarta-feira",
-    thursday: "Quinta-feira",
-    friday: "Sexta-feira",
-    saturday: "Sábado",
-    sunday: "Domingo",
-  }
-  return dayNames[day]
-}
-
-// Função para obter o status da loja formatado para exibição
-export async function getStoreStatus(): Promise<{
-  isOpen: boolean
-  statusText: string
-  statusClass: string
-}> {
-  const status = await isStoreOpen()
-
-  return {
-    isOpen: status.isOpen,
-    statusText: status.isOpen
-      ? `Aberto agora`
-      : `Fechado${status.nextOpeningTime ? ` • ${status.nextOpeningTime}` : ""}`,
-    statusClass: status.isOpen ? "text-green-600" : "text-red-600",
+// Adicionar função isStoreOpen que retorna apenas o status booleano
+export async function isStoreOpen(): Promise<boolean> {
+  try {
+    const status = await getStoreStatus()
+    return status.isOpen
+  } catch (error) {
+    console.error("Erro ao verificar se a loja está aberta:", error)
+    // Em caso de erro, assumir que está aberto para não impedir vendas
+    return true
   }
 }

@@ -4,19 +4,23 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ShoppingCart } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
+import { formatCurrency } from "@/lib/utils"
 
 export default function FloatingCartButton() {
-  const { cart } = useCart()
+  const { cart, isLoading } = useCart()
   const [isVisible, setIsVisible] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
 
-  const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0)
+  // Calcular o total de itens e o valor total
+  const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
+  const totalValue = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
+  // Controlar a visibilidade do botão com base na rolagem
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY
 
-      // Esconde o botão quando rola para baixo e mostra quando rola para cima
+      // Esconder o botão quando rolar para baixo, mostrar quando rolar para cima
       if (currentScrollY > lastScrollY) {
         setIsVisible(false)
       } else {
@@ -30,22 +34,29 @@ export default function FloatingCartButton() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [lastScrollY])
 
-  if (cartItemCount === 0) return null
+  // Não mostrar o botão se o carrinho estiver vazio ou carregando
+  if (isLoading || itemCount === 0) {
+    return null
+  }
 
   return (
-    <Link
-      href="/carrinho"
-      className={`fixed bottom-6 right-6 bg-purple-600 text-white p-4 rounded-full shadow-lg transition-all duration-300 z-50 animate-float ${
-        isVisible ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"
+    <div
+      className={`fixed bottom-4 right-4 z-50 transition-transform duration-300 ${
+        isVisible ? "translate-y-0" : "translate-y-20"
       }`}
-      aria-label="Ver carrinho"
     >
-      <div className="relative">
-        <ShoppingCart size={24} />
-        <span className="absolute -top-2 -right-2 bg-white text-purple-600 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-          {cartItemCount}
-        </span>
-      </div>
-    </Link>
+      <Link href="/carrinho">
+        <button className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-3 rounded-full shadow-lg flex items-center">
+          <ShoppingCart size={20} className="mr-2" />
+          <div>
+            <span className="font-medium">
+              {itemCount} {itemCount === 1 ? "item" : "itens"}
+            </span>
+            <span className="mx-2">•</span>
+            <span>{formatCurrency(totalValue)}</span>
+          </div>
+        </button>
+      </Link>
+    </div>
   )
 }
