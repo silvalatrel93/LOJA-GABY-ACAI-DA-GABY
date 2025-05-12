@@ -2,14 +2,35 @@
 
 import { useState, useEffect } from "react"
 import { createSupabaseClient } from "@/lib/supabase-client"
+import { useRouter } from "next/navigation"
 
 export default function StatusPage() {
   const [status, setStatus] = useState<"loading" | "connected" | "error">("loading")
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [tables, setTables] = useState<string[]>([])
   const [envVars, setEnvVars] = useState<{ [key: string]: string | undefined }>({})
+  const router = useRouter()
 
   useEffect(() => {
+    // Verificar autenticação
+    const checkAuth = () => {
+      const adminAuth = localStorage.getItem("adminAuth")
+      const adminAuthExpiry = localStorage.getItem("adminAuthExpiry")
+
+      if (!adminAuth || !adminAuthExpiry || Number.parseInt(adminAuthExpiry) < Date.now()) {
+        // Autenticação expirada ou não existente
+        localStorage.removeItem("adminAuth")
+        localStorage.removeItem("adminAuthExpiry")
+        alert("Acesso não autorizado ou sessão expirada.")
+        router.push("/admin")
+        return false
+      }
+
+      return true
+    }
+
+    if (!checkAuth()) return
+
     // Verificar variáveis de ambiente
     setEnvVars({
       NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -30,19 +51,36 @@ export default function StatusPage() {
           return
         }
 
-        // Listar tabelas usando uma consulta direta à tabela pg_tables
-        const { data: tablesData, error: tablesError } = await supabase
-          .from("pg_tables")
-          .select("tablename")
-          .eq("schemaname", "public")
+        // Tentar detectar tabelas existentes verificando-as individualmente
+        const tableNames = [
+          "categories",
+          "products",
+          "additionals",
+          "carousel_slides",
+          "phrases",
+          "store_config",
+          "page_content",
+          "notifications",
+          "orders",
+          "cart",
+          "backups",
+        ]
 
-        if (tablesError) {
-          console.error("Erro ao listar tabelas:", tablesError)
-          // Não falhar completamente se não conseguir listar as tabelas
-        } else if (tablesData) {
-          setTables(tablesData.map((row: any) => row.tablename))
+        const existingTables = []
+
+        for (const tableName of tableNames) {
+          try {
+            const { error: tableError } = await supabase.from(tableName).select("count").limit(1).single()
+
+            if (!tableError || tableError.code !== "PGRST116") {
+              existingTables.push(tableName)
+            }
+          } catch (e) {
+            // Ignorar erros individuais de tabela
+          }
         }
 
+        setTables(existingTables)
         setStatus("connected")
       } catch (error) {
         console.error("Erro ao conectar com Supabase:", error)
@@ -52,7 +90,7 @@ export default function StatusPage() {
     }
 
     checkConnection()
-  }, [])
+  }, [router])
 
   return (
     <div className="container mx-auto p-4">
@@ -95,7 +133,7 @@ export default function StatusPage() {
 
       {tables.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold mb-2">Tabelas Disponíveis</h2>
+          <h2 className="text-xl font-semibold mb-2">Tabelas Detectadas</h2>
           <ul className="bg-gray-100 p-3 rounded">
             {tables.map((table) => (
               <li key={table} className="mb-1 font-mono">

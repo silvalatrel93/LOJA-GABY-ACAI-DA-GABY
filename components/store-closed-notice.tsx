@@ -35,10 +35,13 @@ export default function StoreClosedNotice() {
       }
     }
 
+    // Carregar status inicial
     loadStoreStatus()
 
-    // Atualizar o status a cada minuto
-    const interval = setInterval(loadStoreStatus, 60000)
+    // Configurar intervalo para atualizar o status a cada 30 segundos
+    const interval = setInterval(loadStoreStatus, 30000)
+
+    // Limpar intervalo quando o componente for desmontado
     return () => clearInterval(interval)
   }, [router])
 
@@ -47,7 +50,7 @@ export default function StoreClosedNotice() {
     if (showNotice) {
       // Adiciona o estilo ao documento
       const styleElement = document.createElement("style")
-      styleElement.innerHTML = marqueeStyle
+      styleElement.innerHTML = pulseAnimationStyle
       document.head.appendChild(styleElement)
       styleElementRef.current = styleElement
     }
@@ -67,85 +70,91 @@ export default function StoreClosedNotice() {
 
   return (
     <div
-      className="bg-red-500 text-white py-1 sticky top-0 z-10 w-screen left-0 right-0 mt-0"
+      className="bg-red-500 text-white py-2 sticky top-0 z-10 w-screen left-0 right-0 mt-0"
       style={{ marginLeft: "-1rem", marginRight: "-1rem", width: "100vw" }}
     >
-      <div className="ticker-wrap">
-        <div className="ticker">
-          <div className="ticker__item">
-            <Clock size={16} className="mr-2 flex-shrink-0" />
-            <span className="text-sm font-medium md:text-base">{storeStatus.statusText}</span>
+      <div className="pulse-container">
+        <div className="pulse-content">
+          <div className="pulse-icon">
+            <Clock size={16} />
           </div>
-          <div className="ticker__item">
-            <Clock size={16} className="mr-2 flex-shrink-0" />
-            <span className="text-sm font-medium md:text-base">{storeStatus.statusText}</span>
-          </div>
-          <div className="ticker__item">
-            <Clock size={16} className="mr-2 flex-shrink-0" />
-            <span className="text-sm font-medium md:text-base">{storeStatus.statusText}</span>
-          </div>
-          <div className="ticker__item">
-            <Clock size={16} className="mr-2 flex-shrink-0" />
-            <span className="text-sm font-medium md:text-base">{storeStatus.statusText}</span>
-          </div>
+          <div className="pulse-text">{storeStatus.statusText}</div>
         </div>
       </div>
     </div>
   )
 }
 
-// Estilo para a animação de ticker (letreiro) com loop infinito perfeito
-const marqueeStyle = `
-  .ticker-wrap {
+// Estilo para a animação de pulso
+const pulseAnimationStyle = `
+  .pulse-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     width: 100%;
     overflow: hidden;
-    height: 20px;
-    padding-left: 100%;
-    box-sizing: content-box;
+    height: 24px;
   }
-
-  .ticker {
-    display: inline-flex;
-    height: 100%;
-    line-height: 20px;
-    white-space: nowrap;
-    animation-iteration-count: infinite;
-    animation-timing-function: linear;
-    animation-name: ticker;
-    animation-duration: 20s;
-  }
-
-  .ticker__item {
-    display: inline-flex;
+  
+  .pulse-content {
+    display: flex;
     align-items: center;
-    padding: 0 2rem;
+    justify-content: center;
+    animation: slide-in 0.5s ease-out forwards;
   }
-
-  @keyframes ticker {
+  
+  .pulse-icon {
+    margin-right: 8px;
+    animation: pulse 2s infinite;
+  }
+  
+  .pulse-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+    animation: glow 2s infinite alternate;
+  }
+  
+  @keyframes pulse {
     0% {
-      transform: translate3d(0, 0, 0);
+      transform: scale(1);
+      opacity: 1;
     }
-    
+    50% {
+      transform: scale(1.1);
+      opacity: 0.8;
+    }
     100% {
-      transform: translate3d(-100%, 0, 0);
+      transform: scale(1);
+      opacity: 1;
     }
   }
-
-  @media (max-width: 640px) {
-    .ticker-wrap {
-      height: 18px;
+  
+  @keyframes glow {
+    from {
+      text-shadow: 0 0 0px rgba(255, 255, 255, 0.5);
     }
-    .ticker {
-      line-height: 18px;
+    to {
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    }
+  }
+  
+  @keyframes slide-in {
+    0% {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
     }
   }
   
   @media (min-width: 768px) {
-    .ticker-wrap {
-      height: 22px;
+    .pulse-text {
+      font-size: 1rem;
     }
-    .ticker {
-      line-height: 22px;
+    .pulse-container {
+      height: 28px;
     }
   }
 `

@@ -18,7 +18,6 @@ import {
   Settings,
   Clock,
   Bell,
-  Beaker,
 } from "lucide-react"
 import {
   getAllProducts,
@@ -408,49 +407,6 @@ export default function AdminPage() {
             <div>
               <h2 className="text-lg font-semibold text-purple-900">Gerenciar Páginas</h2>
               <p className="text-gray-600">Edite o conteúdo das páginas do site</p>
-            </div>
-          </Link>
-
-          {/* Adicionar um novo card para a página de status */}
-          <Link
-            href="/admin/status"
-            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
-          >
-            <div className="bg-purple-100 p-3 rounded-full mr-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-purple-700"
-              >
-                <path d="M20 7h-9"></path>
-                <path d="M14 17H5"></path>
-                <circle cx="17" cy="17" r="3"></circle>
-                <circle cx="7" cy="7" r="3"></circle>
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-purple-900">Status do Sistema</h2>
-              <p className="text-gray-600">Verificar status do banco de dados e migração</p>
-            </div>
-          </Link>
-
-          <Link
-            href="/admin/testes"
-            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
-          >
-            <div className="bg-purple-100 p-3 rounded-full mr-4">
-              <Beaker size={24} className="text-purple-700" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-purple-900">Ferramentas de Teste</h2>
-              <p className="text-gray-600">Testar funcionalidades e migrar dados para o Supabase</p>
             </div>
           </Link>
         </div>

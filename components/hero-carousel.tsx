@@ -65,32 +65,38 @@ export default function HeroCarousel({ slides }: HeroCarouselProps) {
   }
 
   return (
-    <div className="relative w-full overflow-hidden">
+    <div
+      className="relative w-full overflow-hidden"
+      style={{
+        width: "100vw",
+        marginLeft: "calc(-50vw + 50%)",
+        marginRight: "calc(-50vw + 50%)",
+      }}
+    >
       {/* Container do carrossel com altura responsiva */}
       <div className="relative h-48 sm:h-64 md:h-80 lg:h-96">
-        {/* Slides */}
-        <div
-          className="flex transition-transform duration-500 ease-in-out h-full"
-          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-        >
-          {slides.map((slide) => (
-            <div key={slide.id} className="min-w-full h-full relative">
-              <Image
-                src={slide.image || "/placeholder.svg"}
-                alt={slide.title || "Banner promocional"}
-                fill
-                className="object-contain"
-                priority={currentIndex === slides.indexOf(slide)}
-              />
-              {(slide.title || slide.subtitle) && (
-                <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black/70 to-transparent text-white">
-                  {slide.title && <h2 className="text-xl font-bold">{slide.title}</h2>}
-                  {slide.subtitle && <p className="text-sm">{slide.subtitle}</p>}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        {/* Slides com efeito de fade */}
+        {slides.map((slide, index) => (
+          <div
+            key={slide.id}
+            className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
+            style={{ opacity: currentIndex === index ? 1 : 0 }}
+          >
+            <Image
+              src={slide.image || "/placeholder.svg"}
+              alt={slide.title || "Banner promocional"}
+              fill
+              className="object-contain"
+              priority={currentIndex === index}
+            />
+            {(slide.title || slide.subtitle) && (
+              <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black/70 to-transparent text-white">
+                {slide.title && <h2 className="text-xl font-bold">{slide.title}</h2>}
+                {slide.subtitle && <p className="text-sm">{slide.subtitle}</p>}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   )

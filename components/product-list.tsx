@@ -7,6 +7,17 @@ import ProductCard from "@/components/product-card"
 import type { Product } from "@/lib/services/product-service"
 import type { Category } from "@/lib/services/category-service"
 
+// Estilo global para ocultar a barra de rolagem mas manter a funcionalidade
+const globalStyles = `
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+`
+
 export default function ProductList({ products: initialProducts = [], categories: initialCategories = [] }) {
   const [allProducts, setAllProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>(initialCategories)
@@ -15,6 +26,17 @@ export default function ProductList({ products: initialProducts = [], categories
   const [isTransitioning, setIsTransitioning] = useState(false)
   const prevScrollY = useRef(0)
   const contentRef = useRef<HTMLDivElement>(null)
+
+  // Injetar estilos globais
+  useEffect(() => {
+    const styleElement = document.createElement("style")
+    styleElement.innerHTML = globalStyles
+    document.head.appendChild(styleElement)
+
+    return () => {
+      document.head.removeChild(styleElement)
+    }
+  }, [])
 
   // Carregar categorias e todos os produtos uma única vez no início
   useEffect(() => {
@@ -110,28 +132,56 @@ export default function ProductList({ products: initialProducts = [], categories
     <div className="w-full">
       {/* Filtro de categorias - sticky */}
       <div
-        className="sticky top-[56px] z-10 bg-gray-50 py-2 border-b border-gray-200 shadow-sm w-screen left-0 right-0"
+        className="sticky top-[56px] z-20 py-2 shadow-sm w-screen left-0 right-0"
         style={{
           marginLeft: "calc(-50vw + 50%)",
           marginRight: "calc(-50vw + 50%)",
           width: "100vw",
           boxSizing: "border-box",
+          background: "linear-gradient(to bottom, white, #f5f5f5)",
+          borderBottom: "1px solid #eaeaea",
         }}
       >
-        <div className="flex overflow-x-auto pb-1 gap-2 scrollbar-hide pl-4 pr-4">
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => handleCategoryChange(category.id)}
-              className={`px-4 py-1.5 rounded-full whitespace-nowrap ${
-                selectedCategory === category.id
-                  ? "bg-purple-700 text-white"
-                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-              }`}
-            >
-              {category.name}
-            </button>
-          ))}
+        <div className="relative">
+          {/* Gradiente de fade à esquerda */}
+          <div
+            className="absolute left-0 top-0 bottom-0 w-8 z-10 pointer-events-none"
+            style={{
+              background: "linear-gradient(to right, white, transparent)",
+            }}
+          ></div>
+
+          <div
+            className="flex overflow-x-auto py-1 gap-3 no-scrollbar pl-4 pr-4"
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              WebkitOverflowScrolling: "touch",
+              scrollBehavior: "smooth",
+            }}
+          >
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => handleCategoryChange(category.id)}
+                className={`px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-400 ${
+                  selectedCategory === category.id
+                    ? "bg-purple-600 text-white shadow-sm font-medium"
+                    : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                {category.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Gradiente de fade à direita */}
+          <div
+            className="absolute right-0 top-0 bottom-0 w-8 z-10 pointer-events-none"
+            style={{
+              background: "linear-gradient(to left, white, transparent)",
+            }}
+          ></div>
         </div>
       </div>
 

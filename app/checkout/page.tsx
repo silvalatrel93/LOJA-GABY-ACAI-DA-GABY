@@ -126,19 +126,24 @@ function CheckoutPageContent() {
       message += `*Endereço de Entrega:*\n`
       message += `${formData.address}, ${formData.number}\n`
       message += `Bairro: ${formData.neighborhood}\n`
-      if (formData.complement) message += `Complemento: ${formData.complement}\n\n`
+      if (formData.complement) message += `Complemento: ${formData.complement}\n`
 
-      message += `*Itens do Pedido:*\n`
-      cart.forEach((item) => {
-        // Usar tamanho limpo na mensagem do WhatsApp
+      // Adicionar o texto "Itens do Pedido:" com muitos espaços antes
+      message += `\n${" ".repeat(144)}Itens do Pedido:\n`
+
+      // Processar cada item do carrinho
+      cart.forEach((item, index) => {
+        // Adicionar o item principal
         message += `- ${item.quantity}x ${item.name} (${cleanSizeDisplay(item.size)}) - ${formatCurrency(item.price * item.quantity)}\n`
 
-        // Adicionar adicionais ao pedido
+        // Verificar se tem adicionais
         if (item.additionals && item.additionals.length > 0) {
-          message += `  *Adicionais:*\n`
+          message += `  Com Adicionais:\n`
           item.additionals.forEach((additional) => {
             message += `  • ${additional.quantity}x ${additional.name} - ${formatCurrency(additional.price * additional.quantity)}\n`
           })
+        } else {
+          message += `  Sem Adicionais:\n`
         }
       })
 
@@ -370,34 +375,49 @@ function CheckoutPageContent() {
           <div className="bg-white rounded-lg shadow-md p-4 mb-4">
             <h2 className="text-lg font-semibold text-purple-900 mb-4">Resumo do Pedido</h2>
 
-            <div className="space-y-2">
-              {cart.map((item) => (
-                <div key={`${item.id}-${item.size}`} className="mb-2">
-                  <ItemRow
-                    name={`${item.quantity}x ${item.name} (${cleanSizeDisplay(item.size)})`}
-                    value={formatCurrency(item.price * item.quantity)}
-                  />
-
-                  {/* Mostrar adicionais se houver */}
-                  {item.additionals && item.additionals.length > 0 && (
-                    <div className="ml-4 text-sm text-gray-600 mt-1">
-                      {item.additionals.map((additional, index) => (
-                        <ItemRow
-                          key={index}
-                          name={`+ ${additional.quantity}x ${additional.name}`}
-                          value={formatCurrency(additional.price * additional.quantity)}
-                        />
-                      ))}
+            <div className="space-y-4">
+              {cart.map((item, index) => (
+                <div key={`${item.id}-${item.size}`} className={`${index > 0 ? "pt-3 border-t" : ""}`}>
+                  <div className="flex justify-between items-center">
+                    <div className="font-medium">
+                      {item.quantity}x {item.name} ({cleanSizeDisplay(item.size)})
                     </div>
+                    <div className="font-medium tabular-nums">{formatCurrency(item.price * item.quantity)}</div>
+                  </div>
+
+                  {/* Mostrar status de adicionais */}
+                  {item.additionals && item.additionals.length > 0 ? (
+                    <>
+                      <div className="text-sm text-purple-600 italic mt-1 ml-2">Com Adicionais:</div>
+                      <div className="ml-4 text-sm text-gray-600">
+                        {item.additionals.map((additional, idx) => (
+                          <div key={idx} className="flex justify-between items-center mt-1">
+                            <div>
+                              + {additional.quantity}x {additional.name}
+                            </div>
+                            <div className="tabular-nums">{formatCurrency(additional.price * additional.quantity)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-sm text-gray-500 italic mt-1 ml-2">Sem Adicionais:</div>
                   )}
                 </div>
               ))}
 
-              <div className="border-t pt-2 mt-2">
-                <ItemRow name="Subtotal" value={formatCurrency(subtotal)} />
-                <ItemRow name="Taxa de entrega" value={deliveryFee > 0 ? formatCurrency(deliveryFee) : "Grátis"} />
-                <div className="font-bold text-lg pt-2 mt-2 border-t">
-                  <ItemRow name="Total" value={formatCurrency(total)} />
+              <div className="border-t pt-3 mt-3">
+                <div className="flex justify-between items-center">
+                  <div>Subtotal</div>
+                  <div className="tabular-nums">{formatCurrency(subtotal)}</div>
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <div>Taxa de entrega</div>
+                  <div className="tabular-nums">{deliveryFee > 0 ? formatCurrency(deliveryFee) : "Grátis"}</div>
+                </div>
+                <div className="flex justify-between items-center mt-3 pt-2 border-t font-bold text-lg">
+                  <div>Total</div>
+                  <div className="tabular-nums">{formatCurrency(total)}</div>
                 </div>
               </div>
             </div>

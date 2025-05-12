@@ -41,10 +41,13 @@ export default function MainLayout({ children, carouselSlides = [] }: MainLayout
 
   return (
     <CartProvider>
-      <div className="min-h-screen flex flex-col bg-gray-50">
+      <div className="min-h-screen flex flex-col bg-gray-50 overflow-x-hidden w-full">
         {/* Cabeçalho */}
-        <header className="bg-purple-900 text-white p-3 sticky top-0 z-20">
-          <div className="container mx-auto flex justify-between items-center">
+        <header
+          className="bg-purple-600 text-white p-3 sticky top-0 z-20"
+          style={{ width: "100vw", marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)" }}
+        >
+          <div className="w-full max-w-screen-xl mx-auto px-4 flex justify-between items-center">
             <div className="flex items-center">
               <button
                 onClick={toggleMenu}
@@ -80,11 +83,14 @@ export default function MainLayout({ children, carouselSlides = [] }: MainLayout
         {carouselSlides.length > 0 && <HeroCarousel slides={carouselSlides} />}
 
         {/* Conteúdo principal */}
-        <main className="flex-1 flex flex-col">{children}</main>
+        <main className="flex-1 flex flex-col overflow-x-hidden w-full">{children}</main>
 
         {/* Rodapé */}
-        <footer className="bg-purple-900 text-white p-4">
-          <div className="container mx-auto text-center">
+        <footer
+          className="bg-purple-600 text-white p-4"
+          style={{ width: "100vw", marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)" }}
+        >
+          <div className="w-full max-w-screen-xl mx-auto px-4 text-center">
             <p>
               © {new Date().getFullYear()} {storeConfig?.name || "Açaí Online"} - Todos os direitos reservados
             </p>

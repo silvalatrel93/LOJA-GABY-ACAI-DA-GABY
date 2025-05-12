@@ -112,6 +112,12 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                   display: flex;
                   justify-content: space-between;
                 }
+                .additional-status {
+                  font-style: italic;
+                  margin-left: 5mm;
+                  margin-top: 1mm;
+                  margin-bottom: 1mm;
+                }
                 .additional {
                   padding-left: 5mm;
                   font-size: 9pt;
@@ -306,24 +312,37 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           doc.text(itemText, margin, yPos)
           yPos += 5
           doc.text(priceText, 80 - margin, yPos, { align: "right" })
+          yPos += 5
         } else {
           doc.text(itemText, margin, yPos)
           doc.text(priceText, 80 - margin, yPos, { align: "right" })
+          yPos += 5
         }
-        yPos += 5
 
-        // Adicionar adicionais do item
+        // Adicionar status de adicionais
         if (item.additionals && item.additionals.length > 0) {
-          item.additionals.forEach((additional) => {
-            const additionalText = `+ ${additional.name}`
-            const additionalPriceText = formatCurrency(additional.price * item.quantity)
+          doc.setFont("courier", "italic")
+          doc.text("Com Adicionais:", margin + 3, yPos)
+          yPos += 5
+          doc.setFont("courier", "normal")
 
-            doc.text(additionalText, margin + 3, yPos)
+          // Adicionar adicionais do item
+          item.additionals.forEach((additional) => {
+            const additionalText = `• ${additional.quantity}x ${additional.name}`
+            const additionalPriceText = formatCurrency(additional.price * additional.quantity)
+
+            doc.text(additionalText, margin + 5, yPos)
             doc.text(additionalPriceText, 80 - margin, yPos, { align: "right" })
             yPos += 4
           })
-          yPos += 1 // Espaço extra após os adicionais
+        } else {
+          doc.setFont("courier", "italic")
+          doc.text("Sem Adicionais:", margin + 3, yPos)
+          yPos += 5
+          doc.setFont("courier", "normal")
         }
+
+        yPos += 3 // Espaço extra após cada item
       })
 
       yPos += 5
@@ -439,25 +458,29 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           <div className="section">
             <div className="section-title">ITENS</div>
             {order.items.map((item, index) => (
-              <div key={index}>
+              <div key={index} style={{ marginBottom: "8px" }}>
                 <div className="item">
                   <div>
                     {item.quantity}x {item.name} ({cleanSizeDisplay(item.size)})
                   </div>
                   <div>{formatCurrency(item.price * item.quantity)}</div>
                 </div>
-                {/* Mostrar adicionais se houver */}
-                {item.additionals && item.additionals.length > 0 && (
-                  <div>
+
+                {/* Indicar se tem ou não adicionais */}
+                {item.additionals && item.additionals.length > 0 ? (
+                  <>
+                    <div className="additional-status">Com Adicionais:</div>
                     {item.additionals.map((additional, idx) => (
                       <div key={idx} className="item additional">
                         <div>
-                          + {additional.quantity}x {additional.name}
+                          • {additional.quantity}x {additional.name}
                         </div>
                         <div>{formatCurrency(additional.price * additional.quantity)}</div>
                       </div>
                     ))}
-                  </div>
+                  </>
+                ) : (
+                  <div className="additional-status">Sem Adicionais:</div>
                 )}
               </div>
             ))}

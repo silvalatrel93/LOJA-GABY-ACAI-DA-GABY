@@ -26,19 +26,63 @@ export default function Home() {
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null)
   const [storeOpen, setStoreOpen] = useState<boolean>(true)
   const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true)
-        const [slidesData, categoriesData, productsData, phrasesData, configData, storeStatus] = await Promise.all([
-          getActiveSlides(),
-          getActiveCategories(),
-          getActiveProducts(),
-          getActivePhrases(),
-          getStoreConfig(),
-          getStoreStatus(),
-        ])
+        setError(null)
+
+        // Carrega os dados com tratamento de erros para cada serviço
+        let slidesData: CarouselSlide[] = []
+        let categoriesData: Category[] = []
+        let productsData: Product[] = []
+        let phrasesData: Phrase[] = []
+        let configData: StoreConfig | null = null
+        let storeStatus = { isOpen: true }
+
+        try {
+          slidesData = await getActiveSlides()
+        } catch (e) {
+          console.error("Erro ao carregar slides:", e)
+          slidesData = []
+        }
+
+        try {
+          categoriesData = await getActiveCategories()
+        } catch (e) {
+          console.error("Erro ao carregar categorias:", e)
+          categoriesData = []
+        }
+
+        try {
+          productsData = await getActiveProducts()
+        } catch (e) {
+          console.error("Erro ao carregar produtos:", e)
+          productsData = []
+        }
+
+        try {
+          phrasesData = await getActivePhrases()
+        } catch (e) {
+          console.error("Erro ao carregar frases:", e)
+          phrasesData = []
+        }
+
+        try {
+          configData = await getStoreConfig()
+        } catch (e) {
+          console.error("Erro ao carregar configurações da loja:", e)
+          configData = null
+        }
+
+        try {
+          storeStatus = await getStoreStatus()
+        } catch (e) {
+          console.error("Erro ao verificar status da loja:", e)
+          storeStatus = { isOpen: true }
+        }
 
         setSlides(slidesData)
         setCategories(categoriesData)
@@ -46,10 +90,9 @@ export default function Home() {
         setPhrases(phrasesData)
         setStoreConfig(configData)
         setStoreOpen(storeStatus.isOpen)
-
-        console.log("Frases carregadas:", phrasesData)
       } catch (error) {
         console.error("Erro ao carregar dados:", error)
+        setError("Ocorreu um erro ao carregar os dados. Por favor, tente novamente.")
       } finally {
         setLoading(false)
       }
@@ -66,10 +109,20 @@ export default function Home() {
       {/* Aviso de loja fechada logo após o carrossel de frases */}
       {!storeOpen && <StoreClosedNotice />}
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 bg-gradient-to-b from-purple-100 to-white rounded-lg">
         {loading ? (
           <div className="flex justify-center p-12">
             <div className="animate-spin h-8 w-8 border-4 border-purple-500 rounded-full border-t-transparent"></div>
+          </div>
+        ) : error ? (
+          <div className="p-4 bg-red-50 text-red-700 rounded-lg text-center">
+            <p>{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Tentar novamente
+            </button>
           </div>
         ) : (
           <ProductList products={products} categories={categories} />
