@@ -63,9 +63,10 @@ export default function Home() {
       {/* Carrossel de frases */}
       {phrases && phrases.length > 0 && <TextCarousel phrases={phrases} />}
 
-      <div className="container mx-auto px-4 py-6">
-        {!storeOpen && <StoreClosedNotice />}
+      {/* Aviso de loja fechada logo após o carrossel de frases */}
+      {!storeOpen && <StoreClosedNotice />}
 
+      <div className="container mx-auto px-4 py-6">
         {loading ? (
           <div className="flex justify-center p-12">
             <div className="animate-spin h-8 w-8 border-4 border-purple-500 rounded-full border-t-transparent"></div>
