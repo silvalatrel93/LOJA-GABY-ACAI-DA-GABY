@@ -33,20 +33,31 @@ export async function getCartItems(): Promise<CartItem[]> {
     return []
   }
 
-  return data.map((item) => ({
-    id: item.id,
-    productId: item.product_id,
-    name: item.name,
-    price: Number(item.price),
-    quantity: item.quantity,
-    image: item.image || "",
-    size: cleanSizeDisplay(item.size),
-    additionals: item.additionals || [],
-  }))
+  return data.map((item) => {
+    // Criar uma cópia do item com o tamanho modificado para exibição
+    const displayItem = {
+      id: item.id,
+      productId: item.product_id,
+      name: item.name,
+      price: Number(item.price),
+      quantity: item.quantity,
+      image: item.image || "",
+      // Armazenar o tamanho original para uso interno
+      originalSize: item.size,
+      // Limpar o tamanho para exibição
+      size: cleanSizeDisplay(item.size),
+      additionals: item.additionals || [],
+    }
+
+    return displayItem
+  })
 }
 
 // Função para verificar se dois arrays de adicionais são iguais
 function areAdditionalsEqual(additionals1: any[] = [], additionals2: any[] = []): boolean {
+  if (!additionals1) additionals1 = []
+  if (!additionals2) additionals2 = []
+
   if (additionals1.length !== additionals2.length) return false
 
   // Ordenar os arrays para garantir comparação consistente
@@ -80,7 +91,7 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
   const supabase = createSupabaseClient()
 
   try {
-    // Buscar todos os itens do carrinho com o mesmo produto e tamanho
+    // Primeiro, vamos buscar todos os itens do carrinho com o mesmo produto e tamanho
     const { data: existingItems, error: selectError } = await supabase
       .from("cart")
       .select("*")
@@ -119,53 +130,18 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
         price: Number(data.price),
         quantity: data.quantity,
         image: data.image || "",
-        size: data.size,
+        size: cleanSizeDisplay(data.size), // Limpar o tamanho para exibição
         additionals: data.additionals || [],
       }
-    } else if (existingItems && existingItems.length > 0) {
-      // Existe um item com o mesmo produto e tamanho, mas adicionais diferentes
-      // Precisamos atualizar o item existente com um identificador único para os adicionais
-
-      // Gerar um identificador único para o tamanho baseado nos adicionais
-      const additionalIds = (item.additionals || [])
-        .map((a) => a.id)
-        .sort()
-        .join("-")
-      const uniqueSize = additionalIds ? `${item.size}#${additionalIds}` : item.size
-
-      // Adicionar novo item com o tamanho modificado
-      const { data, error: insertError } = await supabase
-        .from("cart")
-        .insert({
-          session_id: sessionId,
-          product_id: item.productId,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image,
-          size: uniqueSize, // Usar o tamanho modificado para evitar conflito
-          additionals: item.additionals || [],
-        })
-        .select()
-        .single()
-
-      if (insertError) {
-        console.error("Erro ao adicionar item ao carrinho:", insertError)
-        return null
-      }
-
-      return {
-        id: data.id,
-        productId: data.product_id,
-        name: data.name,
-        price: Number(data.price),
-        quantity: data.quantity,
-        image: data.image || "",
-        size: data.size,
-        additionals: item.additionals || [],
-      }
     } else {
-      // Não existe item com o mesmo produto e tamanho, adicionar novo
+      // Não encontramos um item com os mesmos adicionais
+      // Vamos gerar um ID único para este item
+      const itemId = uuidv4()
+
+      // Vamos criar um novo item com um tamanho modificado para evitar conflitos
+      // Adicionamos um sufixo único ao tamanho
+      const uniqueSize = `${item.size}#${itemId.substring(0, 8)}`
+
       const { data, error: insertError } = await supabase
         .from("cart")
         .insert({
@@ -175,7 +151,7 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
           price: item.price,
           quantity: item.quantity,
           image: item.image,
-          size: item.size,
+          size: uniqueSize, // Usar o tamanho com sufixo único
           additionals: item.additionals || [],
         })
         .select()
@@ -193,8 +169,8 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
         price: Number(data.price),
         quantity: data.quantity,
         image: data.image || "",
-        size: data.size,
-        additionals: item.additionals || [],
+        size: cleanSizeDisplay(data.size), // Limpar o tamanho para exibição
+        additionals: data.additionals || [],
       }
     }
   } catch (error) {
@@ -264,7 +240,8 @@ export async function getCartTotal(): Promise<number> {
   return items.reduce((total, item) => {
     const itemTotal = item.price * item.quantity
     const additionalsTotal =
-      (item.additionals || []).reduce((sum, additional) => sum + additional.price, 0) * item.quantity
+      (item.additionals || []).reduce((sum, additional) => sum + additional.price * (additional.quantity || 1), 0) *
+      item.quantity
 
     return total + itemTotal + additionalsTotal
   }, 0)

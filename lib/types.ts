@@ -41,13 +41,14 @@ export interface Additional {
 // Item do carrinho
 export interface CartItem {
   id: number
-  productId: number // Alterado de id para productId para consistência
+  productId: number
   name: string
   price: number
   quantity: number
-  image: string
+  image?: string
   size: string
-  additionals?: CartAdditional[]
+  originalSize?: string // Campo opcional para armazenar o tamanho original com identificador
+  additionals?: Additional[]
 }
 
 // Adicional no carrinho
