@@ -19,6 +19,8 @@ export default function VitrinePage() {
       try {
         const [activeProducts, config] = await Promise.all([getActiveProducts(), getStoreConfig()])
 
+        console.log("Produtos carregados:", activeProducts)
+
         setProducts(activeProducts)
         setStoreConfig(config)
       } catch (error) {
@@ -78,7 +80,11 @@ export default function VitrinePage() {
                 <h2 className="text-xl font-semibold">{product.name}</h2>
                 <p className="text-gray-600 mt-1 line-clamp-2">{product.description}</p>
                 <div className="mt-2 flex justify-between items-center">
-                  <span className="text-lg font-bold text-purple-600">{formatCurrency(product.price)}</span>
+                  <span className="text-lg font-bold text-purple-600">
+                    {typeof product.price === "number" && !isNaN(product.price)
+                      ? formatCurrency(product.price)
+                      : "Consulte o preço"}
+                  </span>
                 </div>
               </div>
             </div>

@@ -2,13 +2,7 @@
 const CACHE_NAME = "acai-admin-v1"
 
 // Arquivos para cache inicial
-const urlsToCache = [
-  "/admin",
-  "/admin-manifest.json",
-  "/icons/icon-192x192.png",
-  "/icons/icon-512x512.png",
-  // Adicione outros recursos estáticos importantes aqui
-]
+const urlsToCache = ["/admin", "/admin/manifest.json", "/icons/icon-192x192.png", "/icons/icon-512x512.png"]
 
 // Instalar o service worker e fazer cache dos recursos iniciais
 self.addEventListener("install", (event) => {

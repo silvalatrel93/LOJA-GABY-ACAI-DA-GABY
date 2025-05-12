@@ -5,7 +5,7 @@ import AdminPWAInstaller from "@/components/admin-pwa-installer"
 export const metadata: Metadata = {
   title: "Painel Admin - Açaí Online",
   description: "Painel administrativo para gerenciar sua loja de açaí",
-  // Adicionar link para o manifesto apenas na área admin
+  // Adicionar link para o manifesto estático
   manifest: "/admin-manifest.json",
   themeColor: "#9333ea",
 }
