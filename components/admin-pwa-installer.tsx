@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { AlertCircle, Download } from "lucide-react"
+import { Download, Smartphone, Info } from "lucide-react"
 
 export default function AdminPWAInstaller() {
   const [installPrompt, setInstallPrompt] = useState<any>(null)
   const [isInstalled, setIsInstalled] = useState(false)
   const [serviceWorkerStatus, setServiceWorkerStatus] = useState<"loading" | "success" | "error">("loading")
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isAndroid, setIsAndroid] = useState(false)
+  const [showInstructions, setShowInstructions] = useState(false)
 
   // Verificar se estamos em um ambiente que suporta PWA
   const isPWASupported =
@@ -17,6 +19,12 @@ export default function AdminPWAInstaller() {
     window.matchMedia("(display-mode: browser)").matches
 
   useEffect(() => {
+    // Detectar se é Android
+    if (typeof window !== "undefined") {
+      const userAgent = navigator.userAgent.toLowerCase()
+      setIsAndroid(/android/.test(userAgent))
+    }
+
     // Não tentar registrar o service worker se não estamos em um ambiente compatível
     if (!isPWASupported) {
       setServiceWorkerStatus("error")
@@ -93,15 +101,24 @@ export default function AdminPWAInstaller() {
     })
   }
 
-  // Instruções manuais para instalação
-  const renderManualInstructions = () => (
+  // Instruções específicas para Android
+  const renderAndroidInstructions = () => (
     <div className="mt-2 p-3 bg-purple-50 rounded-md border border-purple-200 text-sm">
-      <h4 className="font-medium mb-1">Instalação manual:</h4>
+      <h4 className="font-medium mb-1 flex items-center">
+        <Smartphone size={16} className="mr-1" /> Instalação no Android:
+      </h4>
       <ol className="list-decimal pl-5 text-xs space-y-1">
-        <li>Toque no menu do navegador (três pontos)</li>
-        <li>Selecione "Adicionar à tela inicial" ou "Instalar aplicativo"</li>
-        <li>Siga as instruções na tela</li>
+        <li>Toque no menu do Chrome (três pontos no canto superior direito)</li>
+        <li>Selecione "Instalar aplicativo" ou "Adicionar à tela inicial"</li>
+        <li>Na caixa de diálogo que aparece, toque em "Instalar"</li>
+        <li>Após a instalação, o app aparecerá na sua lista de aplicativos</li>
       </ol>
+      <div className="mt-2 text-xs text-purple-700">
+        <p>
+          <strong>Importante:</strong> Para instalação completa, certifique-se de estar usando o Chrome em um
+          dispositivo Android.
+        </p>
+      </div>
     </div>
   )
 
@@ -109,20 +126,23 @@ export default function AdminPWAInstaller() {
   if (isInstalled) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-64 shadow-lg rounded-lg bg-white p-3 border border-gray-200">
+    <div className="fixed bottom-4 right-4 z-50 w-72 shadow-lg rounded-lg bg-white p-3 border border-gray-200">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="font-medium text-sm">App Admin</h3>
-        {serviceWorkerStatus === "error" && (
-          <div className="text-amber-500">
-            <AlertCircle size={16} />
-          </div>
-        )}
+        <h3 className="font-medium text-sm">Instalar App Admin</h3>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0"
+          onClick={() => setShowInstructions(!showInstructions)}
+        >
+          <Info size={16} />
+        </Button>
       </div>
 
       {installPrompt ? (
         <Button onClick={handleInstallClick} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
           <Download size={16} className="mr-2" />
-          Instalar App Admin
+          Instalar App Completo
         </Button>
       ) : (
         <div>
@@ -137,9 +157,13 @@ export default function AdminPWAInstaller() {
               )}
             </div>
           ) : (
-            <div className="text-xs text-gray-600 mb-2">Aguardando disponibilidade para instalação...</div>
+            <div className="text-xs text-gray-600 mb-2">
+              {isAndroid
+                ? "Siga as instruções abaixo para instalar o app completo no seu Android"
+                : "Aguardando disponibilidade para instalação..."}
+            </div>
           )}
-          {renderManualInstructions()}
+          {showInstructions || !installPrompt ? renderAndroidInstructions() : null}
         </div>
       )}
     </div>
