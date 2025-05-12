@@ -6,7 +6,7 @@ import { CategoryService } from "@/lib/services/category-service"
 import { ProductService } from "@/lib/services/product-service"
 import { CarouselService } from "@/lib/services/carousel-service"
 import { AdditionalService } from "@/lib/services/additional-service"
-import { PhraseService } from "@/lib/services/phrase-service"
+import { PhraseService, phraseExists } from "@/lib/services/phrase-service"
 import { StoreConfigService } from "@/lib/services/store-config-service"
 import { PageContentService } from "@/lib/services/page-content-service"
 import { NotificationService } from "@/lib/services/notification-service"
@@ -237,38 +237,44 @@ export default function SupabaseInitializer() {
   // Inicializar frases
   const initializePhrases = async () => {
     console.log("Verificando frases...")
-    const phrases = await PhraseService.getAllPhrases()
 
-    if (phrases.length === 0) {
+    // Verificar se já existem frases no banco
+    const existingPhrases = await phraseExists()
+
+    if (!existingPhrases) {
       console.log("Inicializando frases padrão...")
 
-      // Frase 1
-      await PhraseService.savePhrase({
-        id: 0, // Será gerado pelo banco
-        text: "O melhor açaí da cidade!",
-        order: 1,
-        active: true,
-      })
+      try {
+        // Frase 1
+        await PhraseService.savePhrase({
+          id: 0, // ID será gerado pelo banco
+          text: "O melhor açaí da cidade!",
+          order: 1,
+          active: true,
+        })
 
-      // Frase 2
-      await PhraseService.savePhrase({
-        id: 0,
-        text: "Experimente nosso açaí especial!",
-        order: 2,
-        active: true,
-      })
+        // Frase 2
+        await PhraseService.savePhrase({
+          id: 0, // ID será gerado pelo banco
+          text: "Experimente nosso açaí especial!",
+          order: 2,
+          active: true,
+        })
 
-      // Frase 3
-      await PhraseService.savePhrase({
-        id: 0,
-        text: "Entrega rápida e segura!",
-        order: 3,
-        active: true,
-      })
+        // Frase 3
+        await PhraseService.savePhrase({
+          id: 0, // ID será gerado pelo banco
+          text: "Entrega rápida e segura!",
+          order: 3,
+          active: true,
+        })
 
-      console.log("Frases padrão inicializadas com sucesso!")
+        console.log("Frases padrão inicializadas com sucesso!")
+      } catch (error) {
+        console.error("Erro ao inicializar frases padrão:", error)
+      }
     } else {
-      console.log(`${phrases.length} frases encontradas, pulando inicialização.`)
+      console.log("Frases já existem no banco, pulando inicialização.")
     }
   }
 

@@ -7,7 +7,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Clock } from "lucide-react"
 import { useCart, CartProvider } from "@/lib/cart-context"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
 import { saveOrder } from "@/lib/services/order-service"
 import { getStoreConfig } from "@/lib/services/store-config-service"
 import { getStoreStatus } from "@/lib/store-utils"
@@ -88,7 +88,7 @@ function CheckoutPageContent() {
     setIsSubmitting(true)
 
     try {
-      // Criar objeto do pedido
+      // Criar objeto do pedido com tamanhos limpos para armazenamento
       const order = {
         customerName: formData.name,
         customerPhone: formData.phone,
@@ -101,7 +101,7 @@ function CheckoutPageContent() {
         items: cart.map((item) => ({
           id: item.id,
           name: item.name,
-          size: item.size,
+          size: item.size, // Mantém o tamanho original com identificador para o banco de dados
           price: item.price,
           quantity: item.quantity,
           additionals: item.additionals,
@@ -118,7 +118,7 @@ function CheckoutPageContent() {
       // Salvar pedido no banco de dados
       await saveOrder(order)
 
-      // Formatar mensagem para WhatsApp
+      // Formatar mensagem para WhatsApp com tamanhos limpos
       let message = `*Novo Pedido de Açaí*\n\n`
       message += `*Cliente:* ${formData.name}\n`
       message += `*Telefone:* ${formData.phone}\n\n`
@@ -130,7 +130,8 @@ function CheckoutPageContent() {
 
       message += `*Itens do Pedido:*\n`
       cart.forEach((item) => {
-        message += `- ${item.quantity}x ${item.name} (${item.size}) - ${formatCurrency(item.price * item.quantity)}\n`
+        // Usar tamanho limpo na mensagem do WhatsApp
+        message += `- ${item.quantity}x ${item.name} (${cleanSizeDisplay(item.size)}) - ${formatCurrency(item.price * item.quantity)}\n`
 
         // Adicionar adicionais ao pedido
         if (item.additionals && item.additionals.length > 0) {
@@ -373,7 +374,7 @@ function CheckoutPageContent() {
               {cart.map((item) => (
                 <div key={`${item.id}-${item.size}`} className="mb-2">
                   <ItemRow
-                    name={`${item.quantity}x ${item.name} (${item.size})`}
+                    name={`${item.quantity}x ${item.name} (${cleanSizeDisplay(item.size)})`}
                     value={formatCurrency(item.price * item.quantity)}
                   />
 
@@ -427,7 +428,6 @@ function CheckoutPageContent() {
           <p>
             © {new Date().getFullYear()} {storeConfig?.name || "Açaí Delícia"} - Todos os direitos reservados
           </p>
-          <p className="text-sm mt-2">Horário de funcionamento: 10h às 22h</p>
         </div>
       </footer>
     </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { ArrowLeft, Save, Plus, Trash2, ArrowUp, ArrowDown, Eye, EyeOff } from "lucide-react"
 import { getAllPhrases, savePhrase, deletePhrase, backupData, type Phrase } from "@/lib/db"
@@ -11,9 +11,11 @@ export default function PhrasesAdminPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [deleteStatus, setDeleteStatus] = useState<{ id: number; status: "pending" | "success" | "error" } | null>(null)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle")
+  const [updatingPhraseId, setUpdatingPhraseId] = useState<number | null>(null)
 
   // Função para carregar frases
-  const loadPhrases = async () => {
+  const loadPhrases = useCallback(async () => {
     try {
       setIsLoading(true)
       const phrasesList = await getAllPhrases()
@@ -23,16 +25,17 @@ export default function PhrasesAdminPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   // Carregar frases na montagem do componente
   useEffect(() => {
     loadPhrases()
-  }, [])
+  }, [loadPhrases])
 
   const handleEditPhrase = (phrase: Phrase) => {
     setEditingPhrase({ ...phrase })
     setIsModalOpen(true)
+    setSaveStatus("idle")
   }
 
   const handleAddPhrase = () => {
@@ -41,30 +44,36 @@ export default function PhrasesAdminPage() {
     const maxOrder = phrases.length > 0 ? Math.max(...phrases.map((p) => p.order)) : 0
 
     setEditingPhrase({
-      id: maxId + 1,
+      id: 0, // Usar 0 para indicar nova frase
       text: "",
       order: maxOrder + 1,
       active: true,
     })
     setIsModalOpen(true)
+    setSaveStatus("idle")
   }
 
   const handleDeletePhrase = async (id: number) => {
     if (confirm("Tem certeza que deseja excluir esta frase?")) {
       try {
         setDeleteStatus({ id, status: "pending" })
-        await deletePhrase(id)
 
-        // Atualizar a lista de frases após excluir
-        await loadPhrases()
+        // Atualização otimista da UI
+        setPhrases((currentPhrases) => currentPhrases.filter((p) => p.id !== id))
+
+        // Executar a operação no banco de dados
+        await deletePhrase(id)
         setDeleteStatus({ id, status: "success" })
 
-        // Fazer backup após exclusão
-        await backupData()
+        // Fazer backup após exclusão (em segundo plano)
+        backupData().catch(console.error)
       } catch (error) {
         console.error("Erro ao excluir frase:", error)
         setDeleteStatus({ id, status: "error" })
         alert("Erro ao excluir frase. Tente novamente.")
+
+        // Recarregar frases em caso de erro
+        loadPhrases()
       }
     }
   }
@@ -78,29 +87,82 @@ export default function PhrasesAdminPage() {
     }
 
     try {
-      await savePhrase(editingPhrase)
+      setSaveStatus("saving")
 
-      // Atualizar a lista de frases após salvar
-      await loadPhrases()
+      // Cópia da frase sendo editada
+      const phraseToSave = { ...editingPhrase }
+
+      // Atualização otimista da UI
+      if (phraseToSave.id > 0) {
+        // Atualizar frase existente
+        setPhrases((currentPhrases) => currentPhrases.map((p) => (p.id === phraseToSave.id ? phraseToSave : p)))
+      } else {
+        // Adicionar nova frase com ID temporário
+        const tempId = -Date.now() // ID negativo temporário
+        setPhrases((currentPhrases) => [...currentPhrases, { ...phraseToSave, id: tempId }])
+      }
+
+      // Fechar o modal imediatamente após atualização otimista
       setIsModalOpen(false)
 
-      // Fazer backup após salvar
-      await backupData()
+      // Executar a operação no banco de dados
+      const savedPhrase = await savePhrase(phraseToSave)
+
+      if (!savedPhrase) {
+        throw new Error("Falha ao salvar frase")
+      }
+
+      // Atualizar a lista com o ID correto (em caso de nova frase)
+      setPhrases((currentPhrases) => {
+        if (phraseToSave.id === 0) {
+          // Nova frase - substituir a versão com ID temporário pela versão com ID real
+          return currentPhrases
+            .filter((p) => p.id > 0) // Remover a versão temporária
+            .concat(savedPhrase) // Adicionar a versão com ID real
+        } else {
+          // Frase existente - garantir que temos os dados mais recentes
+          return currentPhrases.map((p) => (p.id === savedPhrase.id ? savedPhrase : p))
+        }
+      })
+
+      setSaveStatus("success")
+
+      // Fazer backup após salvar (em segundo plano)
+      backupData().catch(console.error)
     } catch (error) {
       console.error("Erro ao salvar frase:", error)
+      setSaveStatus("error")
       alert("Erro ao salvar frase. Tente novamente.")
+
+      // Recarregar frases em caso de erro
+      loadPhrases()
+
+      // Reabrir o modal em caso de erro
+      setIsModalOpen(true)
     }
   }
 
   const handleToggleActive = async (phrase: Phrase) => {
     try {
+      setUpdatingPhraseId(phrase.id)
+
+      // Atualização otimista da UI
       const updatedPhrase = { ...phrase, active: !phrase.active }
+      setPhrases((currentPhrases) => currentPhrases.map((p) => (p.id === phrase.id ? updatedPhrase : p)))
+
+      // Executar a operação no banco de dados
       await savePhrase(updatedPhrase)
-      await loadPhrases()
-      await backupData()
+
+      // Fazer backup após atualização (em segundo plano)
+      backupData().catch(console.error)
     } catch (error) {
       console.error("Erro ao atualizar status da frase:", error)
       alert("Erro ao atualizar status da frase. Tente novamente.")
+
+      // Recarregar frases em caso de erro
+      loadPhrases()
+    } finally {
+      setUpdatingPhraseId(null)
     }
   }
 
@@ -111,18 +173,34 @@ export default function PhrasesAdminPage() {
     if (!prevPhrase) return // Já está no topo
 
     try {
+      setUpdatingPhraseId(phrase.id)
+
       // Trocar as ordens
       const updatedPhrase = { ...phrase, order: prevPhrase.order }
       const updatedPrevPhrase = { ...prevPhrase, order: phrase.order }
 
-      await savePhrase(updatedPhrase)
-      await savePhrase(updatedPrevPhrase)
+      // Atualização otimista da UI
+      setPhrases((currentPhrases) =>
+        currentPhrases.map((p) => {
+          if (p.id === phrase.id) return updatedPhrase
+          if (p.id === prevPhrase.id) return updatedPrevPhrase
+          return p
+        }),
+      )
 
-      await loadPhrases()
-      await backupData()
+      // Executar as operações no banco de dados
+      await Promise.all([savePhrase(updatedPhrase), savePhrase(updatedPrevPhrase)])
+
+      // Fazer backup após atualização (em segundo plano)
+      backupData().catch(console.error)
     } catch (error) {
       console.error("Erro ao mover frase para cima:", error)
       alert("Erro ao reordenar frases. Tente novamente.")
+
+      // Recarregar frases em caso de erro
+      loadPhrases()
+    } finally {
+      setUpdatingPhraseId(null)
     }
   }
 
@@ -133,18 +211,34 @@ export default function PhrasesAdminPage() {
     if (!nextPhrase) return // Já está no final
 
     try {
+      setUpdatingPhraseId(phrase.id)
+
       // Trocar as ordens
       const updatedPhrase = { ...phrase, order: nextPhrase.order }
       const updatedNextPhrase = { ...nextPhrase, order: phrase.order }
 
-      await savePhrase(updatedPhrase)
-      await savePhrase(updatedNextPhrase)
+      // Atualização otimista da UI
+      setPhrases((currentPhrases) =>
+        currentPhrases.map((p) => {
+          if (p.id === phrase.id) return updatedPhrase
+          if (p.id === nextPhrase.id) return updatedNextPhrase
+          return p
+        }),
+      )
 
-      await loadPhrases()
-      await backupData()
+      // Executar as operações no banco de dados
+      await Promise.all([savePhrase(updatedPhrase), savePhrase(updatedNextPhrase)])
+
+      // Fazer backup após atualização (em segundo plano)
+      backupData().catch(console.error)
     } catch (error) {
       console.error("Erro ao mover frase para baixo:", error)
       alert("Erro ao reordenar frases. Tente novamente.")
+
+      // Recarregar frases em caso de erro
+      loadPhrases()
+    } finally {
+      setUpdatingPhraseId(null)
     }
   }
 
@@ -217,47 +311,71 @@ export default function PhrasesAdminPage() {
                             phrase.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
                           }`}
                           title={phrase.active ? "Desativar frase" : "Ativar frase"}
+                          disabled={updatingPhraseId === phrase.id}
                         >
-                          {phrase.active ? <Eye size={18} /> : <EyeOff size={18} />}
+                          {updatingPhraseId === phrase.id ? (
+                            <span className="animate-pulse">...</span>
+                          ) : phrase.active ? (
+                            <Eye size={18} />
+                          ) : (
+                            <EyeOff size={18} />
+                          )}
                         </button>
 
                         <button
                           onClick={() => handleMoveUp(phrase)}
                           className="p-2 bg-blue-100 text-blue-700 rounded-full"
                           title="Mover para cima"
-                          disabled={phrases.filter((p) => p.order < phrase.order).length === 0}
+                          disabled={
+                            updatingPhraseId === phrase.id || phrases.filter((p) => p.order < phrase.order).length === 0
+                          }
                         >
-                          <ArrowUp size={18} />
+                          {updatingPhraseId === phrase.id ? (
+                            <span className="animate-pulse">...</span>
+                          ) : (
+                            <ArrowUp size={18} />
+                          )}
                         </button>
 
                         <button
                           onClick={() => handleMoveDown(phrase)}
                           className="p-2 bg-blue-100 text-blue-700 rounded-full"
                           title="Mover para baixo"
-                          disabled={phrases.filter((p) => p.order > phrase.order).length === 0}
+                          disabled={
+                            updatingPhraseId === phrase.id || phrases.filter((p) => p.order > phrase.order).length === 0
+                          }
                         >
-                          <ArrowDown size={18} />
+                          {updatingPhraseId === phrase.id ? (
+                            <span className="animate-pulse">...</span>
+                          ) : (
+                            <ArrowDown size={18} />
+                          )}
                         </button>
 
                         <button
                           onClick={() => handleEditPhrase(phrase)}
                           className="p-2 bg-purple-100 text-purple-700 rounded-full"
                           title="Editar frase"
+                          disabled={updatingPhraseId === phrase.id}
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                            <path d="m15 5 4 4" />
-                          </svg>
+                          {updatingPhraseId === phrase.id ? (
+                            <span className="animate-pulse">...</span>
+                          ) : (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="18"
+                              height="18"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                              <path d="m15 5 4 4" />
+                            </svg>
+                          )}
                         </button>
 
                         <button
@@ -288,7 +406,7 @@ export default function PhrasesAdminPage() {
           <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-auto">
             <div className="p-4 border-b">
               <h2 className="text-lg font-semibold text-purple-900">
-                {phrases.some((p) => p.id === editingPhrase.id) ? "Editar Frase" : "Nova Frase"}
+                {editingPhrase.id > 0 ? "Editar Frase" : "Nova Frase"}
               </h2>
             </div>
 
@@ -334,20 +452,30 @@ export default function PhrasesAdminPage() {
               </div>
             </div>
 
-            <div className="p-4 border-t flex justify-end space-x-2">
+            <div className="p-4 border-t flex justify-between items-center">
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700"
+                disabled={saveStatus === "saving"}
               >
                 Cancelar
               </button>
-              <button
-                onClick={handleSavePhrase}
-                className="px-4 py-2 bg-purple-700 text-white rounded-md flex items-center"
-              >
-                <Save size={18} className="mr-1" />
-                Salvar
-              </button>
+
+              <div className="flex items-center">
+                {saveStatus === "saving" && (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-700 mr-3"></div>
+                )}
+                {saveStatus === "success" && <div className="text-green-600 mr-3">✓ Salvo!</div>}
+                {saveStatus === "error" && <div className="text-red-600 mr-3">Erro!</div>}
+                <button
+                  onClick={handleSavePhrase}
+                  className="px-4 py-2 bg-purple-700 text-white rounded-md flex items-center"
+                  disabled={saveStatus === "saving"}
+                >
+                  <Save size={18} className="mr-1" />
+                  Salvar
+                </button>
+              </div>
             </div>
           </div>
         </div>

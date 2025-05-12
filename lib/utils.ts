@@ -19,3 +19,17 @@ export function formatDate(date: Date | string, formatString = "dd/MM/yyyy HH:mm
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+/**
+ * Remove o identificador técnico do tamanho do produto
+ * @param size Tamanho do produto (possivelmente com identificador técnico)
+ * @returns Tamanho limpo, sem identificador técnico
+ */
+export function cleanSizeDisplay(size: string): string {
+  // Se o tamanho contém #, retorna apenas a parte antes do #
+  // Isso funciona para qualquer identificador: #1, #2, #3, etc.
+  if (size && size.includes("#")) {
+    return size.split("#")[0]
+  }
+  return size
+}

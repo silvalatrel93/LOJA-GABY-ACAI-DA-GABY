@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from "react"
 import { Printer, Download } from "lucide-react"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { jsPDF } from "jspdf"
@@ -296,7 +296,9 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       const availableWidth = 80 - 2 * margin
 
       order.items.forEach((item) => {
-        const itemText = `${item.quantity}x ${item.name} (${item.size})`
+        // Usar tamanho limpo na impressão
+        const cleanedSize = cleanSizeDisplay(item.size)
+        const itemText = `${item.quantity}x ${item.name} (${cleanedSize})`
         const priceText = formatCurrency(item.price * item.quantity)
 
         // Verificar se o texto é muito longo e quebrar em múltiplas linhas se necessário
@@ -440,7 +442,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
               <div key={index}>
                 <div className="item">
                   <div>
-                    {item.quantity}x {item.name} ({item.size})
+                    {item.quantity}x {item.name} ({cleanSizeDisplay(item.size)})
                   </div>
                   <div>{formatCurrency(item.price * item.quantity)}</div>
                 </div>

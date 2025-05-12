@@ -6,7 +6,8 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Plus, Maximize2, ChevronDown, ChevronUp } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
-import { formatCurrency } from "@/lib/utils"
+// Importe a função cleanSizeDisplay
+import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
 import ImageViewer from "@/components/image-viewer"
 import { getActiveAdditionalsByProduct } from "@/lib/services/additional-service"
 import { getStoreStatus } from "@/lib/store-utils"
@@ -228,7 +229,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                       }`}
                       onClick={() => setSelectedSize(sizeOption.size)}
                     >
-                      <div className="font-medium">{sizeOption.size}</div>
+                      <div className="font-medium">{cleanSizeDisplay(sizeOption.size)}</div>
                       <div className="text-sm">{formatCurrency(sizeOption.price)}</div>
                     </button>
                   ))}

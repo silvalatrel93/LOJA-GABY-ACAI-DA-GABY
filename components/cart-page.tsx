@@ -5,23 +5,38 @@ import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 import { Trash2, Plus, Minus } from "lucide-react"
 import Image from "next/image"
+import { cleanSizeDisplay } from "@/lib/utils"
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, clearCart, isLoading } = useCart()
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(false)
+  const [updatingItemId, setUpdatingItemId] = useState<number | null>(null)
 
-  const handleQuantityChange = async (id: number, size: string, newQuantity: number) => {
+  const handleQuantityChange = async (id: number, newQuantity: number) => {
     if (newQuantity < 1) return
-    await updateQuantity(id, size, newQuantity)
+    setUpdatingItemId(id)
+
+    try {
+      await updateQuantity(id, newQuantity)
+    } finally {
+      setUpdatingItemId(null)
+    }
   }
 
-  const handleRemoveItem = async (id: number, size: string) => {
-    await removeFromCart(id, size)
+  const handleRemoveItem = async (id: number) => {
+    setUpdatingItemId(id)
+
+    try {
+      await removeFromCart(id)
+    } finally {
+      setUpdatingItemId(null)
+    }
   }
 
   const handleCheckout = () => {
     if (cart.length === 0) return
+    setIsProcessing(true)
     router.push("/checkout")
   }
 
@@ -67,70 +82,78 @@ export default function CartPage() {
               </div>
 
               <ul className="divide-y divide-gray-200">
-                {cart.map((item) => (
-                  <li key={`${item.id}-${item.size}`} className="p-4">
-                    <div className="flex items-center">
-                      {item.image && (
-                        <div className="relative h-16 w-16 flex-shrink-0">
-                          <Image
-                            src={item.image || "/placeholder.svg"}
-                            alt={item.name}
-                            fill
-                            className="object-cover rounded-md"
-                          />
-                        </div>
-                      )}
+                {cart.map((item) => {
+                  // Limpar o tamanho para exibição
+                  const displaySize = cleanSizeDisplay(item.size)
 
-                      <div className="ml-4 flex-grow">
-                        <h3 className="text-sm font-medium text-gray-800">{item.name}</h3>
-                        <p className="text-sm text-gray-600">Tamanho: {item.size}</p>
-
-                        {item.additionals && item.additionals.length > 0 && (
-                          <div className="mt-1">
-                            <p className="text-xs text-gray-500">Adicionais:</p>
-                            <ul className="text-xs text-gray-600">
-                              {item.additionals.map((add) => (
-                                <li key={add.id}>
-                                  {add.name} (x{add.quantity}) - R$ {(add.price * add.quantity).toFixed(2)}
-                                </li>
-                              ))}
-                            </ul>
+                  return (
+                    <li key={`${item.id}`} className="p-4">
+                      <div className="flex items-center">
+                        {item.image && (
+                          <div className="relative h-16 w-16 flex-shrink-0">
+                            <Image
+                              src={item.image || "/placeholder.svg"}
+                              alt={item.name}
+                              fill
+                              className="object-cover rounded-md"
+                            />
                           </div>
                         )}
-                      </div>
 
-                      <div className="flex items-center">
-                        <div className="flex items-center border rounded-md mr-4">
-                          <button
-                            onClick={() => handleQuantityChange(item.id, item.size, item.quantity - 1)}
-                            className="px-2 py-1 text-gray-600 hover:bg-gray-100"
-                          >
-                            <Minus size={14} />
-                          </button>
-                          <span className="px-2 py-1 text-sm">{item.quantity}</span>
-                          <button
-                            onClick={() => handleQuantityChange(item.id, item.size, item.quantity + 1)}
-                            className="px-2 py-1 text-gray-600 hover:bg-gray-100"
-                          >
-                            <Plus size={14} />
-                          </button>
+                        <div className="ml-4 flex-grow">
+                          <h3 className="text-sm font-medium text-gray-800">{item.name}</h3>
+                          <p className="text-sm text-gray-600">Tamanho: {displaySize}</p>
+
+                          {item.additionals && item.additionals.length > 0 && (
+                            <div className="mt-1">
+                              <p className="text-xs text-gray-500">Adicionais:</p>
+                              <ul className="text-xs text-gray-600">
+                                {item.additionals.map((add) => (
+                                  <li key={add.id}>
+                                    {add.name} (x{add.quantity}) - R$ {(add.price * add.quantity).toFixed(2)}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                         </div>
 
-                        <div className="text-right">
-                          <p className="text-sm font-medium text-gray-800">
-                            R$ {(item.price * item.quantity).toFixed(2)}
-                          </p>
-                          <button
-                            onClick={() => handleRemoveItem(item.id, item.size)}
-                            className="text-red-500 hover:text-red-700 text-xs flex items-center mt-1"
-                          >
-                            <Trash2 size={14} className="mr-1" /> Remover
-                          </button>
+                        <div className="flex items-center">
+                          <div className="flex items-center border rounded-md mr-4">
+                            <button
+                              onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                              className="px-2 py-1 text-gray-600 hover:bg-gray-100 w-8 h-8 flex items-center justify-center"
+                              disabled={updatingItemId === item.id}
+                            >
+                              <Minus size={14} />
+                            </button>
+                            <span className="px-2 py-1 text-sm min-w-[24px] text-center">{item.quantity}</span>
+                            <button
+                              onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                              className="px-2 py-1 text-gray-600 hover:bg-gray-100 w-8 h-8 flex items-center justify-center"
+                              disabled={updatingItemId === item.id}
+                            >
+                              <Plus size={14} />
+                            </button>
+                          </div>
+
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-gray-800">
+                              R$ {(item.price * item.quantity).toFixed(2)}
+                            </p>
+                            <button
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="text-red-500 hover:text-red-700 text-xs flex items-center mt-1"
+                              disabled={updatingItemId === item.id}
+                            >
+                              <Trash2 size={14} className="mr-1" /> Remover
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  )
+                })}
               </ul>
 
               <div className="p-4 border-t">
