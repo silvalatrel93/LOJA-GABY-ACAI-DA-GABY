@@ -45,8 +45,11 @@ export default function StoreClosedNotice() {
   }
 
   return (
-    <div className="bg-red-500 text-white py-2 px-4 sticky top-16 z-10">
-      <div className="container mx-auto flex items-center justify-center">
+    <div
+      className="bg-red-500 text-white py-2 sticky top-12 z-10 w-screen left-0 right-0"
+      style={{ marginLeft: "-1rem", marginRight: "-1rem", width: "100vw" }}
+    >
+      <div className="container mx-auto flex items-center justify-center px-4">
         <Clock size={18} className="mr-2" />
         <p className="text-sm font-medium">{storeStatus.statusText}</p>
       </div>

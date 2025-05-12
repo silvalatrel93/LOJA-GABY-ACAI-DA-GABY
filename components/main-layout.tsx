@@ -43,7 +43,7 @@ export default function MainLayout({ children, carouselSlides = [] }: MainLayout
     <CartProvider>
       <div className="min-h-screen flex flex-col bg-gray-50">
         {/* Cabeçalho */}
-        <header className="bg-purple-900 text-white p-3 sticky top-0 z-10">
+        <header className="bg-purple-900 text-white p-3 sticky top-0 z-20">
           <div className="container mx-auto flex justify-between items-center">
             <div className="flex items-center">
               <button
@@ -80,7 +80,7 @@ export default function MainLayout({ children, carouselSlides = [] }: MainLayout
         {carouselSlides.length > 0 && <HeroCarousel slides={carouselSlides} />}
 
         {/* Conteúdo principal */}
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 flex flex-col">{children}</main>
 
         {/* Rodapé */}
         <footer className="bg-purple-900 text-white p-4">

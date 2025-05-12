@@ -84,64 +84,84 @@ export default function ProductList({ products: initialProducts = [], categories
     loadProducts()
   }, [selectedCategory, allProducts])
 
+  // Função para rolar até a categoria selecionada
+  const handleCategoryClick = (categoryId: number) => {
+    setSelectedCategory(categoryId)
+
+    if (categoryId === 0) {
+      // Se "Todos" for selecionado, não fazemos nada especial
+      return
+    }
+
+    // Se não for "Todos", mudamos para a visualização específica da categoria
+  }
+
   return (
-    <div className="w-full py-6">
-      {/* Filtro de categorias */}
-      <div className="flex overflow-x-auto pb-2 mb-4 gap-2 scrollbar-hide">
-        {categories.map((category) => (
-          <button
-            key={category.id}
-            onClick={() => setSelectedCategory(category.id)}
-            className={`px-4 py-2 rounded-full whitespace-nowrap ${
-              selectedCategory === category.id
-                ? "bg-purple-700 text-white"
-                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-            }`}
-          >
-            {category.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Lista de produtos */}
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700"></div>
-        </div>
-      ) : products.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">Nenhum produto encontrado nesta categoria.</p>
-        </div>
-      ) : selectedCategory === 0 ? (
-        // Exibição agrupada por categoria quando "Todos" está selecionado
-        <div>
-          {categories
-            .filter((category) => category.id !== 0) // Excluir a categoria "Todos"
-            .map((category) => {
-              const categoryProducts = products.filter((product) => product.categoryId === category.id)
-
-              if (categoryProducts.length === 0) return null
-
-              return (
-                <div key={category.id} className="mb-8">
-                  <h2 className="text-xl font-bold mb-4 text-purple-800">{category.name}</h2>
-                  <div className="grid grid-cols-2 gap-4">
-                    {categoryProducts.map((product) => (
-                      <ProductCard key={product.id} product={product} />
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
-        </div>
-      ) : (
-        // Exibição normal para categorias específicas
-        <div className="grid grid-cols-2 gap-4">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+    <div className="w-full flex flex-col">
+      {/* Filtro de categorias - agora fixo */}
+      <div
+        className="sticky top-[56px] z-10 bg-gray-50 py-3 border-b border-gray-200 shadow-sm w-screen left-0 right-0"
+        style={{ marginLeft: "-1rem", marginRight: "-1rem", width: "100vw" }}
+      >
+        <div className="flex overflow-x-auto pb-2 gap-2 scrollbar-hide px-4">
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              onClick={() => handleCategoryClick(category.id)}
+              className={`px-4 py-2 rounded-full whitespace-nowrap ${
+                selectedCategory === category.id
+                  ? "bg-purple-700 text-white"
+                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+              }`}
+            >
+              {category.name}
+            </button>
           ))}
         </div>
-      )}
+      </div>
+
+      {/* Área rolável para os produtos */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {/* Lista de produtos */}
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700"></div>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">Nenhum produto encontrado nesta categoria.</p>
+          </div>
+        ) : selectedCategory === 0 ? (
+          // Exibição agrupada por categoria quando "Todos" está selecionado
+          <div>
+            {categories
+              .filter((category) => category.id !== 0) // Excluir a categoria "Todos"
+              .map((category) => {
+                const categoryProducts = products.filter((product) => product.categoryId === category.id)
+
+                if (categoryProducts.length === 0) return null
+
+                return (
+                  <div key={category.id} className="mb-8" id={`category-${category.id}`}>
+                    <h2 className="text-xl font-bold mb-4 text-purple-800">{category.name}</h2>
+                    <div className="grid grid-cols-2 gap-4">
+                      {categoryProducts.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
+        ) : (
+          // Exibição normal para categorias específicas
+          <div className="grid grid-cols-2 gap-4">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
