@@ -7,10 +7,11 @@ import ProductCard from "@/components/product-card"
 import type { Product } from "@/lib/services/product-service"
 import type { Category } from "@/lib/services/category-service"
 
-export default function ProductList() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
+export default function ProductList({ products: initialProducts = [], categories: initialCategories = [] }) {
+  const [products, setProducts] = useState<Product[]>(initialProducts)
+  const [categories, setCategories] = useState<Category[]>(initialCategories)
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+  const [allProducts, setAllProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   // Carregar categorias
@@ -18,11 +19,21 @@ export default function ProductList() {
     const loadCategories = async () => {
       try {
         const activeCategories = await getActiveCategories()
-        setCategories(activeCategories)
 
-        // Se houver categorias e nenhuma estiver selecionada, selecionar a primeira
-        if (activeCategories.length > 0 && selectedCategory === null) {
-          setSelectedCategory(activeCategories[0].id)
+        // Adicionar opção "Todos" no início
+        const allOption: Category = {
+          id: 0, // Usando 0 como ID para "Todos"
+          name: "Todos",
+          order: -1,
+          active: true,
+        }
+
+        const categoriesWithAll = [allOption, ...activeCategories]
+        setCategories(categoriesWithAll)
+
+        // Se houver categorias e nenhuma estiver selecionada, selecionar a primeira (Todos)
+        if (categoriesWithAll.length > 0 && selectedCategory === null) {
+          setSelectedCategory(categoriesWithAll[0].id)
         }
       } catch (error) {
         console.error("Erro ao carregar categorias:", error)
@@ -30,7 +41,21 @@ export default function ProductList() {
     }
 
     loadCategories()
-  }, [selectedCategory])
+  }, [])
+
+  // Carregar todos os produtos uma vez
+  useEffect(() => {
+    const loadAllProducts = async () => {
+      try {
+        const allProductsList = await getAllActiveProducts()
+        setAllProducts(allProductsList)
+      } catch (error) {
+        console.error("Erro ao carregar todos os produtos:", error)
+      }
+    }
+
+    loadAllProducts()
+  }, [])
 
   // Carregar produtos com base na categoria selecionada
   useEffect(() => {
@@ -39,7 +64,10 @@ export default function ProductList() {
       try {
         let productsList: Product[]
 
-        if (selectedCategory !== null) {
+        if (selectedCategory === 0) {
+          // 0 é o ID para "Todos"
+          productsList = allProducts
+        } else if (selectedCategory !== null) {
           productsList = await getProductsByCategory(selectedCategory)
         } else {
           productsList = await getAllActiveProducts()
@@ -54,7 +82,7 @@ export default function ProductList() {
     }
 
     loadProducts()
-  }, [selectedCategory])
+  }, [selectedCategory, allProducts])
 
   return (
     <div className="w-full py-6">
@@ -84,7 +112,30 @@ export default function ProductList() {
         <div className="text-center py-12">
           <p className="text-gray-500">Nenhum produto encontrado nesta categoria.</p>
         </div>
+      ) : selectedCategory === 0 ? (
+        // Exibição agrupada por categoria quando "Todos" está selecionado
+        <div>
+          {categories
+            .filter((category) => category.id !== 0) // Excluir a categoria "Todos"
+            .map((category) => {
+              const categoryProducts = products.filter((product) => product.categoryId === category.id)
+
+              if (categoryProducts.length === 0) return null
+
+              return (
+                <div key={category.id} className="mb-8">
+                  <h2 className="text-xl font-bold mb-4 text-purple-800">{category.name}</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    {categoryProducts.map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+        </div>
       ) : (
+        // Exibição normal para categorias específicas
         <div className="grid grid-cols-2 gap-4">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
