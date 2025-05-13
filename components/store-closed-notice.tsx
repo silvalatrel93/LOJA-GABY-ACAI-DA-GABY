@@ -35,13 +35,10 @@ export default function StoreClosedNotice() {
       }
     }
 
-    // Carregar status inicial
     loadStoreStatus()
 
-    // Configurar intervalo para atualizar o status a cada 30 segundos
-    const interval = setInterval(loadStoreStatus, 30000)
-
-    // Limpar intervalo quando o componente for desmontado
+    // Atualizar o status a cada minuto
+    const interval = setInterval(loadStoreStatus, 60000)
     return () => clearInterval(interval)
   }, [router])
 

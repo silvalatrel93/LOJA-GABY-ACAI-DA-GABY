@@ -20,13 +20,16 @@ const DEFAULT_STORE_CONFIG: StoreConfig = {
   specialDates: [],
 }
 
+// ID da loja padrão (Loja Principal)
+const DEFAULT_STORE_ID = "00000000-0000-0000-0000-000000000000"
+
 // Serviço para gerenciar configurações da loja
 export const StoreConfigService = {
   // Obter configurações da loja
   async getStoreConfig(): Promise<StoreConfig> {
     try {
       const supabase = createSupabaseClient()
-      const { data, error } = await supabase.from("store_config").select("*").eq("id", "main").single()
+      const { data, error } = await supabase.from("store_config").select("*").eq("store_id", DEFAULT_STORE_ID).single()
 
       if (error) {
         console.error("Erro ao buscar configurações da loja:", error)
@@ -56,10 +59,12 @@ export const StoreConfigService = {
   // Salvar configurações da loja
   async saveStoreConfig(config: StoreConfig): Promise<StoreConfig | null> {
     try {
+      console.log("Salvando configurações da loja:", config)
       const supabase = createSupabaseClient()
 
       const configData = {
         id: "main",
+        store_id: DEFAULT_STORE_ID, // Adicionando o store_id
         name: config.name,
         logo_url: config.logoUrl,
         delivery_fee: config.deliveryFee,
@@ -68,6 +73,8 @@ export const StoreConfigService = {
         special_dates: config.specialDates || [],
         last_updated: new Date().toISOString(),
       }
+
+      console.log("Dados a serem salvos:", configData)
 
       const { data, error } = await supabase.from("store_config").upsert(configData).select().single()
 

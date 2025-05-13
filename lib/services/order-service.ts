@@ -1,6 +1,9 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Order } from "../types"
 
+// ID da loja padrão (Loja Principal)
+const DEFAULT_STORE_ID = "00000000-0000-0000-0000-000000000000"
+
 // Serviço para gerenciar pedidos
 export const OrderService = {
   // Obter todos os pedidos
@@ -89,40 +92,49 @@ export const OrderService = {
   async createOrder(order: Omit<Order, "id">): Promise<Order | null> {
     const supabase = createSupabaseClient()
 
-    const orderData = {
-      customer_name: order.customerName,
-      customer_phone: order.customerPhone,
-      address: order.address,
-      items: order.items,
-      subtotal: order.subtotal,
-      delivery_fee: order.deliveryFee,
-      total: order.total,
-      payment_method: order.paymentMethod,
-      status: order.status,
-      date: order.date.toISOString(),
-      printed: order.printed || false,
-    }
+    try {
+      // Adicionar store_id ao objeto do pedido
+      const orderData = {
+        customer_name: order.customerName,
+        customer_phone: order.customerPhone,
+        address: order.address,
+        items: order.items,
+        subtotal: order.subtotal,
+        delivery_fee: order.deliveryFee,
+        total: order.total,
+        payment_method: order.paymentMethod,
+        status: order.status,
+        date: order.date.toISOString(),
+        printed: order.printed || false,
+        store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
+      }
 
-    const { data, error } = await supabase.from("orders").insert(orderData).select().single()
+      console.log("Criando pedido com dados:", JSON.stringify(orderData, null, 2))
 
-    if (error) {
+      const { data, error } = await supabase.from("orders").insert(orderData).select().single()
+
+      if (error) {
+        console.error("Erro ao criar pedido:", error)
+        return null
+      }
+
+      return {
+        id: data.id,
+        customerName: data.customer_name,
+        customerPhone: data.customer_phone,
+        address: data.address,
+        items: data.items,
+        subtotal: Number(data.subtotal),
+        deliveryFee: Number(data.delivery_fee),
+        total: Number(data.total),
+        paymentMethod: data.payment_method,
+        status: data.status,
+        date: new Date(data.date),
+        printed: data.printed,
+      }
+    } catch (error) {
       console.error("Erro ao criar pedido:", error)
       return null
-    }
-
-    return {
-      id: data.id,
-      customerName: data.customer_name,
-      customerPhone: data.customer_phone,
-      address: data.address,
-      items: data.items,
-      subtotal: Number(data.subtotal),
-      deliveryFee: Number(data.delivery_fee),
-      total: Number(data.total),
-      paymentMethod: data.payment_method,
-      status: data.status,
-      date: new Date(data.date),
-      printed: data.printed,
     }
   },
 
@@ -155,5 +167,11 @@ export const OrderService = {
 
 // Função auxiliar para salvar um pedido (para compatibilidade com código existente)
 export async function saveOrder(order: any): Promise<Order | null> {
-  return await OrderService.createOrder(order)
+  try {
+    console.log("Salvando pedido:", JSON.stringify(order, null, 2))
+    return await OrderService.createOrder(order)
+  } catch (error) {
+    console.error("Erro ao salvar pedido:", error)
+    return null
+  }
 }

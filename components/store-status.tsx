@@ -29,13 +29,10 @@ export default function StoreStatus({ inSideMenu = false }: StoreStatusProps) {
       }
     }
 
-    // Carregar status inicial
     loadStatus()
 
-    // Configurar intervalo para atualizar o status a cada 30 segundos
-    const interval = setInterval(loadStatus, 30000)
-
-    // Limpar intervalo quando o componente for desmontado
+    // Atualizar o status a cada minuto
+    const interval = setInterval(loadStatus, 60000)
     return () => clearInterval(interval)
   }, [])
 

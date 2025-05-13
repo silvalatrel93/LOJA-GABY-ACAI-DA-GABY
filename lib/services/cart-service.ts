@@ -3,6 +3,9 @@ import type { CartItem } from "../types"
 import { v4 as uuidv4 } from "uuid"
 import { cleanSizeDisplay } from "@/lib/utils"
 
+// ID da loja padrão como UUID - usando o ID da "Loja Principal" que existe no banco
+const DEFAULT_STORE_ID = "00000000-0000-0000-0000-000000000000"
+
 // Função para obter o ID da sessão do carrinho
 export function getCartSessionId(): string {
   if (typeof window === "undefined") {
@@ -19,14 +22,40 @@ export function getCartSessionId(): string {
   return sessionId
 }
 
+// Função para obter o ID da loja atual como UUID
+export function getCurrentStoreId(): string {
+  if (typeof window === "undefined") {
+    return DEFAULT_STORE_ID
+  }
+
+  // Verificar se há um ID de loja armazenado no localStorage
+  const storedStoreId = localStorage.getItem("currentStoreId")
+
+  // Se existir e for um UUID válido, retornar
+  if (storedStoreId && isValidUUID(storedStoreId)) {
+    return storedStoreId
+  }
+
+  // Caso contrário, usar o ID padrão e armazená-lo
+  localStorage.setItem("currentStoreId", DEFAULT_STORE_ID)
+  return DEFAULT_STORE_ID
+}
+
+// Função para validar se uma string é um UUID válido
+function isValidUUID(uuid: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  return uuidRegex.test(uuid)
+}
+
 // Função para obter itens do carrinho
 export async function getCartItems(): Promise<CartItem[]> {
   const sessionId = getCartSessionId()
   if (!sessionId) return []
 
   const supabase = createSupabaseClient()
+  const storeId = getCurrentStoreId()
 
-  const { data, error } = await supabase.from("cart").select("*").eq("session_id", sessionId)
+  const { data, error } = await supabase.from("cart").select("*").eq("session_id", sessionId).eq("store_id", storeId)
 
   if (error) {
     console.error("Erro ao buscar itens do carrinho:", error)
@@ -89,13 +118,18 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
   }
 
   const supabase = createSupabaseClient()
+  const storeId = getCurrentStoreId()
 
   try {
+    // Log para debug
+    console.log("Adicionando item ao carrinho com store_id:", storeId, "tipo:", typeof storeId)
+
     // Primeiro, vamos buscar todos os itens do carrinho com o mesmo produto e tamanho
     const { data: existingItems, error: selectError } = await supabase
       .from("cart")
       .select("*")
       .eq("session_id", sessionId)
+      .eq("store_id", storeId)
       .eq("product_id", item.productId)
       .eq("size", item.size)
 
@@ -113,7 +147,11 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
       // Item com mesmos adicionais existe, atualizar quantidade
       const { data, error: updateError } = await supabase
         .from("cart")
-        .update({ quantity: matchingItem.quantity + item.quantity })
+        .update({
+          quantity: matchingItem.quantity + item.quantity,
+          // Garantir que store_id esteja presente mesmo em atualizações
+          store_id: storeId,
+        })
         .eq("id", matchingItem.id)
         .select()
         .single()
@@ -146,6 +184,7 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
         .from("cart")
         .insert({
           session_id: sessionId,
+          store_id: storeId, // Garantir que store_id esteja presente como UUID
           product_id: item.productId,
           name: item.name,
           price: item.price,
@@ -159,6 +198,16 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
 
       if (insertError) {
         console.error("Erro ao adicionar item ao carrinho:", insertError)
+        console.error("Detalhes do erro:", insertError.details)
+        console.error("Hint:", insertError.hint)
+        console.error("Dados tentando inserir:", {
+          session_id: sessionId,
+          store_id: storeId,
+          product_id: item.productId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })
         return null
       }
 
@@ -191,8 +240,15 @@ export async function updateCartItemQuantity(id: number, quantity: number): Prom
   }
 
   const supabase = createSupabaseClient()
+  const storeId = getCurrentStoreId()
 
-  const { error } = await supabase.from("cart").update({ quantity }).eq("id", id)
+  const { error } = await supabase
+    .from("cart")
+    .update({
+      quantity,
+      store_id: storeId, // Garantir que store_id esteja presente mesmo em atualizações
+    })
+    .eq("id", id)
 
   if (error) {
     console.error(`Erro ao atualizar quantidade do item ${id}:`, error)
@@ -222,8 +278,9 @@ export async function clearCart(): Promise<boolean> {
   if (!sessionId) return false
 
   const supabase = createSupabaseClient()
+  const storeId = getCurrentStoreId()
 
-  const { error } = await supabase.from("cart").delete().eq("session_id", sessionId)
+  const { error } = await supabase.from("cart").delete().eq("session_id", sessionId).eq("store_id", storeId)
 
   if (error) {
     console.error("Erro ao limpar carrinho:", error)
@@ -252,4 +309,27 @@ export async function getCartItemCount(): Promise<number> {
   const items = await getCartItems()
 
   return items.reduce((count, item) => count + item.quantity, 0)
+}
+
+// Função para obter as lojas disponíveis
+export async function getAvailableStores() {
+  const supabase = createSupabaseClient()
+
+  const { data, error } = await supabase.from("stores").select("id, name, logo_url").eq("is_active", true)
+
+  if (error) {
+    console.error("Erro ao buscar lojas disponíveis:", error)
+    return []
+  }
+
+  return data
+}
+
+// Função para definir a loja atual
+export function setCurrentStore(storeId: string) {
+  if (typeof window === "undefined") return
+
+  if (isValidUUID(storeId)) {
+    localStorage.setItem("currentStoreId", storeId)
+  }
 }
