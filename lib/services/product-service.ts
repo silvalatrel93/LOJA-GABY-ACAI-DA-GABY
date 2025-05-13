@@ -40,7 +40,7 @@ export const ProductService = {
       return []
     }
 
-    let products = data.map((item) => ({
+    return data.map((item) => ({
       id: item.id,
       name: item.name,
       description: item.description || "",
@@ -50,16 +50,7 @@ export const ProductService = {
       categoryName: item.category?.name || "",
       active: item.active,
       allowedAdditionals: item.allowed_additionals || [],
-      price: item.price,
     }))
-
-    // Garantir que todos os produtos tenham preços válidos
-    products = products.map((product) => ({
-      ...product,
-      price: typeof product.price === "number" && !isNaN(product.price) ? product.price : 0,
-    }))
-
-    return products
   },
 
   // Alias para getActiveProducts para compatibilidade

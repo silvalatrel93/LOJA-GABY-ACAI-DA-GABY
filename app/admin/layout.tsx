@@ -1,36 +1,11 @@
-import type React from "react"
-import type { Metadata } from "next"
-import PWAInstaller from "@/components/pwa-installer"
+import type { ReactNode } from "react"
+import AdminPWAHead from "@/components/admin-pwa-head"
 
-export const metadata: Metadata = {
-  title: "Painel Admin - Açaí Online",
-  description: "Painel administrativo para gerenciar sua loja de açaí",
-  manifest: "/admin-manifest.json",
-  themeColor: "#9333ea",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Açaí Admin",
-  },
-  formatDetection: {
-    telephone: false,
-  },
-}
-
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <head>
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="application-name" content="Açaí Admin" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
-      </head>
+      <AdminPWAHead />
       {children}
-      <PWAInstaller />
     </>
   )
 }

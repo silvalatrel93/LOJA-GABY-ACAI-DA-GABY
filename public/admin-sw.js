@@ -1,86 +1,62 @@
-// Nome do cache
-const CACHE_NAME = "acai-admin-v2"
+// Nome do cache para o admin
+const CACHE_NAME = "acai-admin-cache-v1"
 
-// Arquivos para cache inicial
+// Arquivos a serem cacheados inicialmente
 const urlsToCache = [
   "/admin",
-  "/admin?source=pwa",
   "/admin-manifest.json",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/maskable-icon-192.png",
-  "/maskable-icon-512.png",
-  "/screenshot1.png",
-  "/screenshot2.png",
+  "/icons/admin-icon-192.png",
+  "/icons/admin-icon-512.png",
+  "/acai-logo.png",
 ]
 
-// Instalar o service worker e fazer cache dos recursos iniciais
+// Instalação do service worker
 self.addEventListener("install", (event) => {
-  console.log("[Service Worker] Instalando...")
   event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => {
-        console.log("[Service Worker] Cache aberto")
-        return cache.addAll(urlsToCache)
-      })
-      .then(() => {
-        console.log("[Service Worker] Instalação concluída")
-        return self.skipWaiting()
-      }),
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(urlsToCache)
+    }),
   )
 })
 
-// Ativar o service worker
-self.addEventListener("activate", (event) => {
-  console.log("[Service Worker] Ativando...")
-  event.waitUntil(
-    caches
-      .keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME) {
-              console.log("[Service Worker] Removendo cache antigo:", cacheName)
-              return caches.delete(cacheName)
-            }
-          }),
-        )
-      })
-      .then(() => {
-        console.log("[Service Worker] Ativação concluída")
-        return self.clients.claim()
-      }),
-  )
-})
-
-// Interceptar requisições
+// Estratégia de cache: network first, fallback to cache
 self.addEventListener("fetch", (event) => {
+  // Apenas interceptar requisições que começam com /admin
+  if (!event.request.url.includes("/admin")) {
+    return
+  }
+
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      // Cache hit - retornar resposta do cache
-      if (response) {
-        return response
-      }
-
-      // Clonar a requisição
-      const fetchRequest = event.request.clone()
-
-      return fetch(fetchRequest).then((response) => {
-        // Verificar se recebemos uma resposta válida
-        if (!response || response.status !== 200 || response.type !== "basic") {
-          return response
+    fetch(event.request)
+      .then((response) => {
+        // Se a resposta for válida, clone-a e armazene-a no cache
+        if (response && response.status === 200) {
+          const responseToCache = response.clone()
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache)
+          })
         }
-
-        // Clonar a resposta
-        const responseToCache = response.clone()
-
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache)
-        })
-
         return response
       })
+      .catch(() => {
+        // Se falhar, tente buscar do cache
+        return caches.match(event.request)
+      }),
+  )
+})
+
+// Limpar caches antigos quando uma nova versão do service worker for ativada
+self.addEventListener("activate", (event) => {
+  const cacheWhitelist = [CACHE_NAME]
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
+            return caches.delete(cacheName)
+          }
+        }),
+      )
     }),
   )
 })

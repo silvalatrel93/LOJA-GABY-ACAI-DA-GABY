@@ -1,112 +1,96 @@
-"use client"
-
-import { useEffect, useState } from "react"
+import type { Metadata } from "next"
+import { getActiveProducts } from "@/lib/services/product-service"
+import { getActiveCategories } from "@/lib/services/category-service"
+import { getStoreConfig } from "@/lib/services/store-config-service"
+import ProductList from "@/components/product-list"
 import Image from "next/image"
 import Link from "next/link"
-import { getActiveProducts } from "@/lib/services/product-service"
-import { getStoreConfig } from "@/lib/services/store-config-service"
-import { formatCurrency } from "@/lib/utils"
-import type { Product } from "@/lib/types"
-import type { StoreConfig } from "@/lib/types"
 
-export default function VitrinePage() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null)
-  const [loading, setLoading] = useState(true)
+// Gerar metadados para a página
+export async function generateMetadata(): Promise<Metadata> {
+  const storeConfig = await getStoreConfig()
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [activeProducts, config] = await Promise.all([getActiveProducts(), getStoreConfig()])
-
-        console.log("Produtos carregados:", activeProducts)
-
-        setProducts(activeProducts)
-        setStoreConfig(config)
-      } catch (error) {
-        console.error("Erro ao carregar dados:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadData()
-  }, [])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
-      </div>
-    )
+  return {
+    title: `Vitrine de Produtos - ${storeConfig?.name || "Açaí Online"}`,
+    description: "Confira nossos deliciosos produtos de açaí. Peça agora mesmo!",
+    openGraph: {
+      title: `Vitrine de Produtos - ${storeConfig?.name || "Açaí Online"}`,
+      description: "Confira nossos deliciosos produtos de açaí. Peça agora mesmo!",
+      images: [
+        {
+          url: storeConfig?.logoUrl || "/acai-logo.png",
+          width: 1200,
+          height: 630,
+          alt: storeConfig?.name || "Açaí Online",
+        },
+      ],
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `Vitrine de Produtos - ${storeConfig?.name || "Açaí Online"}`,
+      description: "Confira nossos deliciosos produtos de açaí. Peça agora mesmo!",
+      images: [storeConfig?.logoUrl || "/acai-logo.png"],
+    },
   }
+}
+
+export default async function VitrinePage() {
+  const products = await getActiveProducts()
+  const categories = await getActiveCategories()
+  const storeConfig = await getStoreConfig()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Cabeçalho */}
-      <header className="bg-purple-600 text-white p-4 text-center">
-        <div className="flex items-center justify-center">
-          {storeConfig?.logoUrl && (
-            <div className="relative w-12 h-12 mr-3">
-              <Image
-                src={storeConfig.logoUrl || "/placeholder.svg"}
-                alt={`Logo ${storeConfig.name || "Açaí Online"}`}
-                fill
-                className="object-contain rounded-full bg-white p-1"
-              />
-            </div>
-          )}
-          <h1 className="text-2xl font-bold">{storeConfig?.name || "Açaí Online"}</h1>
-        </div>
-        <p className="mt-2">Confira nossos produtos deliciosos!</p>
-      </header>
-
-      {/* Lista de produtos */}
-      <main className="max-w-screen-xl mx-auto p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {products.map((product) => (
-            <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-              {product.imageUrl && (
-                <div className="relative h-48 w-full">
-                  <Image
-                    src={product.imageUrl || "/placeholder.svg"}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              )}
-              <div className="p-4">
-                <h2 className="text-xl font-semibold">{product.name}</h2>
-                <p className="text-gray-600 mt-1 line-clamp-2">{product.description}</p>
-                <div className="mt-2 flex justify-between items-center">
-                  <span className="text-lg font-bold text-purple-600">
-                    {typeof product.price === "number" && !isNaN(product.price)
-                      ? formatCurrency(product.price)
-                      : "Consulte o preço"}
-                  </span>
-                </div>
+    <div className="min-h-screen bg-gradient-to-b from-purple-100 to-white">
+      {/* Cabeçalho da vitrine */}
+      <header className="bg-purple-600 text-white p-4 shadow-md">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center">
+            {storeConfig?.logoUrl && (
+              <div className="relative w-12 h-12 mr-3">
+                <Image
+                  src={storeConfig.logoUrl || "/placeholder.svg"}
+                  alt={storeConfig.name || "Açaí Online"}
+                  fill
+                  className="object-contain rounded-full bg-white p-1"
+                />
               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* CTA para acessar a loja completa */}
-        <div className="mt-8 text-center">
+            )}
+            <h1 className="text-2xl font-bold">{storeConfig?.name || "Açaí Online"}</h1>
+          </div>
           <Link
             href="/"
-            className="inline-block bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+            className="bg-white text-purple-600 px-4 py-2 rounded-full font-medium hover:bg-purple-50 transition-colors"
           >
-            Acessar Loja Completa
+            Fazer Pedido
           </Link>
         </div>
-      </main>
+      </header>
 
-      {/* Rodapé */}
-      <footer className="bg-purple-600 text-white p-4 text-center mt-8">
-        <p>
-          © {new Date().getFullYear()} {storeConfig?.name || "Açaí Online"}
-        </p>
+      {/* Conteúdo da vitrine */}
+      <div className="container mx-auto px-4 py-8">
+        <h2 className="text-2xl font-bold text-center mb-8 text-purple-800">Nossos Produtos</h2>
+
+        <ProductList products={products} categories={categories} />
+
+        <div className="mt-10 text-center">
+          <Link
+            href="/"
+            className="inline-block bg-purple-600 text-white px-6 py-3 rounded-full font-medium text-lg hover:bg-purple-700 transition-colors shadow-md"
+          >
+            Ver Cardápio Completo e Fazer Pedido
+          </Link>
+        </div>
+      </div>
+
+      {/* Rodapé da vitrine */}
+      <footer className="bg-purple-600 text-white p-4 mt-10">
+        <div className="container mx-auto text-center">
+          <p>
+            © {new Date().getFullYear()} {storeConfig?.name || "Açaí Online"}
+          </p>
+          <p className="text-sm mt-1">Clique no botão acima para fazer seu pedido!</p>
+        </div>
       </footer>
     </div>
   )
