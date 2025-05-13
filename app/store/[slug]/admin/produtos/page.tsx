@@ -1,27 +1,22 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
+import { useParams } from "next/navigation"
 import Image from "next/image"
-import { useAuth } from "@/lib/auth-context"
-import AuthGuard from "@/components/auth-guard"
-import { ArrowLeft, Save, Plus, Trash2, Check, Settings, Store, LogOut } from "lucide-react"
-import {
-  getAllProducts,
-  getAllCategories,
-  getAllAdditionals,
-  saveProduct,
-  deleteProduct,
-  type Product,
-  type Category,
-  type Additional,
-} from "@/lib/db"
+import { Plus, Trash2, Save, Check } from "lucide-react"
+import { useStore } from "@/lib/store-context"
+import { getAllProducts, saveProduct, deleteProduct } from "@/lib/services/product-service"
+import { getAllCategories } from "@/lib/services/category-service"
+import { getAllAdditionals } from "@/lib/services/additional-service"
 import { formatCurrency } from "@/lib/utils"
+import type { Product, Category, Additional } from "@/lib/types"
 
-export default function AdminPage() {
-  const { user, signOut } = useAuth()
-  const router = useRouter()
+export default function ProductsPage() {
+  const params = useParams()
+  const slug = params?.slug as string
+  const { store } = useStore()
+  const storeId = store?.id
+
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [additionals, setAdditionals] = useState<Additional[]>([])
@@ -31,23 +26,17 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [deleteStatus, setDeleteStatus] = useState<{ id: number; status: "pending" | "success" | "error" } | null>(null)
 
-  const handleLogout = async () => {
-    await signOut()
-    router.push("/login")
-  }
-
   // Função para carregar produtos, categorias e adicionais
   const loadData = async () => {
+    if (!storeId) return
+
     try {
       setIsLoading(true)
       const [productsList, categoriesList, additionalsList] = await Promise.all([
-        getAllProducts(),
-        getAllCategories(),
-        getAllAdditionals(),
+        getAllProducts(storeId),
+        getAllCategories(storeId),
+        getAllAdditionals(storeId),
       ])
-      console.log("Produtos carregados no admin:", productsList.length)
-      console.log("Categorias carregadas no admin:", categoriesList.length)
-      console.log("Adicionais carregados no admin:", additionalsList.length)
       setProducts(productsList)
       setCategories(categoriesList)
       setAdditionals(additionalsList)
@@ -58,57 +47,51 @@ export default function AdminPage() {
     }
   }
 
-  // Carregar produtos na montagem do componente
+  // Carregar produtos quando o storeId estiver disponível
   useEffect(() => {
-    loadData()
-  }, [])
+    if (storeId) {
+      loadData()
+    }
+  }, [storeId])
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct({ ...product })
     setIsModalOpen(true)
   }
 
-  // Modificar a função handleAddProduct para usar um ID seguro em vez de Date.now()
-
   const handleAddProduct = () => {
     // Usar a primeira categoria disponível como padrão
     const defaultCategoryId = categories.length > 0 ? categories[0].id : 1
 
     setEditingProduct({
-      id: Math.floor(Math.random() * 1000000) + 1, // Gerar um ID seguro dentro do intervalo do PostgreSQL
+      id: 0, // Será gerado pelo banco de dados
       name: "",
       description: "",
-      image: "/placeholder.svg?key=5xlcq",
+      image: "/placeholder.svg?key=product",
       sizes: [
         { size: "300ml", price: 0 },
         { size: "500ml", price: 0 },
         { size: "700ml", price: 0 },
       ],
       categoryId: defaultCategoryId,
-      allowedAdditionals: [], // Inicialmente sem adicionais permitidos
+      active: true,
+      allowedAdditionals: [],
+      storeId: storeId || "",
     })
     setIsModalOpen(true)
   }
 
   const handleDeleteProduct = async (id: number) => {
+    if (!storeId) return
+
     if (confirm("Tem certeza que deseja excluir este produto?")) {
       try {
         setDeleteStatus({ id, status: "pending" })
-        await deleteProduct(id)
+        await deleteProduct(id, storeId)
 
-        // Verificar se o produto foi realmente excluído
-        const updatedProducts = await getAllProducts()
-        const stillExists = updatedProducts.some((p) => p.id === id)
-
-        if (stillExists) {
-          console.error(`Produto com ID ${id} ainda existe após tentativa de exclusão`)
-          setDeleteStatus({ id, status: "error" })
-          alert("Erro ao excluir produto. O produto ainda existe no banco de dados.")
-        } else {
-          setProducts(updatedProducts)
-          setDeleteStatus({ id, status: "success" })
-          console.log(`Produto com ID ${id} excluído com sucesso`)
-        }
+        // Atualizar a lista de produtos após excluir
+        await loadData()
+        setDeleteStatus({ id, status: "success" })
       } catch (error) {
         console.error("Erro ao excluir produto:", error)
         setDeleteStatus({ id, status: "error" })
@@ -118,7 +101,7 @@ export default function AdminPage() {
   }
 
   const handleSaveProduct = async () => {
-    if (!editingProduct) return
+    if (!editingProduct || !storeId) return
 
     if (!editingProduct.name) {
       alert("O nome do produto é obrigatório")
@@ -126,11 +109,16 @@ export default function AdminPage() {
     }
 
     try {
-      await saveProduct(editingProduct)
+      // Garantir que o produto tenha o storeId correto
+      const productToSave = {
+        ...editingProduct,
+        storeId,
+      }
+
+      await saveProduct(productToSave, storeId)
 
       // Atualizar a lista de produtos após salvar
-      const updatedProducts = await getAllProducts()
-      setProducts(updatedProducts)
+      await loadData()
       setIsModalOpen(false)
     } catch (error) {
       console.error("Erro ao salvar produto:", error)
@@ -222,16 +210,8 @@ export default function AdminPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
-          <div className="container mx-auto flex items-center">
-            <Link href="/" className="mr-4">
-              <ArrowLeft size={24} />
-            </Link>
-            <h1 className="text-xl font-bold">Painel Administrativo</h1>
-          </div>
-        </header>
-        <div className="flex-1 flex justify-center items-center">
+      <div className="p-4">
+        <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700"></div>
         </div>
       </div>
@@ -239,123 +219,103 @@ export default function AdminPage() {
   }
 
   return (
-    <AuthGuard>
-      <div className="min-h-screen flex flex-col">
-        <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
-          <div className="container mx-auto flex items-center justify-between">
-            <h1 className="text-xl font-bold">Painel Administrativo</h1>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm hidden md:inline-block">Olá, {user?.user_metadata?.name || user?.email}</span>
-              <button
-                onClick={handleLogout}
-                className="bg-purple-800 hover:bg-purple-700 p-2 rounded-full"
-                title="Sair"
-              >
-                <LogOut className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </header>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Gerenciar Produtos</h1>
+        <button
+          onClick={handleAddProduct}
+          className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-md flex items-center"
+        >
+          <Plus size={18} className="mr-2" />
+          Novo Produto
+        </button>
+      </div>
 
-        <main className="flex-1 container mx-auto p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            <Link href="/admin/stores">
-              <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow text-center">
-                <Store className="h-16 w-16 mx-auto text-purple-600 mb-4" />
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Minhas Lojas</h2>
-                <p className="text-gray-600">Gerenciar suas lojas de açaí</p>
+      {products.length === 0 ? (
+        <div className="bg-white rounded-lg shadow p-8 text-center">
+          <p className="text-gray-500 mb-4">Nenhum produto cadastrado ainda.</p>
+          <button
+            onClick={handleAddProduct}
+            className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-md inline-flex items-center"
+          >
+            <Plus size={18} className="mr-2" />
+            Adicionar Primeiro Produto
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map((product) => (
+            <div key={product.id} className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="h-40 relative">
+                <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
+                {!product.active && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <span className="text-white font-medium px-3 py-1 bg-red-600 rounded-full">Inativo</span>
+                  </div>
+                )}
               </div>
-            </Link>
-
-            <Link href="/admin/account">
-              <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow text-center">
-                <Settings className="h-16 w-16 mx-auto text-purple-600 mb-4" />
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Minha Conta</h2>
-                <p className="text-gray-600">Gerenciar suas informações pessoais</p>
-              </div>
-            </Link>
-          </div>
-
-          <div className="mt-8 bg-purple-50 p-6 rounded-lg max-w-4xl mx-auto">
-            <h2 className="text-xl font-bold text-purple-900 mb-4">Bem-vindo ao Açaí Online</h2>
-            <p className="text-gray-700 mb-4">
-              Este é o seu painel administrativo central. Aqui você pode gerenciar todas as suas lojas de açaí e
-              configurações da sua conta.
-            </p>
-            <p className="text-gray-700">
-              Para começar, clique em "Minhas Lojas" para ver suas lojas existentes ou criar uma nova.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-            <h2 className="text-lg font-semibold text-purple-900 mb-4">Gerenciar Produtos</h2>
-
-            {products.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">
-                Nenhum produto cadastrado. Clique em "Novo Produto" para começar.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {products.map((product) => (
-                  <div key={product.id} className="border rounded-lg overflow-hidden flex flex-col sm:flex-row">
-                    <div className="w-full sm:w-24 h-24 relative">
-                      <Image
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="p-3 flex-1">
-                      <div className="flex justify-between flex-wrap gap-2">
-                        <div>
-                          <h3 className="font-semibold">{product.name}</h3>
-                          <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
-                            {getCategoryName(product.categoryId)}
-                          </span>
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-1">
-                            Adicionais: {getAdditionalCount(product)}
-                          </span>
-                        </div>
-                        <div className="flex space-x-2">
-                          <button onClick={() => handleEditProduct(product)} className="text-blue-600 p-1">
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProduct(product.id)}
-                            className="text-red-600 p-1"
-                            disabled={deleteStatus?.id === product.id && deleteStatus.status === "pending"}
-                          >
-                            {deleteStatus?.id === product.id && deleteStatus.status === "pending" ? (
-                              <span className="animate-pulse">...</span>
-                            ) : (
-                              <Trash2 size={18} />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-500 line-clamp-1 mt-1">{product.description}</p>
-                      <div className="mt-1 text-sm flex flex-wrap gap-2">
-                        {product.sizes.map((size) => (
-                          <span key={size.size} className="mr-3">
-                            {size.size}: {formatCurrency(size.price)}
-                          </span>
-                        ))}
-                      </div>
+              <div className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-lg">{product.name}</h3>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+                        {getCategoryName(product.categoryId)}
+                      </span>
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                        Adicionais: {getAdditionalCount(product)}
+                      </span>
                     </div>
                   </div>
-                ))}
+                  <div className="flex space-x-1">
+                    <button
+                      onClick={() => handleEditProduct(product)}
+                      className="p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
+                      title="Editar produto"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                        <path d="m15 5 4 4" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteProduct(product.id)}
+                      className="p-2 bg-red-100 text-red-700 rounded-full hover:bg-red-200"
+                      title="Excluir produto"
+                      disabled={deleteStatus?.id === product.id && deleteStatus.status === "pending"}
+                    >
+                      {deleteStatus?.id === product.id && deleteStatus.status === "pending" ? (
+                        <span className="animate-pulse">...</span>
+                      ) : (
+                        <Trash2 size={16} />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 mt-2 line-clamp-2">{product.description}</p>
+                <div className="mt-3 space-y-1">
+                  {product.sizes.map((size) => (
+                    <div key={size.size} className="flex justify-between text-sm">
+                      <span>{size.size}</span>
+                      <span className="font-medium">{formatCurrency(size.price)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            )}
-          </div>
-        </main>
-
-        <footer className="bg-gray-100 py-4">
-          <div className="container mx-auto px-4 text-center text-gray-600 text-sm">
-            &copy; {new Date().getFullYear()} Açaí Online - Todos os direitos reservados
-          </div>
-        </footer>
-      </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Edit Product Modal */}
       {isModalOpen && editingProduct && (
@@ -363,7 +323,7 @@ export default function AdminPage() {
           <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-auto">
             <div className="p-4 border-b sticky top-0 bg-white z-10">
               <h2 className="text-lg font-semibold text-purple-900">
-                {products.some((p) => p.id === editingProduct.id) ? "Editar Produto" : "Novo Produto"}
+                {editingProduct.id ? "Editar Produto" : "Novo Produto"}
               </h2>
             </div>
 
@@ -414,6 +374,19 @@ export default function AdminPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="URL da imagem"
                 />
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="active"
+                  checked={editingProduct.active}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, active: e.target.checked })}
+                  className="h-5 w-5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                />
+                <label htmlFor="active" className="ml-2 block text-sm text-gray-700">
+                  Produto ativo
+                </label>
               </div>
 
               <div>
@@ -568,6 +541,6 @@ export default function AdminPage() {
           </div>
         </div>
       )}
-    </AuthGuard>
+    </div>
   )
 }
