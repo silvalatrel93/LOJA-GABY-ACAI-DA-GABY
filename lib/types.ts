@@ -1,23 +1,4 @@
-// Tipos para o sistema de açaí online multi-tenant
-
-// Loja (Store)
-export interface Store {
-  id: string
-  name: string
-  slug: string
-  domain?: string
-  logoUrl?: string
-  themeColor: string
-  isActive: boolean
-  createdAt: Date
-  updatedAt: Date
-  ownerId: string
-  customDomain?: string
-  usage?: {
-    products: number
-    orders: number
-  }
-}
+// Tipos para o sistema de açaí online
 
 // Produto
 export interface Product {
@@ -30,7 +11,6 @@ export interface Product {
   categoryName?: string
   active: boolean
   allowedAdditionals: number[]
-  storeId: string
 }
 
 // Tamanho do produto
@@ -45,7 +25,6 @@ export interface Category {
   name: string
   order: number
   active: boolean
-  storeId: string
 }
 
 // Adicional
@@ -57,7 +36,6 @@ export interface Additional {
   categoryName?: string
   active: boolean
   image?: string
-  storeId: string
 }
 
 // Item do carrinho
@@ -69,9 +47,8 @@ export interface CartItem {
   quantity: number
   image?: string
   size: string
-  originalSize?: string
+  originalSize?: string // Campo opcional para armazenar o tamanho original com identificador
   additionals?: Additional[]
-  storeId: string
 }
 
 // Adicional no carrinho
@@ -79,7 +56,7 @@ export interface CartAdditional {
   id: number
   name: string
   price: number
-  quantity?: number
+  quantity?: number // Adicionado campo de quantidade para adicionais
 }
 
 // Slide do carrossel
@@ -90,7 +67,6 @@ export interface CarouselSlide {
   subtitle: string
   order: number
   active: boolean
-  storeId: string
 }
 
 // Frase
@@ -99,7 +75,6 @@ export interface Phrase {
   text: string
   order: number
   active: boolean
-  storeId: string
 }
 
 // Configuração da loja
@@ -111,7 +86,6 @@ export interface StoreConfig {
   isOpen: boolean
   operatingHours: OperatingHours
   specialDates: SpecialDate[]
-  storeId: string
 }
 
 // Horário de funcionamento
@@ -144,7 +118,6 @@ export interface Order {
   status: string
   date: Date
   printed: boolean
-  storeId: string
 }
 
 // Endereço
@@ -175,7 +148,6 @@ export interface PageContent {
   title: string
   content: string
   lastUpdated: Date
-  storeId: string
 }
 
 // Notificação
@@ -189,57 +161,4 @@ export interface Notification {
   endDate: Date
   priority: number
   read: boolean
-  storeId: string
-}
-
-// Usuário
-export interface User {
-  id: string
-  email: string
-  name?: string
-  avatar_url?: string
-}
-
-// Plano de assinatura
-export interface SubscriptionPlan {
-  id: string
-  name: string
-  description: string
-  price: number
-  features: string[]
-  maxProducts: number
-  maxOrders: number
-  customDomain: boolean
-  advancedAnalytics: boolean
-}
-
-// Assinatura
-export interface Subscription {
-  id: string
-  userId: string
-  planId: string
-  status: "active" | "canceled" | "past_due" | "trialing"
-  currentPeriodStart: Date
-  currentPeriodEnd: Date
-  cancelAtPeriodEnd: boolean
-  createdAt: Date
-  updatedAt: Date
-}
-
-export interface Plan {
-  id: string
-  name: string
-  description: string
-  price: number
-  billingCycle: "monthly" | "yearly"
-  features: string[]
-  limits: {
-    stores: number
-    products: number
-    orders: number
-    customDomain: boolean
-  }
-  isActive: boolean
-  createdAt: Date
-  updatedAt: Date
 }

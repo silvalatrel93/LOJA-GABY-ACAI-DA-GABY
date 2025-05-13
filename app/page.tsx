@@ -1,139 +1,136 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { createSupabaseClient } from "@/lib/supabase-client"
+import { useEffect, useState } from "react"
+import MainLayout from "@/components/main-layout"
+import ProductList from "@/components/product-list"
+import TextCarousel from "@/components/text-carousel"
+import StoreClosedNotice from "@/components/store-closed-notice"
+import FloatingCartButton from "@/components/floating-cart-button"
+import { getActiveSlides } from "@/lib/services/carousel-service"
+import { getActiveCategories } from "@/lib/services/category-service"
+import { getActiveProducts } from "@/lib/services/product-service"
+import { getActivePhrases } from "@/lib/services/phrase-service"
+import { getStoreConfig } from "@/lib/services/store-config-service"
+import { getStoreStatus } from "@/lib/store-utils"
+import type { CarouselSlide } from "@/lib/services/carousel-service"
+import type { Category } from "@/lib/types"
+import type { Product } from "@/lib/types"
+import type { Phrase } from "@/lib/types"
+import type { StoreConfig } from "@/lib/types"
 
-export default function HomePage() {
-  const [user, setUser] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
+export default function Home() {
+  const [slides, setSlides] = useState<CarouselSlide[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [phrases, setPhrases] = useState<Phrase[]>([])
+  const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null)
+  const [storeOpen, setStoreOpen] = useState<boolean>(true)
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const checkUser = async () => {
+    const loadData = async () => {
       try {
-        setIsLoading(true)
-        const supabase = createSupabaseClient()
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-        setUser(user)
+        setLoading(true)
+        setError(null)
+
+        // Carrega os dados com tratamento de erros para cada serviço
+        let slidesData: CarouselSlide[] = []
+        let categoriesData: Category[] = []
+        let productsData: Product[] = []
+        let phrasesData: Phrase[] = []
+        let configData: StoreConfig | null = null
+        let storeStatus = { isOpen: true }
+
+        try {
+          slidesData = await getActiveSlides()
+        } catch (e) {
+          console.error("Erro ao carregar slides:", e)
+          slidesData = []
+        }
+
+        try {
+          categoriesData = await getActiveCategories()
+        } catch (e) {
+          console.error("Erro ao carregar categorias:", e)
+          categoriesData = []
+        }
+
+        try {
+          productsData = await getActiveProducts()
+        } catch (e) {
+          console.error("Erro ao carregar produtos:", e)
+          productsData = []
+        }
+
+        try {
+          phrasesData = await getActivePhrases()
+        } catch (e) {
+          console.error("Erro ao carregar frases:", e)
+          phrasesData = []
+        }
+
+        try {
+          configData = await getStoreConfig()
+        } catch (e) {
+          console.error("Erro ao carregar configurações da loja:", e)
+          configData = null
+        }
+
+        try {
+          storeStatus = await getStoreStatus()
+        } catch (e) {
+          console.error("Erro ao verificar status da loja:", e)
+          storeStatus = { isOpen: true }
+        }
+
+        setSlides(slidesData)
+        setCategories(categoriesData)
+        setProducts(productsData)
+        setPhrases(phrasesData)
+        setStoreConfig(configData)
+        setStoreOpen(storeStatus.isOpen)
       } catch (error) {
-        console.error("Erro ao verificar usuário:", error)
+        console.error("Erro ao carregar dados:", error)
+        setError("Ocorreu um erro ao carregar os dados. Por favor, tente novamente.")
       } finally {
-        setIsLoading(false)
+        setLoading(false)
       }
     }
 
-    checkUser()
+    loadData()
   }, [])
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="bg-purple-900 text-white p-4 shadow-md">
-        <div className="container mx-auto flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Açaí Online</h1>
-          <nav>
-            <ul className="flex space-x-4">
-              {user ? (
-                <>
-                  <li>
-                    <Link href="/admin/stores" className="hover:underline">
-                      Minhas Lojas
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/admin" className="hover:underline">
-                      Painel Admin
-                    </Link>
-                  </li>
-                </>
-              ) : (
-                <>
-                  <li>
-                    <Link href="/login" className="hover:underline">
-                      Entrar
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/register" className="hover:underline">
-                      Registrar
-                    </Link>
-                  </li>
-                </>
-              )}
-            </ul>
-          </nav>
-        </div>
-      </header>
+    <MainLayout carouselSlides={slides} showCart={true}>
+      {/* Carrossel de frases */}
+      {phrases && phrases.length > 0 && <TextCarousel phrases={phrases} />}
 
-      <main className="flex-1">
-        <section className="bg-gradient-to-b from-purple-900 to-purple-700 text-white py-20">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-4xl font-bold mb-4">Sistema de Pedidos Online para Lojas de Açaí</h2>
-            <p className="text-xl mb-8 max-w-2xl mx-auto">
-              Gerencie sua loja de açaí online, receba pedidos e aumente suas vendas com nossa plataforma completa.
-            </p>
-            <Link href="/register">
-              <button className="bg-white text-purple-900 px-6 py-3 rounded-lg font-bold text-lg hover:bg-gray-100 transition-colors">
-                Comece Agora
-              </button>
-            </Link>
+      {/* Aviso de loja fechada logo após o carrossel de frases */}
+      {!storeOpen && <StoreClosedNotice />}
+
+      <div className="container mx-auto px-4 py-6 bg-gradient-to-b from-purple-100 to-white rounded-lg">
+        {loading ? (
+          <div className="flex justify-center p-12">
+            <div className="animate-spin h-8 w-8 border-4 border-purple-500 rounded-full border-t-transparent"></div>
           </div>
-        </section>
-
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-12">Recursos Principais</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-purple-50 p-6 rounded-lg">
-                <h3 className="text-xl font-bold mb-3 text-purple-900">Gerenciamento de Produtos</h3>
-                <p className="text-gray-700">
-                  Cadastre seus produtos, categorias e adicionais de forma simples e rápida.
-                </p>
-              </div>
-
-              <div className="bg-purple-50 p-6 rounded-lg">
-                <h3 className="text-xl font-bold mb-3 text-purple-900">Pedidos Online</h3>
-                <p className="text-gray-700">Receba pedidos online e gerencie o status de cada pedido em tempo real.</p>
-              </div>
-
-              <div className="bg-purple-50 p-6 rounded-lg">
-                <h3 className="text-xl font-bold mb-3 text-purple-900">Múltiplas Lojas</h3>
-                <p className="text-gray-700">Gerencie várias lojas de açaí com um único painel administrativo.</p>
-              </div>
-            </div>
+        ) : error ? (
+          <div className="p-4 bg-red-50 text-red-700 rounded-lg text-center">
+            <p>{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Tentar novamente
+            </button>
           </div>
-        </section>
+        ) : (
+          <ProductList products={products} categories={categories} />
+        )}
+      </div>
 
-        <section className="py-16 bg-gray-100">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold mb-8">Pronto para começar?</h2>
-            <p className="text-xl mb-8 max-w-2xl mx-auto text-gray-700">
-              Crie sua conta agora e comece a vender açaí online em minutos.
-            </p>
-            <Link href="/register">
-              <button className="bg-purple-700 text-white px-6 py-3 rounded-lg font-bold text-lg hover:bg-purple-800 transition-colors">
-                Criar Conta Grátis
-              </button>
-            </Link>
-          </div>
-        </section>
-      </main>
-
-      <footer className="bg-purple-900 text-white py-8">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-4 md:mb-0">
-              <h3 className="text-xl font-bold">Açaí Online</h3>
-              <p className="text-purple-200">Sistema de pedidos para lojas de açaí</p>
-            </div>
-            <div>
-              <p>&copy; {new Date().getFullYear()} Açaí Online - Todos os direitos reservados</p>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+      {/* Botão flutuante do carrinho */}
+      <FloatingCartButton />
+    </MainLayout>
   )
 }

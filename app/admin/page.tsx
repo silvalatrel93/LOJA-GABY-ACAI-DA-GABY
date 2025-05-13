@@ -1,12 +1,24 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { useAuth } from "@/lib/auth-context"
-import AuthGuard from "@/components/auth-guard"
-import { ArrowLeft, Save, Plus, Trash2, Check, Settings, Store, LogOut } from "lucide-react"
+import {
+  ArrowLeft,
+  Save,
+  Plus,
+  Trash2,
+  ShoppingBag,
+  RefreshCw,
+  ImageIcon,
+  Layers,
+  PlusCircle,
+  Check,
+  MessageSquare,
+  Settings,
+  Clock,
+  Bell,
+} from "lucide-react"
 import {
   getAllProducts,
   getAllCategories,
@@ -20,8 +32,6 @@ import {
 import { formatCurrency } from "@/lib/utils"
 
 export default function AdminPage() {
-  const { user, signOut } = useAuth()
-  const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [additionals, setAdditionals] = useState<Additional[]>([])
@@ -30,11 +40,6 @@ export default function AdminPage() {
   const [isAdditionalsModalOpen, setIsAdditionalsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [deleteStatus, setDeleteStatus] = useState<{ id: number; status: "pending" | "success" | "error" } | null>(null)
-
-  const handleLogout = async () => {
-    await signOut()
-    router.push("/login")
-  }
 
   // Função para carregar produtos, categorias e adicionais
   const loadData = async () => {
@@ -239,122 +244,229 @@ export default function AdminPage() {
   }
 
   return (
-    <AuthGuard>
-      <div className="min-h-screen flex flex-col">
-        <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
-          <div className="container mx-auto flex items-center justify-between">
+    <div className="min-h-screen flex flex-col">
+      <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
+        <div className="container mx-auto flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center">
+            <Link href="/" className="mr-4">
+              <ArrowLeft size={24} />
+            </Link>
             <h1 className="text-xl font-bold">Painel Administrativo</h1>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm hidden md:inline-block">Olá, {user?.user_metadata?.name || user?.email}</span>
-              <button
-                onClick={handleLogout}
-                className="bg-purple-800 hover:bg-purple-700 p-2 rounded-full"
-                title="Sair"
-              >
-                <LogOut className="h-5 w-5" />
-              </button>
+          </div>
+          <div className="flex space-x-2 flex-wrap gap-2">
+            <button
+              onClick={loadData}
+              className="bg-purple-800 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              title="Atualizar dados"
+            >
+              <RefreshCw size={18} className="mr-1" />
+              Atualizar
+            </button>
+            <button
+              onClick={handleAddProduct}
+              className="bg-white text-purple-900 px-4 py-2 rounded-md font-medium flex items-center"
+            >
+              <Plus size={18} className="mr-1" />
+              Novo Produto
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 container mx-auto p-4">
+        {/* Cards de navegação */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <Link
+            href="/admin/pedidos"
+            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+          >
+            <div className="bg-purple-100 p-3 rounded-full mr-4">
+              <ShoppingBag size={24} className="text-purple-700" />
             </div>
-          </div>
-        </header>
+            <div>
+              <h2 className="text-lg font-semibold text-purple-900">Gerenciar Pedidos</h2>
+              <p className="text-gray-600">Visualize, atualize status e imprima etiquetas</p>
+            </div>
+          </Link>
 
-        <main className="flex-1 container mx-auto p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            <Link href="/admin/stores">
-              <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow text-center">
-                <Store className="h-16 w-16 mx-auto text-purple-600 mb-4" />
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Minhas Lojas</h2>
-                <p className="text-gray-600">Gerenciar suas lojas de açaí</p>
-              </div>
-            </Link>
+          <Link
+            href="/admin/carrossel"
+            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+          >
+            <div className="bg-purple-100 p-3 rounded-full mr-4">
+              <ImageIcon size={24} className="text-purple-700" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-purple-900">Gerenciar Carrossel</h2>
+              <p className="text-gray-600">Adicione e edite imagens do carrossel da página inicial</p>
+            </div>
+          </Link>
 
-            <Link href="/admin/account">
-              <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow text-center">
-                <Settings className="h-16 w-16 mx-auto text-purple-600 mb-4" />
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Minha Conta</h2>
-                <p className="text-gray-600">Gerenciar suas informações pessoais</p>
-              </div>
-            </Link>
-          </div>
+          <Link
+            href="/admin/categorias"
+            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+          >
+            <div className="bg-purple-100 p-3 rounded-full mr-4">
+              <Layers size={24} className="text-purple-700" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-purple-900">Gerenciar Categorias</h2>
+              <p className="text-gray-600">Organize seus produtos em categorias</p>
+            </div>
+          </Link>
 
-          <div className="mt-8 bg-purple-50 p-6 rounded-lg max-w-4xl mx-auto">
-            <h2 className="text-xl font-bold text-purple-900 mb-4">Bem-vindo ao Açaí Online</h2>
-            <p className="text-gray-700 mb-4">
-              Este é o seu painel administrativo central. Aqui você pode gerenciar todas as suas lojas de açaí e
-              configurações da sua conta.
+          <Link
+            href="/admin/adicionais"
+            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+          >
+            <div className="bg-purple-100 p-3 rounded-full mr-4">
+              <PlusCircle size={24} className="text-purple-700" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-purple-900">Gerenciar Adicionais</h2>
+              <p className="text-gray-600">Configure adicionais para os açaís</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/frases"
+            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+          >
+            <div className="bg-purple-100 p-3 rounded-full mr-4">
+              <MessageSquare size={24} className="text-purple-700" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-purple-900">Gerenciar Frases</h2>
+              <p className="text-gray-600">Edite as frases promocionais do carrossel</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/notificacoes"
+            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+          >
+            <div className="bg-purple-100 p-3 rounded-full mr-4">
+              <Bell size={24} className="text-purple-700" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-purple-900">Gerenciar Notificações</h2>
+              <p className="text-gray-600">Configure avisos e notificações para os clientes</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/configuracoes"
+            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+          >
+            <div className="bg-purple-100 p-3 rounded-full mr-4">
+              <Settings size={24} className="text-purple-700" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-purple-900">Configurações da Loja</h2>
+              <p className="text-gray-600">Personalize o logo e o nome da sua loja</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/horarios"
+            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+          >
+            <div className="bg-purple-100 p-3 rounded-full mr-4">
+              <Clock size={24} className="text-purple-700" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-purple-900">Horários de Funcionamento</h2>
+              <p className="text-gray-600">Gerencie os dias e horários de abertura da loja</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/paginas"
+            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+          >
+            <div className="bg-purple-100 p-3 rounded-full mr-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-purple-700"
+              >
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                <polyline points="14 2 14 8 20 8" />
+                <path d="M10 13v-1h4v1" />
+                <path d="M10 17v-1h4v1" />
+                <path d="M10 9v1" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-purple-900">Gerenciar Páginas</h2>
+              <p className="text-gray-600">Edite o conteúdo das páginas do site</p>
+            </div>
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+          <h2 className="text-lg font-semibold text-purple-900 mb-4">Gerenciar Produtos</h2>
+
+          {products.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">
+              Nenhum produto cadastrado. Clique em "Novo Produto" para começar.
             </p>
-            <p className="text-gray-700">
-              Para começar, clique em "Minhas Lojas" para ver suas lojas existentes ou criar uma nova.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-            <h2 className="text-lg font-semibold text-purple-900 mb-4">Gerenciar Produtos</h2>
-
-            {products.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">
-                Nenhum produto cadastrado. Clique em "Novo Produto" para começar.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {products.map((product) => (
-                  <div key={product.id} className="border rounded-lg overflow-hidden flex flex-col sm:flex-row">
-                    <div className="w-full sm:w-24 h-24 relative">
-                      <Image
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        fill
-                        className="object-cover"
-                      />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {products.map((product) => (
+                <div key={product.id} className="border rounded-lg overflow-hidden flex flex-col sm:flex-row">
+                  <div className="w-full sm:w-24 h-24 relative">
+                    <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
+                  </div>
+                  <div className="p-3 flex-1">
+                    <div className="flex justify-between flex-wrap gap-2">
+                      <div>
+                        <h3 className="font-semibold">{product.name}</h3>
+                        <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+                          {getCategoryName(product.categoryId)}
+                        </span>
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-1">
+                          Adicionais: {getAdditionalCount(product)}
+                        </span>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button onClick={() => handleEditProduct(product)} className="text-blue-600 p-1">
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(product.id)}
+                          className="text-red-600 p-1"
+                          disabled={deleteStatus?.id === product.id && deleteStatus.status === "pending"}
+                        >
+                          {deleteStatus?.id === product.id && deleteStatus.status === "pending" ? (
+                            <span className="animate-pulse">...</span>
+                          ) : (
+                            <Trash2 size={18} />
+                          )}
+                        </button>
+                      </div>
                     </div>
-                    <div className="p-3 flex-1">
-                      <div className="flex justify-between flex-wrap gap-2">
-                        <div>
-                          <h3 className="font-semibold">{product.name}</h3>
-                          <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
-                            {getCategoryName(product.categoryId)}
-                          </span>
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-1">
-                            Adicionais: {getAdditionalCount(product)}
-                          </span>
-                        </div>
-                        <div className="flex space-x-2">
-                          <button onClick={() => handleEditProduct(product)} className="text-blue-600 p-1">
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProduct(product.id)}
-                            className="text-red-600 p-1"
-                            disabled={deleteStatus?.id === product.id && deleteStatus.status === "pending"}
-                          >
-                            {deleteStatus?.id === product.id && deleteStatus.status === "pending" ? (
-                              <span className="animate-pulse">...</span>
-                            ) : (
-                              <Trash2 size={18} />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-500 line-clamp-1 mt-1">{product.description}</p>
-                      <div className="mt-1 text-sm flex flex-wrap gap-2">
-                        {product.sizes.map((size) => (
-                          <span key={size.size} className="mr-3">
-                            {size.size}: {formatCurrency(size.price)}
-                          </span>
-                        ))}
-                      </div>
+                    <p className="text-sm text-gray-500 line-clamp-1 mt-1">{product.description}</p>
+                    <div className="mt-1 text-sm flex flex-wrap gap-2">
+                      {product.sizes.map((size) => (
+                        <span key={size.size} className="mr-3">
+                          {size.size}: {formatCurrency(size.price)}
+                        </span>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </main>
-
-        <footer className="bg-gray-100 py-4">
-          <div className="container mx-auto px-4 text-center text-gray-600 text-sm">
-            &copy; {new Date().getFullYear()} Açaí Online - Todos os direitos reservados
-          </div>
-        </footer>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Edit Product Modal */}
@@ -568,6 +680,6 @@ export default function AdminPage() {
           </div>
         </div>
       )}
-    </AuthGuard>
+    </div>
   )
 }
