@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import AdminPWAInstaller from "@/components/admin-pwa-installer"
+import PWAInstaller from "@/components/pwa-installer"
 
 export const metadata: Metadata = {
   title: "Painel Admin - Açaí Online",
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   themeColor: "#9333ea",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Açaí Admin",
   },
   formatDetection: {
@@ -27,9 +27,10 @@ export default function AdminLayout({
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="Açaí Admin" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       {children}
-      <AdminPWAInstaller />
+      <PWAInstaller />
     </>
   )
 }

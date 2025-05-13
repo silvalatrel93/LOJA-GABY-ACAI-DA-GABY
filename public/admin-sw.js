@@ -1,79 +1,86 @@
 // Nome do cache
-const CACHE_NAME = "acai-admin-v1"
+const CACHE_NAME = "acai-admin-v2"
 
 // Arquivos para cache inicial
 const urlsToCache = [
   "/admin",
+  "/admin?source=pwa",
   "/admin-manifest.json",
-  "/icons/icon-192x192.png",
-  "/icons/icon-512x512.png",
-  "/screenshots/admin-1.png",
-  // Adicione outros recursos estáticos importantes aqui
+  "/icon-192.png",
+  "/icon-512.png",
+  "/maskable-icon-192.png",
+  "/maskable-icon-512.png",
+  "/screenshot1.png",
+  "/screenshot2.png",
 ]
 
 // Instalar o service worker e fazer cache dos recursos iniciais
 self.addEventListener("install", (event) => {
-  console.log("Service Worker sendo instalado")
+  console.log("[Service Worker] Instalando...")
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log("Cache aberto")
-      return cache.addAll(urlsToCache)
-    }),
-  )
-  // Ativar imediatamente sem esperar por recarregamentos
-  self.skipWaiting()
-})
-
-// Estratégia de cache: Network first, fallback to cache
-self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Se a resposta for válida, cloná-la e armazená-la no cache
-        if (event.request.method === "GET" && response && response.status === 200) {
-          const responseToCache = response.clone()
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache)
-          })
-        }
-        return response
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => {
+        console.log("[Service Worker] Cache aberto")
+        return cache.addAll(urlsToCache)
       })
-      .catch(() => {
-        // Se a rede falhar, tente buscar do cache
-        return caches.match(event.request).then((response) => {
-          if (response) {
-            return response
-          }
-          // Se não estiver no cache e for uma página HTML, retorne a página offline
-          if (event.request.headers.get("accept")?.includes("text/html")) {
-            return caches.match("/admin")
-          }
-          // Caso contrário, retorne um erro
-          return new Response("Offline e não encontrado no cache", {
-            status: 503,
-            statusText: "Serviço Indisponível",
-          })
-        })
+      .then(() => {
+        console.log("[Service Worker] Instalação concluída")
+        return self.skipWaiting()
       }),
   )
 })
 
-// Limpar caches antigos quando uma nova versão do service worker for ativada
+// Ativar o service worker
 self.addEventListener("activate", (event) => {
-  console.log("Service Worker ativado")
-  const cacheWhitelist = [CACHE_NAME]
+  console.log("[Service Worker] Ativando...")
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            console.log("Limpando cache antigo:", cacheName)
-            return caches.delete(cacheName)
-          }
-        }),
-      )
+    caches
+      .keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log("[Service Worker] Removendo cache antigo:", cacheName)
+              return caches.delete(cacheName)
+            }
+          }),
+        )
+      })
+      .then(() => {
+        console.log("[Service Worker] Ativação concluída")
+        return self.clients.claim()
+      }),
+  )
+})
+
+// Interceptar requisições
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      // Cache hit - retornar resposta do cache
+      if (response) {
+        return response
+      }
+
+      // Clonar a requisição
+      const fetchRequest = event.request.clone()
+
+      return fetch(fetchRequest).then((response) => {
+        // Verificar se recebemos uma resposta válida
+        if (!response || response.status !== 200 || response.type !== "basic") {
+          return response
+        }
+
+        // Clonar a resposta
+        const responseToCache = response.clone()
+
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache)
+        })
+
+        return response
+      })
     }),
   )
-  // Reivindicar o controle imediatamente
-  self.clients.claim()
 })

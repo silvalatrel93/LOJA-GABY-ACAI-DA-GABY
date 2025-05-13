@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Açaí Online Admin</title>
+  <meta name="description" content="Painel administrativo para gerenciar sua loja de açaí">
+  <link rel="manifest" href="/admin-manifest.json">
+  <meta name="theme-color" content="#9333ea">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Açaí Admin">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Açaí Admin">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: #9333ea;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+    .logo {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      margin: 0 0 10px 0;
+      font-size: 24px;
+    }
+    p {
+      margin: 0 0 20px 0;
+      opacity: 0.8;
+    }
+    .loading {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 4px solid white;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <img src="/icon-512.png" alt="Açaí Admin Logo" class="logo">
+  <h1>Açaí Online Admin</h1>
+  <p>Carregando painel administrativo...</p>
+  <div class="loading"></div>
+
+  <script>
+    // Registrar o service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/admin-sw.js').then(function(registration) {
+          console.log('Service Worker registrado com sucesso:', registration.scope);
+        }, function(err) {
+          console.log('Falha ao registrar Service Worker:', err);
+        });
+      });
+    }
+
+    // Redirecionar para a página admin após um breve delay
+    setTimeout(function() {
+      window.location.href = '/admin?source=pwa';
+    }, 2000);
+  </script>
+</body>
+</html>
