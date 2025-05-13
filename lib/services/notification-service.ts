@@ -97,6 +97,30 @@ export const NotificationService = {
       createdAt: new Date(item.created_at),
     }))
   },
+  
+  // Obter notificação por ID
+  async getNotificationById(id: number): Promise<Notification | null> {
+    const supabase = createSupabaseClient()
+    const { data, error } = await supabase.from("notifications").select("*").eq("id", id).single()
+
+    if (error) {
+      console.error("Erro ao buscar notificação por ID:", error)
+      return null
+    }
+
+    return {
+      id: data.id as number,
+      title: data.title as string,
+      message: data.message as string,
+      type: data.type as string,
+      active: data.active as boolean,
+      startDate: new Date(data.start_date),
+      endDate: new Date(data.end_date),
+      priority: data.priority as number,
+      read: data.read as boolean,
+      createdAt: new Date(data.created_at),
+    }
+  },
 
   // Salvar notificação
   async saveNotification(notification: Notification): Promise<Notification | null> {
@@ -199,6 +223,7 @@ export const NotificationService = {
 export const getAllNotifications = NotificationService.getAllNotifications.bind(NotificationService)
 export const getActiveNotifications = NotificationService.getActiveNotifications.bind(NotificationService)
 export const getUnreadNotifications = NotificationService.getUnreadNotifications.bind(NotificationService)
+export const getNotificationById = NotificationService.getNotificationById.bind(NotificationService)
 export const saveNotification = NotificationService.saveNotification.bind(NotificationService)
 export const markAsRead = NotificationService.markAsRead.bind(NotificationService)
 export const markAllAsRead = NotificationService.markAllAsRead.bind(NotificationService)

@@ -8,6 +8,7 @@ import * as StoreConfigService from "./store-config-service"
 import * as OrderService from "./order-service"
 import * as PageContentService from "./page-content-service"
 import * as NotificationService from "./notification-service"
+import { DEFAULT_STORE_ID } from "../constants"
 
 // Função para fazer backup de todos os dados
 export async function backupAllData() {
@@ -48,6 +49,7 @@ export async function backupAllData() {
       .insert({
         data: backupData,
         created_at: new Date().toISOString(),
+        store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
       })
       .select()
 

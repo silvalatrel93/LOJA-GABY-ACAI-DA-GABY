@@ -1,5 +1,6 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Phrase } from "../types"
+import { DEFAULT_STORE_ID } from "../constants"
 
 // Serviço para gerenciar frases
 export const PhraseService = {
@@ -67,6 +68,7 @@ export const PhraseService = {
         text: phrase.text,
         order: phrase.order,
         active: phrase.active,
+        store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
       }
 
       let result

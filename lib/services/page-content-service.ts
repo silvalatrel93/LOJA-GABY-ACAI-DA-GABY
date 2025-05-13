@@ -1,5 +1,6 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { PageContent } from "../types"
+import { DEFAULT_STORE_ID } from "../constants"
 
 // Serviço para gerenciar conteúdo das páginas
 export const PageContentService = {
@@ -66,6 +67,7 @@ export const PageContentService = {
       title: pageContent.title,
       content: pageContent.content,
       last_updated: new Date().toISOString(),
+      store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
     }
 
     const { data, error } = await supabase.from("page_content").upsert(pageContentData).select().single()

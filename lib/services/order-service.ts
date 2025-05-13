@@ -1,8 +1,6 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Order } from "../types"
-
-// ID da loja padrão (Loja Principal)
-const DEFAULT_STORE_ID = "00000000-0000-0000-0000-000000000000"
+import { DEFAULT_STORE_ID } from "../constants"
 
 // Serviço para gerenciar pedidos
 export const OrderService = {
@@ -175,3 +173,11 @@ export async function saveOrder(order: any): Promise<Order | null> {
     return null
   }
 }
+
+// Exportar funções individuais para facilitar o uso
+export const getAllOrders = OrderService.getAllOrders.bind(OrderService)
+export const getOrdersByStatus = OrderService.getOrdersByStatus.bind(OrderService)
+export const getOrderById = OrderService.getOrderById.bind(OrderService)
+export const createOrder = OrderService.createOrder.bind(OrderService)
+export const updateOrderStatus = OrderService.updateOrderStatus.bind(OrderService)
+export const markOrderAsPrinted = OrderService.markOrderAsPrinted.bind(OrderService)

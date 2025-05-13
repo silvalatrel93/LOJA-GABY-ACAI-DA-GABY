@@ -1,5 +1,6 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Product } from "../types"
+import { DEFAULT_STORE_ID } from "../constants"
 
 // Serviço para gerenciar produtos
 export const ProductService = {
@@ -121,6 +122,7 @@ export const ProductService = {
       category_id: product.categoryId,
       active: product.active !== undefined ? product.active : true,
       allowed_additionals: product.allowedAdditionals || [],
+      store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
     }
 
     try {
