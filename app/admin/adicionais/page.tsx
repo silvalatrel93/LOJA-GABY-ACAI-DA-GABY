@@ -3,21 +3,24 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, Save, Plus, Trash2, Eye, EyeOff } from "lucide-react"
+import { ArrowLeft, Save, Plus, Trash2, Eye, EyeOff, FolderPlus } from "lucide-react"
 import {
   getAllAdditionals,
   saveAdditional,
   deleteAdditional,
   backupData,
   getAllCategories,
+  AdditionalCategoryService,
   type Additional,
   type Category,
 } from "@/lib/db"
+import type { AdditionalCategory } from "@/lib/services/additional-category-service"
 import { formatCurrency } from "@/lib/utils"
 
 export default function AdditionalsAdminPage() {
   const [additionals, setAdditionals] = useState<Additional[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [additionalCategories, setAdditionalCategories] = useState<AdditionalCategory[]>([])
   const [editingAdditional, setEditingAdditional] = useState<Additional | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -27,9 +30,14 @@ export default function AdditionalsAdminPage() {
   const loadData = async () => {
     try {
       setIsLoading(true)
-      const [additionalsList, categoriesList] = await Promise.all([getAllAdditionals(), getAllCategories()])
+      const [additionalsList, categoriesList, additionalCategoriesList] = await Promise.all([
+        getAllAdditionals(), 
+        getAllCategories(),
+        AdditionalCategoryService.getAllAdditionalCategories()
+      ])
       setAdditionals(additionalsList)
       setCategories(categoriesList)
+      setAdditionalCategories(additionalCategoriesList)
     } catch (error) {
       console.error("Erro ao carregar dados:", error)
     } finally {
@@ -48,18 +56,15 @@ export default function AdditionalsAdminPage() {
   }
 
   const handleAddAdditional = () => {
-    // Encontrar a categoria de adicionais
-    const additionalsCategory = categories.find((c) => c.name === "Adicionais")
-    const categoryId = additionalsCategory ? additionalsCategory.id : 5 // Usar 5 como padrão se não encontrar
+    // Usar a primeira categoria de adicionais disponível ou 0 se não houver nenhuma
+    const defaultCategoryId = additionalCategories.length > 0 ? additionalCategories[0].id : 0
 
-    // Encontrar o maior ID para o novo adicional
-    const maxId = additionals.length > 0 ? Math.max(...additionals.map((a) => a.id)) : 0
-
+    // Não gerar um ID temporário, deixar que o banco de dados gere o ID
     setEditingAdditional({
-      id: maxId + 1,
+      id: 0, // ID temporário que será ignorado pelo backend
       name: "",
       price: 0,
-      categoryId,
+      categoryId: defaultCategoryId,
       active: true,
       image: "",
     })
@@ -149,13 +154,22 @@ export default function AdditionalsAdminPage() {
             </Link>
             <h1 className="text-xl font-bold">Gerenciar Adicionais</h1>
           </div>
-          <button
-            onClick={handleAddAdditional}
-            className="bg-white text-purple-900 px-4 py-2 rounded-md font-medium flex items-center"
-          >
-            <Plus size={18} className="mr-1" />
-            Novo Adicional
-          </button>
+          <div className="flex space-x-2">
+            <Link 
+              href="/admin/categorias-adicionais"
+              className="bg-purple-800 text-white px-4 py-2 rounded-md font-medium flex items-center"
+            >
+              <FolderPlus size={18} className="mr-1" />
+              Categorias
+            </Link>
+            <button
+              onClick={handleAddAdditional}
+              className="bg-white text-purple-900 px-4 py-2 rounded-md font-medium flex items-center"
+            >
+              <Plus size={18} className="mr-1" />
+              Novo Adicional
+            </button>
+          </div>
         </div>
       </header>
 
@@ -199,6 +213,11 @@ export default function AdditionalsAdminPage() {
                       <div>
                         <h3 className="font-semibold">{additional.name}</h3>
                         <p className="text-sm text-purple-700 font-medium">{formatCurrency(additional.price)}</p>
+                        <p className="text-xs text-gray-500">
+                          {additional.categoryName || 
+                            additionalCategories.find(c => c.id === additional.categoryId)?.name || 
+                            "Sem categoria"}
+                        </p>
                       </div>
 
                       <div className="flex space-x-2">
@@ -294,6 +313,25 @@ export default function AdditionalsAdminPage() {
                   min="0"
                   inputMode="decimal"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                <select
+                  value={editingAdditional.categoryId}
+                  onChange={(e) => setEditingAdditional({ ...editingAdditional, categoryId: Number(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  {additionalCategories.length === 0 ? (
+                    <option value="0">Nenhuma categoria disponível</option>
+                  ) : (
+                    additionalCategories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))
+                  )}
+                </select>
               </div>
 
               <div>

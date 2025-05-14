@@ -1,29 +1,35 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Product } from "../types"
 import { DEFAULT_STORE_ID } from "../constants"
+import { safelyGetRecordById } from "../supabase-utils"
 
 // Serviço para gerenciar produtos
 export const ProductService = {
   // Obter todos os produtos
   async getAllProducts(): Promise<Product[]> {
     const supabase = createSupabaseClient()
-    const { data, error } = await supabase.from("products").select("*, category:categories(name)").order("name")
+    const { data, error } = await supabase.from("products").select("*, category:categories(name)")
 
     if (error) {
       console.error("Erro ao buscar produtos:", error)
       return []
     }
+    
+    if (!data || !Array.isArray(data)) {
+      console.log("Nenhum produto encontrado ou data não é um array")
+      return []
+    }
 
-    return data.map((item) => ({
-      id: item.id,
-      name: item.name,
-      description: item.description || "",
-      image: item.image || "",
-      sizes: item.sizes,
-      categoryId: item.category_id,
-      categoryName: item.category?.name || "",
-      active: item.active,
-      allowedAdditionals: item.allowed_additionals || [],
+    return data.map((item: any) => ({
+      id: Number(item.id),
+      name: String(item.name || ""),
+      description: String(item.description || ""),
+      image: String(item.image || ""),
+      sizes: Array.isArray(item.sizes) ? item.sizes : [],
+      categoryId: Number(item.category_id),
+      categoryName: item.category?.name ? String(item.category.name) : "",
+      active: Boolean(item.active),
+      allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
     }))
   },
 
@@ -89,24 +95,41 @@ export const ProductService = {
 
   // Obter produto por ID
   async getProductById(id: number): Promise<Product | null> {
+    if (!id || isNaN(id)) {
+      console.error(`ID inválido para busca de produto: ${id}`)
+      return null
+    }
+    
     const supabase = createSupabaseClient()
-    const { data, error } = await supabase.from("products").select("*, category:categories(name)").eq("id", id).single()
+    // Usar a função segura para evitar o erro PGRST116
+    const { data, error } = await safelyGetRecordById<any>(
+      supabase, 
+      "products", 
+      "id", 
+      id, 
+      "*, category:categories(name)"
+    )
 
     if (error) {
       console.error(`Erro ao buscar produto ${id}:`, error)
       return null
     }
+    
+    if (!data) {
+      console.log(`Produto com ID ${id} não encontrado`)
+      return null
+    }
 
     return {
-      id: data.id,
-      name: data.name,
-      description: data.description || "",
-      image: data.image || "",
-      sizes: data.sizes,
-      categoryId: data.category_id,
-      categoryName: data.category?.name || "",
-      active: data.active,
-      allowedAdditionals: data.allowed_additionals || [],
+      id: Number(data.id),
+      name: String(data.name || ""),
+      description: String(data.description || ""),
+      image: String(data.image || ""),
+      sizes: data.sizes || [],
+      categoryId: Number(data.category_id),
+      categoryName: String(data.category?.name || ""),
+      active: Boolean(data.active),
+      allowedAdditionals: Array.isArray(data.allowed_additionals) ? data.allowed_additionals : [],
     }
   },
 

@@ -87,12 +87,13 @@ export function getRecordByIdWithStoreFilter(
   idField: string, 
   id: string | number
 ) {
+  console.log(`[DEBUG] Buscando registro na tabela ${table} com ${idField}=${id} e store_id=${DEFAULT_STORE_ID}`)
   return supabase
     .from(table)
     .select('*')
     .eq(idField, id)
     .eq('store_id', DEFAULT_STORE_ID)
-    .single()
+    .maybeSingle()
 }
 
 /**
@@ -109,7 +110,7 @@ export function insertWithStoreId(supabase: SupabaseClient, table: string, data:
     store_id: data.store_id || DEFAULT_STORE_ID
   }
   
-  return supabase.from(table).insert(dataWithStoreId)
+  return supabase.from(table).insert(dataWithStoreId).select()
 }
 
 /**
@@ -133,6 +134,7 @@ export function updateWithStoreFilter(
     .update(data)
     .eq(idField, id)
     .eq('store_id', DEFAULT_STORE_ID)
+    .select()
 }
 
 /**
@@ -149,6 +151,10 @@ export function deleteWithStoreFilter(
   idField: string, 
   id: string | number
 ) {
+  console.log(`[DEBUG] Executando deleteWithStoreFilter na tabela ${table} para ${idField}=${id}`)
+  console.log(`[DEBUG] Usando store_id=${DEFAULT_STORE_ID}`)
+  
+  // Verificar primeiro se o registro existe
   return supabase
     .from(table)
     .delete()
@@ -174,4 +180,43 @@ export function clearCartWithStoreFilter(
     .delete()
     .eq('session_id', sessionId)
     .eq('store_id', DEFAULT_STORE_ID)
+}
+
+/**
+ * Função segura para buscar um único registro pelo ID com filtro de store_id
+ * Esta função usa maybeSingle() em vez de single() para evitar o erro PGRST116
+ * @param supabase Cliente do Supabase
+ * @param table Nome da tabela
+ * @param idField Nome do campo de ID
+ * @param id Valor do ID
+ * @param selectQuery Query de seleção personalizada (opcional)
+ * @returns Promise com o resultado da busca
+ */
+export async function safelyGetRecordById<T = any>(
+  supabase: SupabaseClient, 
+  table: string, 
+  idField: string, 
+  id: string | number,
+  selectQuery: string = '*'
+): Promise<{ data: T | null, error: any | null }> {
+  console.log(`[DEBUG] Buscando registro na tabela ${table} com ${idField}=${id} e store_id=${DEFAULT_STORE_ID}`)
+  
+  try {
+    const { data, error } = await supabase
+      .from(table)
+      .select(selectQuery)
+      .eq(idField, id)
+      .eq('store_id', DEFAULT_STORE_ID)
+      .maybeSingle()
+    
+    if (error) {
+      console.error(`[ERROR] Erro ao buscar registro na tabela ${table}:`, error)
+      return { data: null, error }
+    }
+    
+    return { data: data as T, error: null }
+  } catch (err) {
+    console.error(`[ERROR] Exceção ao buscar registro na tabela ${table}:`, err)
+    return { data: null, error: err }
+  }
 }

@@ -4,15 +4,16 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Plus, Maximize2, ChevronDown, ChevronUp } from "lucide-react"
+import { Plus, Maximize2, ChevronDown, ChevronUp, Filter } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 // Importe a função cleanSizeDisplay
 import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
 import ImageViewer from "@/components/image-viewer"
-import { getActiveAdditionalsByProduct } from "@/lib/services/additional-service"
+import { getActiveAdditionalsByProduct, getActiveAdditionalsByProductGroupedByCategory } from "@/lib/db"
 import { getStoreStatus } from "@/lib/store-utils"
 import type { Product } from "@/lib/services/product-service"
 import type { Additional } from "@/lib/services/additional-service"
+import type { AdditionalCategory } from "@/lib/services/additional-category-service"
 
 interface ProductCardProps {
   product: Product
@@ -24,11 +25,13 @@ export default function ProductCard({ product }: ProductCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false)
   const [additionals, setAdditionals] = useState<Additional[]>([])
+  const [additionalsByCategory, setAdditionalsByCategory] = useState<{category: AdditionalCategory, additionals: Additional[]}[]>([])
   const [selectedAdditionals, setSelectedAdditionals] = useState<{
     [key: number]: { additional: Additional; quantity: number }
   }>({})
   const [isLoadingAdditionals, setIsLoadingAdditionals] = useState(false)
   const [isAdditionalsExpanded, setIsAdditionalsExpanded] = useState(false)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
   const [storeStatus, setStoreStatus] = useState({ isOpen: true, statusText: "", statusClass: "" })
 
   const selectedSizeInfo = product.sizes.find((s) => s.size === selectedSize)
@@ -39,9 +42,18 @@ export default function ProductCard({ product }: ProductCardProps) {
       const loadAdditionals = async () => {
         try {
           setIsLoadingAdditionals(true)
-          // Usar o serviço do Supabase para obter adicionais
-          const activeAdditionals = await getActiveAdditionalsByProduct(product.id)
+          // Carregar adicionais agrupados por categoria
+          const [activeAdditionals, groupedAdditionals] = await Promise.all([
+            getActiveAdditionalsByProduct(product.id),
+            getActiveAdditionalsByProductGroupedByCategory(product.id)
+          ])
           setAdditionals(activeAdditionals)
+          setAdditionalsByCategory(groupedAdditionals)
+          
+          // Selecionar a primeira categoria por padrão se houver categorias
+          if (groupedAdditionals.length > 0) {
+            setSelectedCategoryId(groupedAdditionals[0].category.id)
+          }
         } catch (error) {
           console.error("Erro ao carregar adicionais:", error)
         } finally {
@@ -256,61 +268,100 @@ export default function ProductCard({ product }: ProductCardProps) {
                       <div className="flex justify-center py-4">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-700"></div>
                       </div>
-                    ) : additionals.length === 0 ? (
+                    ) : additionalsByCategory.length === 0 ? (
                       <p className="text-gray-500 text-sm py-2">Nenhum adicional disponível</p>
                     ) : (
-                      <div className="space-y-2">
-                        {additionals.map((additional) => (
-                          <div key={additional.id} className="flex items-center justify-between border rounded-md p-2">
-                            <div className="flex items-center">
-                              <div className="w-10 h-10 relative mr-2 bg-purple-50 rounded-md overflow-hidden">
-                                {additional.image ? (
-                                  <Image
-                                    src={additional.image || "/placeholder.svg"}
-                                    alt={additional.name}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                ) : (
-                                  <div className="flex items-center justify-center h-full text-purple-300">
-                                    <Plus size={16} />
-                                  </div>
-                                )}
-                              </div>
-                              <div>
-                                <p className="font-medium text-sm">{additional.name}</p>
-                                <p className="text-xs text-purple-700">{formatCurrency(additional.price)}</p>
-                              </div>
-                            </div>
-
-                            {selectedAdditionals[additional.id] ? (
+                      <div className="space-y-4">
+                        {/* Abas de categorias */}
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => setSelectedCategoryId(null)}
+                            className={`px-3 py-1 text-xs rounded-full ${selectedCategoryId === null
+                              ? 'bg-purple-700 text-white'
+                              : 'bg-gray-100 text-gray-700'}`}
+                          >
+                            TODOS
+                          </button>
+                          {additionalsByCategory.map((group) => (
+                            <button
+                              key={group.category.id}
+                              onClick={() => setSelectedCategoryId(group.category.id)}
+                              className={`px-3 py-1 text-xs rounded-full ${selectedCategoryId === group.category.id
+                                ? 'bg-purple-700 text-white'
+                                : 'bg-gray-100 text-gray-700'}`}
+                            >
+                              {group.category.name}
+                            </button>
+                          ))}
+                        </div>
+                        
+                        {/* Lista de adicionais filtrada por categoria */}
+                        <div className="space-y-2">
+                          {(selectedCategoryId === null 
+                            ? additionals // Mostrar todos os adicionais
+                            : (additionalsByCategory
+                                .find(group => group.category.id === selectedCategoryId)?.additionals || [])
+                          ).map((additional: Additional) => (
+                            <div key={additional.id} className="flex items-center justify-between border rounded-md p-2">
                               <div className="flex items-center">
-                                <button
-                                  onClick={() => removeAdditional(additional.id)}
-                                  className="w-7 h-7 bg-purple-100 text-purple-900 rounded-l-md flex items-center justify-center"
-                                >
-                                  -
-                                </button>
-                                <span className="w-7 h-7 bg-purple-50 flex items-center justify-center text-sm">
-                                  {selectedAdditionals[additional.id].quantity}
-                                </span>
+                                <div className="w-10 h-10 relative mr-2 bg-purple-50 rounded-md overflow-hidden">
+                                  {additional.image ? (
+                                    <Image
+                                      src={additional.image || "/placeholder.svg"}
+                                      alt={additional.name}
+                                      fill
+                                      className="object-cover"
+                                    />
+                                  ) : (
+                                    <div className="flex items-center justify-center h-full text-purple-300">
+                                      <Plus size={16} />
+                                    </div>
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-sm">{additional.name}</p>
+                                  <p className="text-xs text-purple-700">{formatCurrency(additional.price)}</p>
+                                  {selectedCategoryId === null && (
+                                    <p className="text-xs text-gray-500">
+                                      {additional.categoryName || 
+                                        additionalsByCategory.find(g => 
+                                          g.additionals.some(a => a.id === additional.id)
+                                        )?.category.name || 
+                                        "Sem categoria"}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {selectedAdditionals[additional.id] ? (
+                                <div className="flex items-center">
+                                  <button
+                                    onClick={() => removeAdditional(additional.id)}
+                                    className="w-7 h-7 bg-purple-100 text-purple-900 rounded-l-md flex items-center justify-center"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="w-7 h-7 bg-purple-50 flex items-center justify-center text-sm">
+                                    {selectedAdditionals[additional.id].quantity}
+                                  </span>
+                                  <button
+                                    onClick={() => toggleAdditional(additional)}
+                                    className="w-7 h-7 bg-purple-100 text-purple-900 rounded-r-md flex items-center justify-center"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              ) : (
                                 <button
                                   onClick={() => toggleAdditional(additional)}
-                                  className="w-7 h-7 bg-purple-100 text-purple-900 rounded-r-md flex items-center justify-center"
+                                  className="w-7 h-7 bg-purple-100 text-purple-900 rounded-md flex items-center justify-center"
                                 >
                                   +
                                 </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => toggleAdditional(additional)}
-                                className="w-7 h-7 bg-purple-100 text-purple-900 rounded-md flex items-center justify-center"
-                              >
-                                +
-                              </button>
-                            )}
-                          </div>
-                        ))}
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

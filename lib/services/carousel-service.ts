@@ -1,6 +1,15 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { CarouselSlide } from "../types"
 import { DEFAULT_STORE_ID } from "../constants"
+import { 
+  getOrderedRecordsWithStoreFilter, 
+  getActiveOrderedRecordsWithStoreFilter, 
+  getRecordByIdWithStoreFilter,
+  insertWithStoreId,
+  updateWithStoreFilter,
+  deleteWithStoreFilter,
+  safelyGetRecordById
+} from "../supabase-utils"
 
 // Serviço para gerenciar slides do carrossel
 export const CarouselService = {
@@ -9,11 +18,9 @@ export const CarouselService = {
     try {
       console.log("Iniciando getAllSlides")
       const supabase = createSupabaseClient()
-      const { data, error } = await supabase
-        .from("carousel_slides")
-        .select("*")
-        .eq("store_id", DEFAULT_STORE_ID)
-        .order("order")
+      
+      // Usar a função utilitária para obter registros ordenados com filtro de store_id
+      const { data, error } = await getOrderedRecordsWithStoreFilter(supabase, "carousel_slides")
 
       if (error) {
         console.error("Erro ao buscar slides do carrossel:", error)
@@ -44,13 +51,11 @@ export const CarouselService = {
   // Obter slides ativos
   async getActiveSlides(): Promise<CarouselSlide[]> {
     try {
+      console.log("Iniciando getActiveSlides")
       const supabase = createSupabaseClient()
-      const { data, error } = await supabase
-        .from("carousel_slides")
-        .select("*")
-        .eq("active", true)
-        .eq("store_id", DEFAULT_STORE_ID)
-        .order("order")
+      
+      // Usar a função utilitária para obter registros ativos e ordenados com filtro de store_id
+      const { data, error } = await getActiveOrderedRecordsWithStoreFilter(supabase, "carousel_slides")
 
       if (error) {
         console.error("Erro ao buscar slides ativos do carrossel:", error)
@@ -58,9 +63,12 @@ export const CarouselService = {
       }
       
       if (!data || !Array.isArray(data)) {
+        console.log("Nenhum slide ativo encontrado")
         return []
       }
 
+      console.log(`Encontrados ${data.length} slides ativos`)
+      
       return data.map((item: any) => ({
         id: Number(item.id),
         image: String(item.image || ""),
@@ -83,13 +91,18 @@ export const CarouselService = {
   // Obter slide por ID
   async getSlideById(id: number): Promise<CarouselSlide | null> {
     try {
+      console.log(`Iniciando getSlideById para o slide ${id}`)
+      
+      if (!id || isNaN(id)) {
+        console.error(`ID inválido para busca: ${id}`)
+        return null
+      }
+      
       const supabase = createSupabaseClient()
-      const { data, error } = await supabase
-        .from("carousel_slides")
-        .select("*")
-        .eq("id", id)
-        .eq("store_id", DEFAULT_STORE_ID)
-        .maybeSingle()
+      
+      // Usar a função utilitária segura para obter um registro específico pelo ID com filtro de store_id
+      // Esta função usa .maybeSingle() e tem tratamento de erros robusto
+      const { data, error } = await safelyGetRecordById<any>(supabase, "carousel_slides", "id", id)
 
       if (error) {
         console.error(`Erro ao buscar slide ${id}:`, error)
@@ -118,16 +131,16 @@ export const CarouselService = {
   // Salvar slide
   async saveSlide(slide: CarouselSlide): Promise<CarouselSlide | null> {
     try {
+      console.log(`Iniciando saveSlide para o slide ${slide.id || 'novo'}`)
       const supabase = createSupabaseClient()
 
       const slideData = {
-        id: slide.id,
         image: slide.image,
         title: slide.title,
         subtitle: slide.subtitle,
         order: slide.order,
         active: slide.active,
-        store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
+        // store_id será adicionado automaticamente pelas funções utilitárias
       }
 
       let result;
@@ -138,13 +151,13 @@ export const CarouselService = {
       if (existingSlide) {
         // Atualizar slide existente
         console.log(`Atualizando slide existente com ID ${slide.id}`)
-        result = await supabase.from("carousel_slides").update(slideData).eq("id", slide.id).eq("store_id", DEFAULT_STORE_ID).select()
+        // Usar a função utilitária para atualizar com filtro de store_id
+        result = await updateWithStoreFilter(supabase, "carousel_slides", slideData, "id", slide.id)
       } else {
         // Criar novo slide
         console.log("Criando novo slide")
-        // Remover o ID para que o banco de dados gere um novo
-        const { id, ...newSlideData } = slideData
-        result = await supabase.from("carousel_slides").insert(newSlideData).select()
+        // Usar a função utilitária para inserir com store_id incluído automaticamente
+        result = await insertWithStoreId(supabase, "carousel_slides", slideData)
       }
 
       if (result.error) {
@@ -152,20 +165,22 @@ export const CarouselService = {
         throw new Error(`Erro ao salvar slide: ${result.error.message}`)
       }
 
-      if (!result.data || result.data.length === 0) {
+      if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
         console.error("Nenhum dado retornado ao salvar slide")
         throw new Error("Nenhum dado retornado ao salvar slide")
       }
 
-      const data = result.data[0]
+      const data = result.data[0] as any
 
+      console.log(`Slide salvo com sucesso. ID: ${data.id}`)
+      
       return {
-        id: data.id,
-        image: data.image,
-        title: data.title || "",
-        subtitle: data.subtitle || "",
-        order: data.order,
-        active: data.active,
+        id: Number(data.id),
+        image: String(data.image || ""),
+        title: String(data.title || ""),
+        subtitle: String(data.subtitle || ""),
+        order: Number(data.order),
+        active: Boolean(data.active),
       }
     } catch (error) {
       console.error("Erro ao salvar slide:", error)
@@ -186,30 +201,10 @@ export const CarouselService = {
       
       const supabase = createSupabaseClient()
       
-      // Verificar se o slide existe antes de tentar excluí-lo
-      console.log(`Verificando existência do slide ${id} para a loja ${DEFAULT_STORE_ID}`)
-      const { data: existingData, error: checkError } = await supabase
-        .from("carousel_slides")
-        .select("*")
-        .eq("id", id)
-        .eq("store_id", DEFAULT_STORE_ID)
-        .maybeSingle()
-      
-      if (checkError) {
-        console.error(`Erro ao verificar existência do slide ${id}:`, checkError)
-        return false
-      }
-      
-      if (!existingData) {
-        console.error(`Slide ${id} não encontrado para exclusão ou não pertence à loja ${DEFAULT_STORE_ID}`)
-        return false
-      }
-      
-      console.log(`Slide ${id} encontrado:`, existingData)
-      console.log(`Prosseguindo com a exclusão do slide ${id}`)
-      
-      // Excluir o slide com o filtro de store_id
-      const { error, count } = await supabase
+      // Abordagem direta: excluir o slide diretamente com os filtros necessários
+      // Isso evita chamadas adicionais ao banco de dados
+      console.log(`Excluindo slide ${id} diretamente`)
+      const { error } = await supabase
         .from("carousel_slides")
         .delete()
         .eq("id", id)
@@ -220,7 +215,7 @@ export const CarouselService = {
         return false
       }
 
-      console.log(`Slide ${id} excluído com sucesso. Registros afetados: ${count || 1}`)
+      console.log(`Slide ${id} excluído com sucesso.`)
       return true
     } catch (error) {
       console.error(`Erro inesperado ao excluir slide ${id}:`, error)

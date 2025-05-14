@@ -1,5 +1,7 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Notification } from "../types"
+import { DEFAULT_STORE_ID } from "../constants"
+import { safelyGetRecordById } from "../supabase-utils"
 
 // Serviço para gerenciar notificações
 export const NotificationService = {
@@ -100,11 +102,22 @@ export const NotificationService = {
   
   // Obter notificação por ID
   async getNotificationById(id: number): Promise<Notification | null> {
+    if (!id || isNaN(id)) {
+      console.error(`ID inválido para busca de notificação: ${id}`)
+      return null
+    }
+    
     const supabase = createSupabaseClient()
-    const { data, error } = await supabase.from("notifications").select("*").eq("id", id).single()
+    // Usar a função segura para evitar o erro PGRST116
+    const { data, error } = await safelyGetRecordById<any>(supabase, "notifications", "id", id)
 
     if (error) {
       console.error("Erro ao buscar notificação por ID:", error)
+      return null
+    }
+    
+    if (!data) {
+      console.log(`Notificação com ID ${id} não encontrada`)
       return null
     }
 
@@ -126,7 +139,7 @@ export const NotificationService = {
   async saveNotification(notification: Notification): Promise<Notification | null> {
     const supabase = createSupabaseClient()
 
-    const notificationData = {
+    const notificationData: any = {
       id: notification.id || undefined,
       title: notification.title,
       message: notification.message,
@@ -137,17 +150,48 @@ export const NotificationService = {
       priority: notification.priority,
       read: notification.read,
       created_at: notification.createdAt ? notification.createdAt.toISOString() : new Date().toISOString(),
+      store_id: DEFAULT_STORE_ID // Adicionar o ID da loja padrão
     }
 
     let result
 
     if (notification.id) {
       // Atualizar notificação existente
-      result = await supabase.from("notifications").update(notificationData).eq("id", notification.id).select().single()
+      const { error: updateError } = await supabase
+        .from("notifications")
+        .update(notificationData)
+        .eq("id", notification.id)
+        .eq("store_id", DEFAULT_STORE_ID)
+      
+      if (updateError) {
+        console.error("Erro ao atualizar notificação:", updateError)
+        return null
+      }
+      
+      // Buscar a notificação atualizada usando a função segura
+      const { data, error } = await safelyGetRecordById<any>(supabase, "notifications", "id", notification.id)
+      
+      if (error || !data) {
+        console.error("Erro ao buscar notificação atualizada:", error)
+        return null
+      }
+      
+      result = { data: [data], error: null }
     } else {
+      // O store_id já foi adicionado ao objeto notificationData
+      
       // Criar nova notificação
-      delete notificationData.id // Remover ID para que o banco gere um novo
-      result = await supabase.from("notifications").insert(notificationData).select().single()
+      const { error: insertError, data: insertedData } = await supabase
+        .from("notifications")
+        .insert(notificationData)
+        .select()
+      
+      if (insertError || !insertedData || insertedData.length === 0) {
+        console.error("Erro ao criar notificação:", insertError)
+        return null
+      }
+      
+      result = { data: insertedData, error: null }
     }
 
     if (result.error) {
@@ -155,18 +199,18 @@ export const NotificationService = {
       return null
     }
 
-    const data = result.data
+    const data = result.data[0] || result.data
 
     return {
-      id: data.id,
-      title: data.title,
-      message: data.message,
-      type: data.type,
-      active: data.active,
+      id: Number(data.id),
+      title: String(data.title || ""),
+      message: String(data.message || ""),
+      type: String(data.type || ""),
+      active: Boolean(data.active),
       startDate: new Date(data.start_date),
       endDate: new Date(data.end_date),
-      priority: data.priority,
-      read: data.read,
+      priority: Number(data.priority),
+      read: Boolean(data.read),
       createdAt: new Date(data.created_at),
     }
   },

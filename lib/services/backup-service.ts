@@ -3,6 +3,7 @@ import * as ProductService from "./product-service"
 import * as CategoryService from "./category-service"
 import * as AdditionalService from "./additional-service"
 import * as CarouselService from "./carousel-service"
+import { safelyGetRecordById } from "../supabase-utils"
 import * as PhraseService from "./phrase-service"
 import * as StoreConfigService from "./store-config-service"
 import * as OrderService from "./order-service"
@@ -87,11 +88,17 @@ export async function getAllBackups() {
 export async function restoreBackup(backupId: number) {
   try {
     const supabase = createSupabaseClient()
-    // Obter o backup
-    const { data, error } = await supabase.from("backups").select("*").eq("id", backupId).single()
+    // Obter o backup usando a função segura
+    console.log(`Buscando backup com ID ${backupId}`)
+    const { data, error } = await safelyGetRecordById<any>(supabase, "backups", "id", backupId)
 
-    if (error || !data) {
+    if (error) {
       console.error("Erro ao obter backup para restauração:", error)
+      return false
+    }
+    
+    if (!data) {
+      console.error(`Backup com ID ${backupId} não encontrado`)
       return false
     }
 

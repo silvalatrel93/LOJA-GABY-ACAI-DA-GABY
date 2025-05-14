@@ -1,6 +1,8 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Additional } from "../types"
 import { DEFAULT_STORE_ID } from "../constants"
+import type { AdditionalCategory } from "./additional-category-service"
+import { getActiveAdditionalCategories } from "./additional-category-service"
 
 console.log("DEFAULT_STORE_ID carregado:", DEFAULT_STORE_ID)
 
@@ -146,6 +148,123 @@ export const AdditionalService = {
     }
   },
 
+  // Obter adicionais ativos agrupados por categoria
+  async getActiveAdditionalsByProductGroupedByCategory(productId: number): Promise<{category: AdditionalCategory, additionals: Additional[]}[]> {
+    try {
+      console.log("Iniciando getActiveAdditionalsByProductGroupedByCategory para produto ID:", productId)
+      
+      // Primeiro, obter o produto para verificar os adicionais permitidos
+      const supabase = createSupabaseClient()
+      const { data: productData, error: productError } = await supabase
+        .from("products")
+        .select("allowed_additionals")
+        .eq("id", productId)
+        .eq("store_id", DEFAULT_STORE_ID)
+        .single()
+
+      if (productError || !productData) {
+        console.error("Erro ao buscar produto:", productError)
+        return []
+      }
+
+      // Verificar se o produto tem adicionais permitidos
+      if (!productData.allowed_additionals || !Array.isArray(productData.allowed_additionals) || productData.allowed_additionals.length === 0) {
+        console.log("Produto não tem adicionais permitidos")
+        return []
+      }
+
+      // Buscar todos os adicionais ativos que estão na lista de permitidos
+      const { data, error } = await supabase
+        .from("additionals")
+        .select("*, category_id")
+        .eq("active", true)
+        .eq("store_id", DEFAULT_STORE_ID)
+        .in("id", productData.allowed_additionals)
+
+      if (error) {
+        console.error("Erro ao buscar adicionais:", error)
+        return []
+      }
+
+      if (!data || !Array.isArray(data)) {
+        console.log("Nenhum adicional encontrado ou data não é um array")
+        return []
+      }
+
+      // Buscar todas as categorias ativas
+      const categories = await getActiveAdditionalCategories()
+
+      // Agrupar adicionais por categoria
+      const additionalsByCategory: { [key: number]: Additional[] } = {}
+      
+      // Inicializar o mapa com todas as categorias (mesmo as que não têm adicionais)
+      categories.forEach(category => {
+        additionalsByCategory[category.id] = []
+      })
+      
+      // Garantir que a categoria "Sem categoria" exista
+      if (!additionalsByCategory[0]) {
+        additionalsByCategory[0] = []
+      }
+      
+      // Processar os adicionais e agrupá-los por categoria
+      data.forEach(item => {
+        // Garantir que categoryId seja um número válido
+        const categoryId = typeof item.category_id === 'number' ? item.category_id : 0
+        
+        if (!additionalsByCategory[categoryId]) {
+          additionalsByCategory[categoryId] = []
+        }
+        
+        // Buscar o nome da categoria a partir do array de categorias
+        const category = categories.find(c => c.id === categoryId);
+        const categoryName = category ? category.name : "Sem categoria";
+        
+        // Garantir que todos os campos necessários estejam presentes
+        const additional: Additional = {
+          id: typeof item.id === 'number' ? item.id : 0,
+          name: typeof item.name === 'string' ? item.name : '',
+          price: typeof item.price === 'number' ? item.price : 0,
+          categoryId: categoryId,
+          categoryName: categoryName,
+          active: typeof item.active === 'boolean' ? item.active : true,
+          image: typeof item.image === 'string' ? item.image : undefined
+        }
+        
+        additionalsByCategory[categoryId].push(additional)
+      })
+      
+      // Converter o mapa em um array de objetos {categoria, adicionais}
+      const result = Object.entries(additionalsByCategory)
+        .map(([categoryId, additionalsList]) => {
+          // Encontrar a categoria correspondente
+          const category = categories.find(c => c.id === Number(categoryId))
+          
+          // Se a categoria não existir e houver adicionais, criar uma categoria "Sem categoria"
+          const categoryObj = category || {
+            id: 0,
+            name: "Sem categoria",
+            order: 999, // Colocar no final da lista
+            active: true
+          }
+          
+          return {
+            category: categoryObj,
+            additionals: additionalsList
+          }
+        })
+        // Filtrar categorias sem adicionais
+        .filter(item => item.additionals.length > 0)
+        // Ordenar por ordem da categoria
+        .sort((a, b) => a.category.order - b.category.order)
+      
+      return result
+    } catch (error) {
+      console.error(`Erro ao buscar adicionais agrupados por categoria para o produto ${productId}:`, error)
+      return []
+    }
+  },
+
   // Obter adicional por ID
   async getAdditionalById(id: number): Promise<Additional | null> {
     try {
@@ -185,15 +304,162 @@ export const AdditionalService = {
   },
 
   // Salvar adicional
-  async saveAdditional(additional: Additional): Promise<Additional | null> {
+  async saveAdditional(additional: Additional): Promise<{ data: Additional | null; error: Error | null }> {
     try {
       const supabase = createSupabaseClient()
       console.log("Iniciando saveAdditional com dados:", JSON.stringify(additional))
       console.log("DEFAULT_STORE_ID na função saveAdditional:", DEFAULT_STORE_ID)
 
-      // Verificar se o ID é válido (se existir)
-      if (additional.id) {
-        console.log("Verificando se o adicional com ID", additional.id, "existe")
+      // Garantir que temos uma categoria válida
+      let validCategoryId: number | null = null;
+      
+      // Verificar se temos uma categoria de produto válida
+      if (additional.categoryId) {
+        console.log("Verificando categoria de produto", additional.categoryId)
+        
+        // Verificar se a categoria existe na tabela categories
+        const { data: categoryData, error: categoryError } = await supabase
+          .from("categories")
+          .select("id")
+          .eq("id", additional.categoryId)
+          .maybeSingle()
+        
+        if (!categoryError && categoryData) {
+          // A categoria existe, podemos usá-la
+          validCategoryId = typeof categoryData.id === 'number' ? categoryData.id : Number(categoryData.id)
+          console.log("Categoria válida encontrada com ID:", validCategoryId)
+        } else {
+          // A categoria não existe na tabela categories, vamos verificar nas additional_categories
+          console.log("Categoria não encontrada na tabela categories, verificando additional_categories")
+          
+          const { data: additionalCategoryData, error: additionalCategoryError } = await supabase
+            .from("additional_categories")
+            .select("id, name")
+            .eq("id", additional.categoryId)
+            .maybeSingle()
+          
+          if (!additionalCategoryError && additionalCategoryData) {
+            // Encontramos na tabela additional_categories, vamos buscar ou criar na tabela categories
+            const categoryName = additionalCategoryData.name as string
+            console.log("Categoria encontrada em additional_categories com nome:", categoryName)
+            
+            // Verificar se já existe uma categoria com este nome
+            const { data: existingCategory, error: existingCategoryError } = await supabase
+              .from("categories")
+              .select("id")
+              .eq("name", categoryName)
+              .maybeSingle()
+            
+            if (!existingCategoryError && existingCategory) {
+              // Já existe uma categoria com este nome
+              validCategoryId = typeof existingCategory.id === 'number' ? existingCategory.id : Number(existingCategory.id)
+              console.log("Usando categoria existente com ID:", validCategoryId)
+            } else {
+              // Precisamos criar uma nova categoria
+              console.log("Criando nova categoria com nome:", categoryName)
+              
+              // Obter o próximo ID disponível para categoria
+              const { data: maxIdData } = await supabase
+                .from("categories")
+                .select("id")
+                .order("id", { ascending: false })
+                .limit(1)
+                .single()
+              
+              const nextId = maxIdData ? Number(maxIdData.id) + 1 : 1
+              console.log("Próximo ID disponível para categoria:", nextId)
+              
+              const { data: newCategory, error: newCategoryError } = await supabase
+                .from("categories")
+                .insert({
+                  id: nextId,
+                  name: categoryName,
+                  order: 999,
+                  active: true,
+                  store_id: DEFAULT_STORE_ID || "00000000-0000-0000-0000-000000000000"
+                })
+                .select()
+              
+              if (!newCategoryError && newCategory && newCategory.length > 0) {
+                validCategoryId = typeof newCategory[0].id === 'number' ? newCategory[0].id : Number(newCategory[0].id)
+                console.log("Nova categoria criada com ID:", validCategoryId)
+              } else {
+                console.error("Erro ao criar nova categoria:", newCategoryError)
+                // Tentar usar uma categoria padrão
+                const { data: defaultCategory } = await supabase
+                  .from("categories")
+                  .select("id")
+                  .limit(1)
+                  .single()
+                
+                if (defaultCategory) {
+                  validCategoryId = typeof defaultCategory.id === 'number' ? defaultCategory.id : Number(defaultCategory.id)
+                  console.log("Usando categoria padrão com ID:", validCategoryId)
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Se não conseguimos uma categoria válida, vamos usar a primeira categoria disponível
+      if (validCategoryId === null) {
+        console.log("Nenhuma categoria válida encontrada, buscando a primeira categoria disponível")
+        const { data: firstCategory } = await supabase
+          .from("categories")
+          .select("id")
+          .limit(1)
+          .single()
+        
+        if (firstCategory) {
+          validCategoryId = typeof firstCategory.id === 'number' ? firstCategory.id : Number(firstCategory.id)
+          console.log("Usando primeira categoria disponível com ID:", validCategoryId)
+        } else {
+          // Criar uma categoria padrão
+          console.log("Nenhuma categoria encontrada, criando categoria padrão")
+          const { data: defaultCategory, error: defaultCategoryError } = await supabase
+            .from("categories")
+            .insert({
+              name: "Categoria Padrão",
+              order: 1,
+              active: true,
+              store_id: DEFAULT_STORE_ID || "00000000-0000-0000-0000-000000000000"
+            })
+            .select()
+          
+          if (!defaultCategoryError && defaultCategory && defaultCategory.length > 0) {
+            validCategoryId = typeof defaultCategory[0].id === 'number' ? defaultCategory[0].id : Number(defaultCategory[0].id)
+            console.log("Categoria padrão criada com ID:", validCategoryId)
+          } else {
+            console.error("Erro ao criar categoria padrão:", defaultCategoryError)
+            return { data: null, error: new Error("Não foi possível criar uma categoria válida") }
+          }
+        }
+      }
+      
+      // Atualizar o ID da categoria no objeto additional
+      additional.categoryId = validCategoryId
+      
+      // Criar objeto de dados para inserção/atualização
+      const additionalData: any = {
+        name: additional.name,
+        price: additional.price,
+        category_id: additional.categoryId,
+        active: additional.active,
+        store_id: DEFAULT_STORE_ID || "00000000-0000-0000-0000-000000000000" // Garantir que store_id nunca seja nulo
+      }
+      
+      // Adicionar imagem apenas se estiver definida
+      if (additional.image) {
+        additionalData.image = additional.image
+      }
+      
+      let result;
+      
+      // Se o ID existir, for maior que zero e for um ID existente na base
+      // (não um ID temporário criado pelo frontend)
+      if (additional.id && additional.id > 0) {
+        // Verificar se o adicional com este ID existe
         const { data: existingData, error: checkError } = await supabase
           .from("additionals")
           .select("id")
@@ -201,79 +467,78 @@ export const AdditionalService = {
           .eq("store_id", DEFAULT_STORE_ID)
           .maybeSingle()
 
-        if (checkError) {
-          console.error("Erro ao verificar adicional existente:", JSON.stringify(checkError))
-          return null
-        }
-
-        // Se o adicional existir, atualizar
         if (existingData) {
-          console.log("Atualizando adicional existente com ID:", additional.id)
+          console.log("Atualizando adicional existente ID:", additional.id)
           
-          // Preparar dados para atualização
-          const additionalData = {
-            name: additional.name,
-            price: additional.price,
-            category_id: additional.categoryId,
-            active: additional.active,
-            image: additional.image || "",
-            store_id: DEFAULT_STORE_ID || "00000000-0000-0000-0000-000000000000",
-          }
-          
-          const { error: updateError } = await supabase
+          const { data, error } = await supabase
             .from("additionals")
             .update(additionalData)
             .eq("id", additional.id)
             .eq("store_id", DEFAULT_STORE_ID)
-
-          if (updateError) {
-            console.error("Erro ao atualizar adicional:", JSON.stringify(updateError))
-            return null
+            .select()
+          
+          if (error) {
+            console.error("Erro ao atualizar adicional:", error)
+            throw error
           }
-
-          // Buscar os dados atualizados
-          return this.getAdditionalById(additional.id)
+          
+          result = data?.[0] || null
+        } else {
+          // Se o ID não existir no banco, inserir como novo (ignorando o ID fornecido)
+          console.log("ID não encontrado no banco, inserindo como novo adicional")
+          // Remover o ID do objeto para permitir que o banco gere um novo ID
+          delete additionalData.id
+          
+          const { data, error } = await supabase
+            .from("additionals")
+            .insert(additionalData)
+            .select()
+          
+          if (error) {
+            console.error("Erro ao inserir adicional:", error)
+            throw error
+          }
+          
+          result = data?.[0] || null
         }
+      } else {
+        // Caso não tenha ID, inserir um novo registro
+        console.log("Inserindo novo adicional", additionalData)
+        
+        const { data, error } = await supabase
+          .from("additionals")
+          .insert(additionalData)
+          .select()
+        
+        if (error) {
+          console.error("Erro ao inserir adicional:", error)
+          throw error
+        }
+        
+        result = data?.[0] || null
       }
       
-      // Se chegou aqui, é um novo adicional ou o ID fornecido não existe
-      console.log("Inserindo novo adicional")
-      
-      // Preparar dados para inserção - sem incluir o ID para evitar conflitos
-      const additionalData = {
-        name: additional.name,
-        price: additional.price,
-        category_id: additional.categoryId,
-        active: additional.active,
-        image: additional.image || "",
-        store_id: DEFAULT_STORE_ID || "00000000-0000-0000-0000-000000000000",
+      // Se não houver resultado, retornar erro
+      if (!result) {
+        console.log("Nenhum resultado retornado após salvar adicional")
+        return { data: null, error: new Error("Nenhum resultado retornado após salvar adicional") }
       }
       
-      console.log("Dados para inserção:", JSON.stringify(additionalData))
-      
-      const { data: insertData, error: insertError } = await supabase
-        .from("additionals")
-        .insert(additionalData)
-        .select("id")
-
-      if (insertError) {
-        console.error("Erro ao inserir adicional:", JSON.stringify(insertError))
-        return null
+      // Converter o resultado para o formato Additional
+      const savedAdditional: Additional = {
+        id: typeof result.id === 'number' ? result.id : Number(result.id),
+        name: typeof result.name === 'string' ? result.name : String(result.name),
+        price: typeof result.price === 'number' ? result.price : Number(result.price),
+        categoryId: typeof result.category_id === 'number' ? result.category_id : Number(result.category_id || 0),
+        active: typeof result.active === 'boolean' ? result.active : Boolean(result.active),
+        image: typeof result.image === 'string' ? result.image : result.image ? String(result.image) : undefined
       }
-
-      if (!insertData || !Array.isArray(insertData) || insertData.length === 0) {
-        console.error("Nenhum dado retornado após inserção")
-        return null
-      }
-
-      const newId = Number(insertData[0].id)
-      console.log("Novo adicional inserido com ID:", newId)
       
-      // Buscar os dados completos do novo adicional
-      return this.getAdditionalById(newId)
+      console.log("Adicional salvo com sucesso:", savedAdditional)
+      return { data: savedAdditional, error: null }
     } catch (error) {
       console.error("Erro ao salvar adicional:", error)
-      return null
+      return { data: null, error: error instanceof Error ? error : new Error(String(error)) }
     }
   },
 
@@ -305,6 +570,7 @@ export const AdditionalService = {
 export const getAllAdditionals = AdditionalService.getAllAdditionals.bind(AdditionalService)
 export const getActiveAdditionals = AdditionalService.getActiveAdditionals.bind(AdditionalService)
 export const getActiveAdditionalsByProduct = AdditionalService.getActiveAdditionalsByProduct.bind(AdditionalService)
+export const getActiveAdditionalsByProductGroupedByCategory = AdditionalService.getActiveAdditionalsByProductGroupedByCategory.bind(AdditionalService)
 export const getAdditionalById = AdditionalService.getAdditionalById.bind(AdditionalService)
 export const saveAdditional = AdditionalService.saveAdditional.bind(AdditionalService)
 export const deleteAdditional = AdditionalService.deleteAdditional.bind(AdditionalService)

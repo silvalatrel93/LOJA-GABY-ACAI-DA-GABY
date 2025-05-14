@@ -91,6 +91,7 @@ export default function AdminPage() {
       ],
       categoryId: defaultCategoryId,
       allowedAdditionals: [], // Inicialmente sem adicionais permitidos
+      active: true, // Adicionar a propriedade active que estava faltando
     })
     setIsModalOpen(true)
   }
@@ -419,51 +420,69 @@ export default function AdminPage() {
               Nenhum produto cadastrado. Clique em "Novo Produto" para começar.
             </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {products.map((product) => (
-                <div key={product.id} className="border rounded-lg overflow-hidden flex flex-col sm:flex-row">
-                  <div className="w-full sm:w-24 h-24 relative">
-                    <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
-                  </div>
-                  <div className="p-3 flex-1">
-                    <div className="flex justify-between flex-wrap gap-2">
-                      <div>
-                        <h3 className="font-semibold">{product.name}</h3>
-                        <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
-                          {getCategoryName(product.categoryId)}
-                        </span>
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-1">
-                          Adicionais: {getAdditionalCount(product)}
-                        </span>
-                      </div>
-                      <div className="flex space-x-2">
-                        <button onClick={() => handleEditProduct(product)} className="text-blue-600 p-1">
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProduct(product.id)}
-                          className="text-red-600 p-1"
-                          disabled={deleteStatus?.id === product.id && deleteStatus.status === "pending"}
-                        >
-                          {deleteStatus?.id === product.id && deleteStatus.status === "pending" ? (
-                            <span className="animate-pulse">...</span>
-                          ) : (
-                            <Trash2 size={18} />
-                          )}
-                        </button>
+            <div className="space-y-6">
+              {/* Agrupar produtos por categoria */}
+              {categories
+                .sort((a, b) => a.order - b.order) // Ordenar categorias pela ordem definida
+                .map((category) => {
+                  // Filtrar produtos desta categoria
+                  const categoryProducts = products.filter(product => product.categoryId === category.id);
+                  
+                  // Não mostrar categorias vazias
+                  if (categoryProducts.length === 0) return null;
+                  
+                  return (
+                    <div key={category.id} className="mb-6">
+                      <h3 className="text-md font-medium text-purple-800 mb-3 pb-1 border-b border-purple-200">
+                        {category.name} <span className="text-xs text-gray-500">({categoryProducts.length} produtos)</span>
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {categoryProducts.map((product) => (
+                          <div key={product.id} className="border rounded-lg overflow-hidden flex flex-col sm:flex-row">
+                            <div className="w-full sm:w-24 h-24 relative">
+                              <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
+                            </div>
+                            <div className="p-3 flex-1">
+                              <div className="flex justify-between flex-wrap gap-2">
+                                <div>
+                                  <h3 className="font-semibold">{product.name}</h3>
+                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                                    Adicionais: {getAdditionalCount(product)}
+                                  </span>
+                                </div>
+                                <div className="flex space-x-2">
+                                  <button onClick={() => handleEditProduct(product)} className="text-blue-600 p-1">
+                                    Editar
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteProduct(product.id)}
+                                    className="text-red-600 p-1"
+                                    disabled={deleteStatus?.id === product.id && deleteStatus.status === "pending"}
+                                  >
+                                    {deleteStatus?.id === product.id && deleteStatus.status === "pending" ? (
+                                      <span className="animate-pulse">...</span>
+                                    ) : (
+                                      <Trash2 size={18} />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                              <p className="text-sm text-gray-500 line-clamp-1 mt-1">{product.description}</p>
+                              <div className="mt-1 text-sm flex flex-wrap gap-2">
+                                {product.sizes.map((size) => (
+                                  <span key={size.size} className="mr-3">
+                                    {size.size}: {formatCurrency(size.price)}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    <p className="text-sm text-gray-500 line-clamp-1 mt-1">{product.description}</p>
-                    <div className="mt-1 text-sm flex flex-wrap gap-2">
-                      {product.sizes.map((size) => (
-                        <span key={size.size} className="mr-3">
-                          {size.size}: {formatCurrency(size.price)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  );
+                })}
             </div>
           )}
         </div>

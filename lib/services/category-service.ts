@@ -1,6 +1,7 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Category } from "../types"
 import { DEFAULT_STORE_ID } from "../constants"
+import { safelyGetRecordById } from "../supabase-utils"
 
 // Serviço para gerenciar categorias
 export const CategoryService = {
@@ -24,19 +25,31 @@ export const CategoryService = {
   
   // Obter categoria por ID
   async getCategoryById(id: number): Promise<Category | null> {
+    if (!id || isNaN(id)) {
+      console.error(`ID inválido para busca de categoria: ${id}`)
+      return null
+    }
+    
     const supabase = createSupabaseClient()
-    const { data, error } = await supabase.from("categories").select("*").eq("id", id).single()
+    // Usar a função segura para evitar o erro PGRST116
+    const { data, error } = await safelyGetRecordById<any>(supabase, "categories", "id", id)
 
     if (error) {
       console.error("Erro ao buscar categoria por ID:", error)
       return null
     }
 
+    if (!data) {
+      console.log(`Categoria com ID ${id} não encontrada`)
+      return null
+    }
+
+    // Converter os dados para o formato Category
     return {
-      id: data.id as number,
-      name: data.name as string,
-      order: data.order as number,
-      active: data.active as boolean,
+      id: Number(data.id),
+      name: String(data.name || ""),
+      order: Number(data.order || 0),
+      active: Boolean(data.active),
     }
   },
 
@@ -88,38 +101,65 @@ export const CategoryService = {
 
     if (existingCategory) {
       // Atualizar categoria existente
-      const { data, error } = await supabase
+      const { error: updateError } = await supabase
         .from("categories")
         .update(categoryData)
         .eq("id", category.id)
-        .select()
-        .single()
-
+        .eq("store_id", DEFAULT_STORE_ID)
+      
+      if (updateError) {
+        console.error("Erro ao atualizar categoria:", updateError)
+        return null
+      }
+      
+      // Buscar a categoria atualizada usando a função segura
+      const { data, error } = await safelyGetRecordById<any>(supabase, "categories", "id", category.id)
+      
       if (error) {
-        console.error("Erro ao atualizar categoria:", error)
+        console.error("Erro ao buscar categoria atualizada:", error)
+        return null
+      }
+      
+      if (!data) {
+        console.error(`Categoria atualizada com ID ${category.id} não encontrada`)
         return null
       }
 
       return {
-        id: data.id as number,
-        name: data.name as string,
-        order: data.order as number,
-        active: data.active as boolean,
+        id: Number(data.id),
+        name: String(data.name || ""),
+        order: Number(data.order || 0),
+        active: Boolean(data.active),
       }
     } else {
       // Criar nova categoria
-      const { data, error } = await supabase.from("categories").insert(categoryData).select().single()
-
+      const { error: insertError } = await supabase
+        .from("categories")
+        .insert(categoryData)
+      
+      if (insertError) {
+        console.error("Erro ao criar categoria:", insertError)
+        return null
+      }
+      
+      // Buscar a categoria recém-criada usando a função segura
+      const { data, error } = await safelyGetRecordById<any>(supabase, "categories", "id", category.id)
+      
       if (error) {
-        console.error("Erro ao criar categoria:", error)
+        console.error("Erro ao buscar categoria recém-criada:", error)
+        return null
+      }
+      
+      if (!data) {
+        console.error(`Categoria recém-criada com ID ${category.id} não encontrada`)
         return null
       }
 
       return {
-        id: data.id as number,
-        name: data.name as string,
-        order: data.order as number,
-        active: data.active as boolean,
+        id: Number(data.id),
+        name: String(data.name || ""),
+        order: Number(data.order || 0),
+        active: Boolean(data.active),
       }
     }
   },

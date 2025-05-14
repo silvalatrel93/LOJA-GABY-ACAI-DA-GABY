@@ -2,6 +2,7 @@
 import * as ProductService from "./services/product-service"
 import * as CategoryService from "./services/category-service"
 import * as AdditionalService from "./services/additional-service"
+import * as AdditionalCategoryService from "./services/additional-category-service"
 import * as CarouselService from "./services/carousel-service"
 import * as PhraseService from "./services/phrase-service"
 import * as StoreConfigService from "./services/store-config-service"
@@ -16,6 +17,7 @@ export {
   ProductService,
   CategoryService,
   AdditionalService,
+  AdditionalCategoryService,
   CarouselService,
   PhraseService,
   StoreConfigService,
@@ -216,11 +218,21 @@ export const getCategoryById = CategoryService.getCategoryById
 export const saveCategory = CategoryService.saveCategory
 export const deleteCategory = CategoryService.deleteCategory
 
-export const getAllAdditionals = AdditionalService.getAllAdditionals
-export const getActiveAdditionals = AdditionalService.getActiveAdditionals
-export const getAdditionalById = AdditionalService.getAdditionalById
-export const saveAdditional = AdditionalService.saveAdditional
-export const deleteAdditional = AdditionalService.deleteAdditional
+// Exportar funções relacionadas a adicionais
+export const getAllAdditionals = AdditionalService.getAllAdditionals.bind(AdditionalService)
+export const getActiveAdditionals = AdditionalService.getActiveAdditionals.bind(AdditionalService)
+export const getActiveAdditionalsByProduct = AdditionalService.getActiveAdditionalsByProduct.bind(AdditionalService)
+export const getActiveAdditionalsByProductGroupedByCategory = AdditionalService.getActiveAdditionalsByProductGroupedByCategory.bind(AdditionalService)
+export const getAdditionalById = AdditionalService.getAdditionalById.bind(AdditionalService)
+export const saveAdditional = AdditionalService.saveAdditional.bind(AdditionalService)
+export const deleteAdditional = AdditionalService.deleteAdditional.bind(AdditionalService)
+
+// Exportar funções relacionadas a categorias de adicionais
+export const getAllAdditionalCategories = AdditionalCategoryService.getAllAdditionalCategories.bind(AdditionalCategoryService)
+export const getActiveAdditionalCategories = AdditionalCategoryService.getActiveAdditionalCategories.bind(AdditionalCategoryService)
+export const getAdditionalCategoryById = AdditionalCategoryService.getAdditionalCategoryById.bind(AdditionalCategoryService)
+export const saveAdditionalCategory = AdditionalCategoryService.saveAdditionalCategory.bind(AdditionalCategoryService)
+export const deleteAdditionalCategory = AdditionalCategoryService.deleteAdditionalCategory.bind(AdditionalCategoryService)
 
 export const getAllSlides = CarouselService.getAllSlides
 export const getActiveSlides = CarouselService.getActiveSlides

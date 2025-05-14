@@ -53,22 +53,36 @@ export default function CarouselAdminPage() {
   }
 
   const handleDeleteSlide = async (id: number) => {
+    console.log(`[DEBUG] Iniciando exclusão do slide ${id}`)
     if (confirm("Tem certeza que deseja excluir este slide?")) {
       try {
+        console.log(`[DEBUG] Confirmação aceita, definindo status como pending`)
         setDeleteStatus({ id, status: "pending" })
-        await deleteCarouselSlide(id)
+        
+        console.log(`[DEBUG] Chamando deleteCarouselSlide(${id})`)
+        const resultado = await deleteCarouselSlide(id)
+        console.log(`[DEBUG] Resultado da exclusão:`, resultado)
 
         // Atualizar a lista de slides após excluir
+        console.log(`[DEBUG] Recarregando lista de slides`)
         await loadSlides()
+        console.log(`[DEBUG] Lista de slides recarregada`)
+        
         setDeleteStatus({ id, status: "success" })
 
         // Fazer backup após exclusão
+        console.log(`[DEBUG] Iniciando backup de dados`)
         await backupData()
+        console.log(`[DEBUG] Backup concluído`)
+        
+        alert("Slide excluído com sucesso!")
       } catch (error) {
-        console.error("Erro ao excluir slide:", error)
+        console.error("[DEBUG] Erro ao excluir slide:", error)
         setDeleteStatus({ id, status: "error" })
         alert("Erro ao excluir slide. Tente novamente.")
       }
+    } else {
+      console.log(`[DEBUG] Exclusão cancelada pelo usuário`)
     }
   }
 
