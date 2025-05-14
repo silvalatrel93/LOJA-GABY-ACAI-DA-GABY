@@ -9,8 +9,8 @@ interface SocialShareProps {
 }
 
 export default function SocialShare({ 
-  title = "Heai Açaí e Sorvetes", 
-  message = "Confira nossos deliciosos produtos! 🍦🍧" 
+  title = "Heai Açaí e Sorvetes - Admin", 
+  message = "Acesse o painel administrativo da Heai Açaí e Sorvetes!" 
 }: SocialShareProps) {
   const [showOptions, setShowOptions] = useState(false);
   const [copied, setCopied] = useState(false);

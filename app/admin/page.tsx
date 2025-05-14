@@ -19,6 +19,7 @@ import {
   Clock,
   Bell,
 } from "lucide-react"
+import SocialShare from "@/components/social-share"
 import {
   getAllProducts,
   getAllCategories,
@@ -721,6 +722,9 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+      
+      {/* Botão de compartilhamento social para o PWA */}
+      <SocialShare title="Heai Açaí e Sorvetes - Admin" message="Acesse o painel administrativo da Heai Açaí e Sorvetes!" />
     </div>
   )
 }
