@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { getPageContent, type PageContent, getStoreConfig, type StoreConfig } from "@/lib/db"
 import StoreHeader from "@/components/store-header"
 import { getSimplifiedOperatingHours } from "@/lib/format-hours"
-import OperatingHoursCard from "@/components/operating-hours-card"
+
 
 export default function DeliveryPage() {
   const [pageContent, setPageContent] = useState<(PageContent & { storeName?: string }) | null>(null)
@@ -24,9 +24,17 @@ export default function DeliveryPage() {
           let updatedContent = content.content
 
           // Procurar por padrões de texto de horário e substituí-los
-          const hourRegex = /Segunda a Domingo: 10h às 22h/g
+          const hourRegex = /Sexta-feira: 10:00 - 00:00<br>Segunda-feira: 10:00 - 22:00<br>Domingo: Fechado<br>Terça-feira: 10:00 - 22:00<br>Sábado: 10:00 - 22:00<br>Quinta-feira: 10:00 - 22:00<br>Quarta-feira: 10:00 - 22:00/g
           if (hourRegex.test(updatedContent)) {
-            updatedContent = updatedContent.replace(hourRegex, getSimplifiedOperatingHours(config))
+            updatedContent = updatedContent.replace(hourRegex, `
+              Segunda-feira: 10:00 - 22:00<br>
+              Terça-feira: 10:00 - 22:00<br>
+              Quarta-feira: 10:00 - 22:00<br>
+              Quinta-feira: 10:00 - 22:00<br>
+              Sexta-feira: 10:00 - 00:00<br>
+              Sábado: 10:00 - 22:00<br>
+              Domingo: Fechado
+            `)
           }
 
           setPageContent({
@@ -72,12 +80,7 @@ export default function DeliveryPage() {
               </p>
             )}
 
-            {/* Seção dedicada aos horários de funcionamento */}
-            {storeConfig && (
-              <div className="mt-8">
-                <OperatingHoursCard storeConfig={storeConfig} />
-              </div>
-            )}
+            
           </div>
         )}
       </div>

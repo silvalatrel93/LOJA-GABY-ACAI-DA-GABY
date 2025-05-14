@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ArrowLeft, Save, Plus, Trash2, Calendar, Clock, AlertCircle } from "lucide-react"
 import { getStoreConfig, saveStoreConfig, backupData, type StoreConfig } from "@/lib/db"
+import type { SpecialDate } from "@/lib/types"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -12,12 +13,7 @@ export default function OperatingHoursPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle")
-  const [isAddingSpecialDate, setIsAddingSpecialDate] = useState(false)
-  const [newSpecialDate, setNewSpecialDate] = useState({
-    date: format(new Date(), "yyyy-MM-dd"),
-    isOpen: false,
-    note: "",
-  })
+
 
   // Carregar configurações da loja
   useEffect(() => {
@@ -93,38 +89,7 @@ export default function OperatingHoursPage() {
     })
   }
 
-  const handleAddSpecialDate = () => {
-    if (!storeConfig) return
 
-    // Verificar se a data já existe
-    const dateExists = storeConfig.specialDates.some((date) => date.date === newSpecialDate.date)
-
-    if (dateExists) {
-      alert("Esta data já está cadastrada. Remova-a primeiro se quiser alterá-la.")
-      return
-    }
-
-    setStoreConfig({
-      ...storeConfig,
-      specialDates: [...storeConfig.specialDates, newSpecialDate],
-    })
-
-    // Resetar o formulário
-    setNewSpecialDate({
-      date: format(new Date(), "yyyy-MM-dd"),
-      isOpen: false,
-      note: "",
-    })
-    setIsAddingSpecialDate(false)
-  }
-
-  const handleRemoveSpecialDate = (date: string) => {
-    if (!storeConfig) return
-    setStoreConfig({
-      ...storeConfig,
-      specialDates: storeConfig.specialDates.filter((d) => d.date !== date),
-    })
-  }
 
   if (isLoading) {
     return (
@@ -233,35 +198,38 @@ export default function OperatingHoursPage() {
               </h2>
 
               <div className="space-y-4">
-                {Object.entries(storeConfig.operatingHours).map(([day, config]) => (
-                  <div key={day} className="flex items-center justify-between border-b pb-3">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id={`day-${day}`}
-                        checked={config.open}
-                        onChange={() => handleDayToggle(day)}
-                        className="h-5 w-5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                      />
-                      <label htmlFor={`day-${day}`} className="ml-2 block text-gray-700">
-                        {getDayName(day)}
-                      </label>
-                    </div>
+                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
+                  const config = storeConfig.operatingHours[day];
+                  return (
+                    <div key={day} className="flex items-center justify-between border-b pb-3">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id={`day-${day}`}
+                          checked={config.open}
+                          onChange={() => handleDayToggle(day)}
+                          className="h-5 w-5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor={`day-${day}`} className="ml-2 block text-gray-700">
+                          {getDayName(day)}
+                        </label>
+                      </div>
 
-                    <div className="flex items-center">
-                      <input
-                        type="text"
-                        value={config.hours}
-                        onChange={(e) => handleHoursChange(day, e.target.value)}
-                        placeholder="10:00 - 22:00"
-                        className={`px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                          !config.open ? "bg-gray-100 text-gray-500" : ""
-                        }`}
-                        disabled={!config.open}
-                      />
+                      <div className="flex items-center">
+                        <input
+                          type="text"
+                          value={config.hours}
+                          onChange={(e) => handleHoursChange(day, e.target.value)}
+                          placeholder="10:00 - 22:00"
+                          className={`px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                            !config.open ? "bg-gray-100 text-gray-500" : ""
+                          }`}
+                          disabled={!config.open}
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="mt-4 text-sm text-gray-500">
@@ -270,113 +238,7 @@ export default function OperatingHoursPage() {
               </div>
             </div>
 
-            {/* Datas Especiais */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-purple-900 flex items-center">
-                  <Calendar size={20} className="mr-2" />
-                  Datas Especiais
-                </h2>
 
-                <button
-                  onClick={() => setIsAddingSpecialDate(true)}
-                  className="bg-purple-700 hover:bg-purple-800 text-white px-3 py-1 rounded-md text-sm flex items-center"
-                >
-                  <Plus size={16} className="mr-1" />
-                  Adicionar Data
-                </button>
-              </div>
-
-              {isAddingSpecialDate ? (
-                <div className="bg-purple-50 p-4 rounded-md mb-4">
-                  <h3 className="font-medium text-purple-900 mb-3">Nova Data Especial</h3>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Data</label>
-                      <input
-                        type="date"
-                        value={newSpecialDate.date}
-                        onChange={(e) => setNewSpecialDate({ ...newSpecialDate, date: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="special-date-open"
-                        checked={newSpecialDate.isOpen}
-                        onChange={(e) => setNewSpecialDate({ ...newSpecialDate, isOpen: e.target.checked })}
-                        className="h-5 w-5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                      />
-                      <label htmlFor="special-date-open" className="ml-2 block text-sm text-gray-700">
-                        Loja aberta nesta data
-                      </label>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Observação</label>
-                      <input
-                        type="text"
-                        value={newSpecialDate.note}
-                        onChange={(e) => setNewSpecialDate({ ...newSpecialDate, note: e.target.value })}
-                        placeholder="Ex: Feriado, Evento especial, etc."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-
-                    <div className="flex justify-end space-x-2 pt-2">
-                      <button
-                        onClick={() => setIsAddingSpecialDate(false)}
-                        className="px-3 py-1 border border-gray-300 rounded-md text-gray-700"
-                      >
-                        Cancelar
-                      </button>
-                      <button onClick={handleAddSpecialDate} className="px-3 py-1 bg-purple-700 text-white rounded-md">
-                        Adicionar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {storeConfig.specialDates.length === 0 ? (
-                <p className="text-gray-500 text-center py-6">
-                  Nenhuma data especial cadastrada. Adicione datas em que a loja estará fechada ou com horário
-                  diferente.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {storeConfig.specialDates
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                    .map((specialDate) => (
-                      <div key={specialDate.date} className="flex justify-between items-center border-b pb-3">
-                        <div>
-                          <div className="flex items-center">
-                            <span
-                              className={`w-3 h-3 rounded-full mr-2 ${specialDate.isOpen ? "bg-green-500" : "bg-red-500"}`}
-                            ></span>
-                            <span className="font-medium">{formatDate(specialDate.date)}</span>
-                          </div>
-                          <p className="text-sm text-gray-600 ml-5">
-                            {specialDate.isOpen ? "Aberto" : "Fechado"}
-                            {specialDate.note ? ` • ${specialDate.note}` : ""}
-                          </p>
-                        </div>
-
-                        <button
-                          onClick={() => handleRemoveSpecialDate(specialDate.date)}
-                          className="text-red-500 p-1"
-                          title="Remover data"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
           </div>
         )}
       </div>
@@ -386,7 +248,7 @@ export default function OperatingHoursPage() {
 
 // Função auxiliar para obter o nome do dia em português
 function getDayName(day: string): string {
-  const dayNames = {
+  const dayNames: Record<string, string> = {
     monday: "Segunda-feira",
     tuesday: "Terça-feira",
     wednesday: "Quarta-feira",

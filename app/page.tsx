@@ -109,7 +109,12 @@ export default function Home() {
       {/* Aviso de loja fechada logo após o carrossel de frases */}
       {!storeOpen && <StoreClosedNotice />}
 
-      <div className="container mx-auto px-4 py-6 bg-gradient-to-b from-purple-100 to-white rounded-lg">
+      <div className="w-screen py-6" style={{ 
+        marginLeft: 'calc(-50vw + 50%)', 
+        marginRight: 'calc(-50vw + 50%)', 
+        width: '100vw', 
+        background: 'linear-gradient(to bottom, #f3e8ff, white)' 
+      }}>
         {loading ? (
           <div className="flex justify-center p-12">
             <div className="animate-spin h-8 w-8 border-4 border-purple-500 rounded-full border-t-transparent"></div>

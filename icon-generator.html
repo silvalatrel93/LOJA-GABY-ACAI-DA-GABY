@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Ícones PWA - Heai Açaí e Sorvetes</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      color: #6B21A8;
+      text-align: center;
+    }
+    .container {
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .step {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #eee;
+    }
+    .step:last-child {
+      border-bottom: none;
+    }
+    .step h2 {
+      color: #9333EA;
+      margin-top: 0;
+    }
+    .canvas-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .canvas-wrapper {
+      text-align: center;
+    }
+    canvas {
+      border: 1px solid #ddd;
+      margin-bottom: 5px;
+      background-color: white;
+    }
+    button {
+      background-color: #6B21A8;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 5px;
+    }
+    button:hover {
+      background-color: #9333EA;
+    }
+    input[type="file"] {
+      margin: 10px 0;
+    }
+    .note {
+      background-color: #f0f9ff;
+      padding: 10px;
+      border-left: 4px solid #3b82f6;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Gerador de Ícones PWA - Heai Açaí e Sorvetes</h1>
+  
+  <div class="container">
+    <div class="step">
+      <h2>Passo 1: Carregar o Logo</h2>
+      <p>Selecione a imagem do logo da Heai Açaí e Sorvetes:</p>
+      <input type="file" id="logoInput" accept="image/*">
+      <div class="note">
+        <p><strong>Dica:</strong> Use uma imagem de alta qualidade, preferencialmente em formato PNG com fundo transparente.</p>
+      </div>
+    </div>
+    
+    <div class="step">
+      <h2>Passo 2: Gerar os Ícones</h2>
+      <p>Clique no botão abaixo para gerar os ícones em todos os tamanhos necessários:</p>
+      <button id="generateBtn">Gerar Ícones</button>
+      
+      <div class="canvas-container" id="canvasContainer"></div>
+    </div>
+    
+    <div class="step">
+      <h2>Passo 3: Baixar os Ícones</h2>
+      <p>Clique nos botões abaixo para baixar cada ícone individualmente:</p>
+      <div id="downloadButtons"></div>
+      
+      <div class="note">
+        <p><strong>Importante:</strong> Após baixar, coloque os ícones na pasta <code>public/icons/</code> do seu projeto.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tamanhos de ícones necessários para PWA
+    const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
+    
+    // Elementos do DOM
+    const logoInput = document.getElementById('logoInput');
+    const generateBtn = document.getElementById('generateBtn');
+    const canvasContainer = document.getElementById('canvasContainer');
+    const downloadButtons = document.getElementById('downloadButtons');
+    
+    // Desabilitar o botão de geração inicialmente
+    generateBtn.disabled = true;
+    
+    // Habilitar o botão quando uma imagem for selecionada
+    logoInput.addEventListener('change', () => {
+      generateBtn.disabled = !logoInput.files.length;
+    });
+    
+    // Função para gerar os ícones
+    generateBtn.addEventListener('click', () => {
+      if (!logoInput.files.length) return;
+      
+      // Limpar containers
+      canvasContainer.innerHTML = '';
+      downloadButtons.innerHTML = '';
+      
+      const file = logoInput.files[0];
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          // Gerar ícones para cada tamanho
+          iconSizes.forEach(size => {
+            generateIcon(img, size);
+          });
+        };
+        img.src = e.target.result;
+      };
+      
+      reader.readAsDataURL(file);
+    });
+    
+    // Função para gerar um ícone específico
+    function generateIcon(img, size) {
+      // Criar wrapper para o canvas
+      const wrapper = document.createElement('div');
+      wrapper.className = 'canvas-wrapper';
+      
+      // Criar canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      canvas.id = `canvas-${size}`;
+      
+      // Desenhar imagem no canvas
+      const ctx = canvas.getContext('2d');
+      
+      // Desenhar um círculo com fundo preto e borda verde
+      ctx.beginPath();
+      ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+      ctx.fillStyle = 'black';
+      ctx.fill();
+      
+      // Borda verde
+      ctx.strokeStyle = '#8BC34A'; // Verde similar ao da logo
+      ctx.lineWidth = size * 0.03; // 3% do tamanho para a borda
+      ctx.stroke();
+      
+      // Calcular dimensões para manter a proporção
+      const scale = Math.min(
+        (size * 0.8) / img.width,
+        (size * 0.8) / img.height
+      );
+      
+      const scaledWidth = img.width * scale;
+      const scaledHeight = img.height * scale;
+      const x = (size - scaledWidth) / 2;
+      const y = (size - scaledHeight) / 2;
+      
+      // Desenhar a imagem centralizada
+      ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+      
+      // Adicionar label
+      wrapper.innerHTML += `<div>${size}x${size}</div>`;
+      wrapper.prepend(canvas);
+      canvasContainer.appendChild(wrapper);
+      
+      // Criar botão de download
+      const downloadBtn = document.createElement('button');
+      downloadBtn.textContent = `Baixar ${size}x${size}`;
+      downloadBtn.addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = `icon-${size}x${size}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+      
+      downloadButtons.appendChild(downloadBtn);
+    }
+  </script>
+</body>
+</html>

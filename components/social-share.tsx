@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Share2, Copy, Check, Instagram, MessageCircle } from 'lucide-react';
 
 interface SocialShareProps {
@@ -14,8 +15,18 @@ export default function SocialShare({
 }: SocialShareProps) {
   const [showOptions, setShowOptions] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+  const pathname = usePathname();
   
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+  // Verificar se estamos no painel administrativo
+  useEffect(() => {
+    setShouldRender(pathname?.startsWith('/admin') || false);
+  }, [pathname]);
+  
+  // Se não estamos no painel administrativo, não renderizar o componente
+  if (!shouldRender) return null;
+  
+  const currentUrl = typeof window !== 'undefined' ? window.location.origin : '';
   
   const shareText = `${message} ${currentUrl}`;
   

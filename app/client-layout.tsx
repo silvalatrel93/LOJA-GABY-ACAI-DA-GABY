@@ -35,7 +35,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }, [])
 
   return (
-    <body className={`${inter.className} overflow-x-hidden`}>
+    <body className={`${inter.className} overflow-x-hidden`} style={{ background: 'none' }}>
       <AutoInitializer />
       <SupabaseInitializer />
       <PWARegister />

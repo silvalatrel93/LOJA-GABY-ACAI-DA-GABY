@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { getStoreStatus } from "@/lib/store-utils"
+import { StoreConfigService } from "@/lib/services/store-config-service"
 import { Clock } from "lucide-react"
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 interface StoreStatusProps {
   inSideMenu?: boolean
@@ -15,6 +17,7 @@ export default function StoreStatus({ inSideMenu = false }: StoreStatusProps) {
     statusClass: string
   } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [realtimeChannel, setRealtimeChannel] = useState<RealtimeChannel | null>(null)
 
   useEffect(() => {
     const loadStatus = async () => {
@@ -31,9 +34,35 @@ export default function StoreStatus({ inSideMenu = false }: StoreStatusProps) {
 
     loadStatus()
 
+    // Configurar subscrição em tempo real
+    const channel = StoreConfigService.subscribeToStoreStatus(
+      (isOpen) => {
+        setStatus((prevStatus) => {
+          if (prevStatus) {
+            return {
+              ...prevStatus,
+              isOpen,
+              statusText: isOpen ? "Aberto" : "Fechado",
+              statusClass: isOpen ? "text-green-600" : "text-red-600"
+            }
+          }
+          return prevStatus
+        })
+      },
+      (error) => console.error('Erro na subscrição em tempo real:', error)
+    )
+
+    setRealtimeChannel(channel)
+
     // Atualizar o status a cada minuto
     const interval = setInterval(loadStatus, 60000)
-    return () => clearInterval(interval)
+    
+    return () => {
+      clearInterval(interval)
+      if (channel) {
+        StoreConfigService.unsubscribeFromStoreStatus(channel)
+      }
+    }
   }, [])
 
   // Se não estiver no menu lateral e não for explicitamente solicitado para aparecer no cabeçalho, não renderize nada

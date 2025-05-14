@@ -1,5 +1,6 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { StoreConfig } from "../types"
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 // Configuração padrão para usar como fallback
 const DEFAULT_STORE_CONFIG: StoreConfig = {
@@ -132,6 +133,56 @@ export const StoreConfigService = {
     } catch (error) {
       console.error("Erro ao verificar status da loja:", error)
       return true // Em caso de erro, assume que a loja está aberta para não impedir vendas
+    }
+  },
+
+  // Subscrição em tempo real para status da loja
+  subscribeToStoreStatus(
+    onStatusChange: (isOpen: boolean) => void,
+    onError?: (error: any) => void
+  ): RealtimeChannel | null {
+    try {
+      const supabase = createSupabaseClient()
+      
+      const channel = supabase
+        .channel('store_status')
+        .on(
+          'postgres_changes', 
+          { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'store_config',
+            filter: `store_id=eq.${DEFAULT_STORE_ID}`
+          },
+          (payload) => {
+            const newIsOpen = payload.new.is_open
+            onStatusChange(newIsOpen)
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Subscribed to store status updates')
+          }
+        })
+
+      if (onError) {
+        channel.on('error', onError)
+      }
+
+      return channel
+    } catch (error) {
+      console.error('Erro ao criar subscrição em tempo real:', error)
+      return null
+    }
+  },
+
+  // Desinscrever do canal em tempo real
+  unsubscribeFromStoreStatus(channel: RealtimeChannel) {
+    try {
+      channel.unsubscribe()
+      console.log('Unsubscribed from store status updates')
+    } catch (error) {
+      console.error('Erro ao desinscrever do canal:', error)
     }
   },
 }
