@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Plus, Maximize2, ChevronDown, ChevronUp, Filter } from "lucide-react"
+import { Plus, Maximize2, ChevronDown, ChevronUp, Filter, ShoppingCart, X } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 // Importe a função cleanSizeDisplay
 import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
@@ -177,10 +177,10 @@ export default function ProductCard({ product }: ProductCardProps) {
           {/* Botão de ampliar imagem */}
           <button
             onClick={handleOpenImageViewer}
-            className="absolute top-2 right-2 bg-white bg-opacity-70 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white bg-opacity-70 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
             aria-label="Ampliar imagem"
           >
-            <Maximize2 size={16} className="text-purple-900" />
+            <Maximize2 size={20} className="text-purple-900" />
           </button>
 
           {/* Overlay com gradiente na parte inferior */}
@@ -197,12 +197,14 @@ export default function ProductCard({ product }: ProductCardProps) {
             <button
               onClick={() => (storeStatus.isOpen ? setIsModalOpen(true) : null)}
               className={`${
-                storeStatus.isOpen ? "bg-purple-700 hover:bg-purple-800" : "bg-gray-400 cursor-not-allowed"
-              } text-white p-1.5 rounded-full`}
+                storeStatus.isOpen 
+                  ? "bg-gradient-to-r from-purple-500 to-purple-800 hover:from-purple-600 hover:to-purple-900" 
+                  : "bg-gray-400 cursor-not-allowed"
+              } text-white p-1.5 rounded-full shadow-sm transition-all duration-200`}
               disabled={!storeStatus.isOpen}
               title={storeStatus.isOpen ? "Adicionar ao carrinho" : "Loja fechada"}
             >
-              <Plus size={16} />
+              <ShoppingCart size={16} />
             </button>
           </div>
         </div>
@@ -219,9 +221,9 @@ export default function ProductCard({ product }: ProductCardProps) {
                   setIsModalOpen(false)
                   setSelectedAdditionals({})
                 }}
-                className="bg-gray-200 text-gray-800 p-1.5 rounded-full hover:bg-gray-300"
+                className="bg-gradient-to-r from-purple-500 to-purple-800 hover:from-purple-600 hover:to-purple-900 text-white p-1.5 rounded-full shadow-sm transition-all duration-200"
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
 
@@ -255,11 +257,13 @@ export default function ProductCard({ product }: ProductCardProps) {
                   className="flex items-center justify-between w-full text-left"
                 >
                   <h4 className="font-semibold text-gray-700">Adicionais (opcional):</h4>
-                  {isAdditionalsExpanded ? (
-                    <ChevronUp size={18} className="text-gray-700" />
-                  ) : (
-                    <ChevronDown size={18} className="text-gray-700" />
-                  )}
+                  <div className="bg-gradient-to-r from-purple-500 to-purple-800 p-1.5 rounded-full shadow-sm">
+                    {isAdditionalsExpanded ? (
+                      <ChevronUp size={18} className="text-white" />
+                    ) : (
+                      <ChevronDown size={18} className="text-white" />
+                    )}
+                  </div>
                 </button>
 
                 {isAdditionalsExpanded && (

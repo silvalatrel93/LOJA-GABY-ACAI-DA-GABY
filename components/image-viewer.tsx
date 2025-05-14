@@ -53,7 +53,7 @@ export default function ImageViewer({ imageUrl, alt, onClose }: ImageViewerProps
       {/* Botão de fechar */}
       <button
         onClick={handleCloseButtonClick}
-        className="absolute top-4 right-4 bg-white bg-opacity-20 p-2 rounded-full text-white hover:bg-opacity-30 transition-colors z-10"
+        className="absolute top-4 right-4 bg-gradient-to-r from-purple-500 to-purple-800 hover:from-purple-600 hover:to-purple-900 p-2 rounded-full text-white shadow-sm transition-all duration-200 z-10"
         aria-label="Fechar"
       >
         <X size={24} />

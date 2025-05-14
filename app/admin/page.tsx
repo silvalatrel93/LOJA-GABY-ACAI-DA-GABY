@@ -25,16 +25,19 @@ import {
   getAllAdditionals,
   saveProduct,
   deleteProduct,
+  AdditionalCategoryService,
   type Product,
   type Category,
   type Additional,
 } from "@/lib/db"
+import type { AdditionalCategory } from "@/lib/services/additional-category-service"
 import { formatCurrency } from "@/lib/utils"
 
 export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [additionals, setAdditionals] = useState<Additional[]>([])
+  const [additionalCategories, setAdditionalCategories] = useState<AdditionalCategory[]>([])
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isAdditionalsModalOpen, setIsAdditionalsModalOpen] = useState(false)
@@ -45,17 +48,30 @@ export default function AdminPage() {
   const loadData = async () => {
     try {
       setIsLoading(true)
-      const [productsList, categoriesList, additionalsList] = await Promise.all([
+      const [productsList, categoriesList, additionalsList, additionalCategoriesList] = await Promise.all([
         getAllProducts(),
         getAllCategories(),
         getAllAdditionals(),
+        AdditionalCategoryService.getAllAdditionalCategories()
       ])
       console.log("Produtos carregados no admin:", productsList.length)
       console.log("Categorias carregadas no admin:", categoriesList.length)
       console.log("Adicionais carregados no admin:", additionalsList.length)
+      console.log("Categorias de adicionais carregadas no admin:", additionalCategoriesList.length)
+      
+      // Associar o nome da categoria a cada adicional
+      const additionalsWithCategoryName = additionalsList.map(additional => {
+        const category = additionalCategoriesList.find(cat => cat.id === additional.categoryId);
+        return {
+          ...additional,
+          categoryName: category ? category.name : "Sem categoria"
+        };
+      });
+      
       setProducts(productsList)
       setCategories(categoriesList)
-      setAdditionals(additionalsList)
+      setAdditionals(additionalsWithCategoryName)
+      setAdditionalCategories(additionalCategoriesList)
     } catch (error) {
       console.error("Erro ao carregar dados:", error)
     } finally {
@@ -621,19 +637,24 @@ export default function AdminPage() {
             </div>
 
             <div className="p-4">
-              <div className="flex justify-between mb-4">
-                <button
-                  onClick={selectAllAdditionals}
-                  className="px-3 py-1 bg-blue-100 text-blue-800 rounded-md text-sm"
-                >
-                  Selecionar Todos
-                </button>
-                <button
-                  onClick={deselectAllAdditionals}
-                  className="px-3 py-1 bg-gray-100 text-gray-800 rounded-md text-sm"
-                >
-                  Limpar Seleção
-                </button>
+              <div className="flex flex-col space-y-2 mb-4">
+                <div className="flex justify-between">
+                  <button
+                    onClick={selectAllAdditionals}
+                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-md text-sm"
+                  >
+                    Selecionar Todos
+                  </button>
+                  <button
+                    onClick={deselectAllAdditionals}
+                    className="px-3 py-1 bg-gray-100 text-gray-800 rounded-md text-sm"
+                  >
+                    Limpar Seleção
+                  </button>
+                </div>
+                <div className="text-xs text-gray-500 italic">
+                  Cada adicional mostra a categoria a qual pertence
+                </div>
               </div>
 
               {additionals.length === 0 ? (
@@ -670,6 +691,7 @@ export default function AdminPage() {
                           <div>
                             <p className="font-medium">{additional.name}</p>
                             <p className="text-sm text-purple-700">{formatCurrency(additional.price)}</p>
+                            <p className="text-xs text-gray-500">{additional.categoryName || "Sem categoria"}</p>
                           </div>
                         </div>
 
