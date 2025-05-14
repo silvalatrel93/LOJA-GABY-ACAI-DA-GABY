@@ -93,6 +93,7 @@ export async function createTables() {
       is_open BOOLEAN NOT NULL DEFAULT true,
       operating_hours JSONB NOT NULL,
       special_dates JSONB,
+      whatsapp_number VARCHAR(20) DEFAULT '5511999999999',
       last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
 

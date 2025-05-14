@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Clock } from "lucide-react"
+import { ArrowLeft, Clock, MapPin, CreditCard, Truck, Home, Building, MapPinned } from "lucide-react"
 import { useCart, CartProvider } from "@/lib/cart-context"
 import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
 import { saveOrder } from "@/lib/services/order-service"
@@ -156,8 +156,9 @@ function CheckoutPageContent() {
       // Codificar mensagem para URL do WhatsApp
       const encodedMessage = encodeURIComponent(message)
 
-      // Número do WhatsApp da loja (substitua pelo número real)
-      const whatsappNumber = "5511999999999"
+      // Obter configurações da loja para o número do WhatsApp
+      const storeConfig = await getStoreConfig()
+      const whatsappNumber = storeConfig?.whatsappNumber || "5511999999999"
 
       // Criar URL do WhatsApp
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`

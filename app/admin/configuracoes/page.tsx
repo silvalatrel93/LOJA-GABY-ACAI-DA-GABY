@@ -165,6 +165,20 @@ export default function StoreConfigPage() {
                     </div>
                   </div>
                 </div>
+                
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Número do WhatsApp</label>
+                  <input
+                    type="text"
+                    value={storeConfig?.whatsappNumber || ""}
+                    onChange={(e) => setStoreConfig({ ...storeConfig!, whatsappNumber: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Ex: 5511999999999 (apenas números)"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Formato internacional sem espaços ou caracteres especiais. Ex: 5511999999999
+                  </p>
+                </div>
 
                 {storeConfig?.deliveryFee !== 0 && (
                   <div>

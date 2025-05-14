@@ -86,6 +86,8 @@ export interface StoreConfig {
   isOpen: boolean
   operatingHours: OperatingHours
   specialDates: SpecialDate[]
+  whatsappNumber?: string
+  lastUpdated?: string
 }
 
 // Horário de funcionamento

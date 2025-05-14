@@ -45,6 +45,8 @@ export const StoreConfigService = {
         isOpen: data.is_open,
         operatingHours: data.operating_hours,
         specialDates: data.special_dates || [],
+        whatsappNumber: data.whatsapp_number || "5511999999999",
+        lastUpdated: data.last_updated,
       }
     } catch (error) {
       console.error("Erro ao buscar configurações da loja:", error)
@@ -72,6 +74,7 @@ export const StoreConfigService = {
         is_open: config.isOpen,
         operating_hours: config.operatingHours,
         special_dates: config.specialDates || [],
+        whatsapp_number: config.whatsappNumber || "", // Adicionando o número de WhatsApp
         last_updated: new Date().toISOString(),
       }
 
@@ -92,6 +95,8 @@ export const StoreConfigService = {
         isOpen: data.is_open,
         operatingHours: data.operating_hours,
         specialDates: data.special_dates || [],
+        whatsappNumber: data.whatsapp_number || "5511999999999",
+        lastUpdated: data.last_updated,
       }
     } catch (error) {
       console.error("Erro ao salvar configurações da loja:", error)
