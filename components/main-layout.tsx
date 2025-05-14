@@ -58,12 +58,13 @@ export default function MainLayout({ children, carouselSlides = [] }: MainLayout
               </button>
               <Link href="/" className="flex items-center">
                 {storeConfig?.logoUrl && (
-                  <div className="relative w-10 h-10 mr-2">
+                  <div className="relative w-10 h-10 mr-2 transition-transform duration-300 ease-in-out transform hover:scale-110">
                     <Image
                       src={storeConfig.logoUrl || "/placeholder.svg"}
                       alt={`Logo ${storeConfig.name || "Açaí Online"}`}
                       fill
-                      className="object-contain rounded-full bg-white p-1"
+                      className="object-contain"
+                      priority
                     />
                   </div>
                 )}
