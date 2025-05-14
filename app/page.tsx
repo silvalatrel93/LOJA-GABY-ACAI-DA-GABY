@@ -6,6 +6,7 @@ import ProductList from "@/components/product-list"
 import TextCarousel from "@/components/text-carousel"
 import StoreClosedNotice from "@/components/store-closed-notice"
 import FloatingCartButton from "@/components/floating-cart-button"
+import SocialShare from "@/components/social-share"
 import { getActiveSlides } from "@/lib/services/carousel-service"
 import { getActiveCategories } from "@/lib/services/category-service"
 import { getActiveProducts } from "@/lib/services/product-service"
@@ -131,6 +132,9 @@ export default function Home() {
 
       {/* Botão flutuante do carrinho */}
       <FloatingCartButton />
+      
+      {/* Botão de compartilhamento social */}
+      <SocialShare />
     </MainLayout>
   )
 }

@@ -7,6 +7,7 @@ import { Inter } from "next/font/google"
 import { useEffect } from "react"
 import AutoInitializer from "@/components/auto-initializer"
 import SupabaseInitializer from "@/components/supabase-initializer"
+import PWARegister from "@/components/pwa-register"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -37,6 +38,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     <body className={`${inter.className} overflow-x-hidden`}>
       <AutoInitializer />
       <SupabaseInitializer />
+      <PWARegister />
       {children}
     </body>
   )
