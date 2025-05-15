@@ -16,34 +16,50 @@ export default function PWARegister() {
 
   useEffect(() => {
     // Verificar se estamos no painel administrativo
-    setShouldRender(pathname?.startsWith('/admin') || false);
+    const isAdmin = pathname?.startsWith('/admin') || false;
+    setShouldRender(isAdmin);
 
-    // Registrar o Service Worker apenas se estivermos no painel admin
-    if ('serviceWorker' in navigator && pathname?.startsWith('/admin')) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(registration => {
-            console.log('Service Worker registrado com sucesso:', registration);
-          })
-          .catch(error => {
-            console.error('Erro ao registrar o Service Worker:', error);
+    if ('serviceWorker' in navigator) {
+      if (isAdmin) {
+        // Registrar o Service Worker apenas se estivermos no painel admin
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('Service Worker registrado com sucesso:', registration);
+            })
+            .catch(error => {
+              console.error('Erro ao registrar o Service Worker:', error);
+            });
+        });
+      } else {
+        // Se não estiver no admin, desregistrar qualquer Service Worker existente
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          registrations.forEach(registration => {
+            registration.unregister().then(() => {
+              console.log('Service Worker desregistrado com sucesso');
+            });
           });
-      });
+        });
+      }
     }
 
-    // Capturar o evento beforeinstallprompt para mostrar o botão de instalação
-    window.addEventListener('beforeinstallprompt', (e) => {
-      // Prevenir o comportamento padrão do navegador
-      e.preventDefault();
-      // Armazenar o evento para uso posterior
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      // Atualizar a UI para mostrar o botão de instalação
-      setIsInstallable(true);
-    });
+    // Capturar o evento beforeinstallprompt apenas se estivermos no admin
+    const handleBeforeInstallPrompt = (e: Event) => {
+      if (isAdmin) {
+        // Prevenir o comportamento padrão do navegador
+        e.preventDefault();
+        // Armazenar o evento para uso posterior
+        setDeferredPrompt(e as BeforeInstallPromptEvent);
+        // Atualizar a UI para mostrar o botão de instalação
+        setIsInstallable(true);
+      }
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     // Limpar evento quando o componente for desmontado
     return () => {
-      window.removeEventListener('beforeinstallprompt', () => {});
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, [pathname]);
 
