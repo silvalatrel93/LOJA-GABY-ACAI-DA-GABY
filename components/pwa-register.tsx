@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -10,10 +11,15 @@ interface BeforeInstallPromptEvent extends Event {
 export default function PWARegister() {
   const [isInstallable, setIsInstallable] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [shouldRender, setShouldRender] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Registrar o Service Worker
-    if ('serviceWorker' in navigator) {
+    // Verificar se estamos no painel administrativo
+    setShouldRender(pathname?.startsWith('/admin') || false);
+
+    // Registrar o Service Worker apenas se estivermos no painel admin
+    if ('serviceWorker' in navigator && pathname?.startsWith('/admin')) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
           .then(registration => {
@@ -39,7 +45,10 @@ export default function PWARegister() {
     return () => {
       window.removeEventListener('beforeinstallprompt', () => {});
     };
-  }, []);
+  }, [pathname]);
+
+  // Se não estamos no painel administrativo, não renderizar o componente
+  if (!shouldRender) return null;
 
   const handleInstallClick = () => {
     if (!deferredPrompt) return;
@@ -62,7 +71,7 @@ export default function PWARegister() {
 
   return (
     <>
-      {isInstallable && (
+      {isInstallable && shouldRender && (
         <div className="fixed bottom-4 right-4 z-50">
           <button
             onClick={handleInstallClick}

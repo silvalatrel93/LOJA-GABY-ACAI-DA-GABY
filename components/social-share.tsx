@@ -10,8 +10,8 @@ interface SocialShareProps {
 }
 
 export default function SocialShare({ 
-  title = "Heai Açaí e Sorvetes - Admin", 
-  message = "Acesse o painel administrativo da Heai Açaí e Sorvetes!" 
+  title = "Heai Açaí e Sorvetes", 
+  message = "Venha conhecer nossos deliciosos produtos!" 
 }: SocialShareProps) {
   const [showOptions, setShowOptions] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -26,13 +26,18 @@ export default function SocialShare({
   // Se não estamos no painel administrativo, não renderizar o componente
   if (!shouldRender) return null;
   
-  const currentUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const currentUrl = typeof window !== 'undefined' 
+    ? window.location.origin // Pega apenas a origem (ex: https://seusite.com)
+    : '';
   
-  const shareText = `${message} ${currentUrl}`;
+  // Remover qualquer caminho admin da URL e garantir que vá para a vitrine
+  const shareUrl = currentUrl.replace(/\/admin.*$/, '');
+  
+  const shareText = `${message} ${shareUrl}`;
   
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(currentUrl);
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
