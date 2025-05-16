@@ -15,8 +15,8 @@ export default function PWARegister() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Verificar se estamos no painel administrativo
-    const isAdmin = pathname?.startsWith('/admin') || false;
+    // Verificar se estamos no painel administrativo - verificação mais rigorosa
+    const isAdmin = pathname ? pathname.startsWith('/admin') : false;
     setShouldRender(isAdmin);
 
     if ('serviceWorker' in navigator) {
@@ -85,9 +85,12 @@ export default function PWARegister() {
     });
   };
 
+  // Verificação adicional para garantir que o botão só apareça no painel administrativo
+  const isAdminPath = pathname ? pathname.startsWith('/admin') : false;
+  
   return (
     <>
-      {isInstallable && shouldRender && (
+      {isInstallable && shouldRender && isAdminPath && (
         <div className="fixed bottom-4 right-4 z-50">
           <button
             onClick={handleInstallClick}
