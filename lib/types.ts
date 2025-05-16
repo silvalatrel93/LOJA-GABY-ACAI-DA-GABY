@@ -36,6 +36,7 @@ export interface Additional {
   categoryName?: string
   active: boolean
   image?: string
+  quantity?: number // Quantidade no carrinho
 }
 
 // Item do carrinho
@@ -43,11 +44,12 @@ export interface CartItem {
   id: number
   productId: number
   name: string
-  price: number
+  price: number // Preço base do produto (sem adicionais)
   quantity: number
   image?: string
   size: string
   originalSize?: string // Campo opcional para armazenar o tamanho original com identificador
+  originalPrice?: number // Preço total incluindo adicionais (se houver)
   additionals?: Additional[]
 }
 

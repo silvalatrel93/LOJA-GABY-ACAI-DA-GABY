@@ -28,11 +28,19 @@ function CartPageContent() {
 
   // Calcular subtotal e total
   const subtotal = cart.reduce((sum, item) => {
+    // Usar o preço original (já com adicionais) se disponível, senão calcular
+    if (item.originalPrice) {
+      return sum + (item.originalPrice * item.quantity)
+    }
+    
+    // Cálculo para compatibilidade com itens antigos
     const itemTotal = item.price * item.quantity
-    const additionalsTotal =
-      (item.additionals || []).reduce((sum, additional) => sum + additional.price * additional.quantity, 0) *
-      item.quantity
-    return sum + itemTotal + additionalsTotal
+    const additionalsTotal = (item.additionals || []).reduce(
+      (sum, additional) => sum + additional.price * (additional.quantity || 1), 
+      0
+    )
+    
+    return sum + (itemTotal + additionalsTotal)
   }, 0)
   const total = subtotal + deliveryFee
 
@@ -153,27 +161,43 @@ function CartPageContent() {
                   )}
 
                   <div className="flex-1">
-                    <ItemRow
-                      name={`${item.quantity}x ${item.name} (${item.size})`}
-                      value={formatCurrency(item.price * item.quantity)}
-                    />
-
-                    {/* Adicionais */}
-                    {item.additionals && item.additionals.length > 0 && (
-                      <div className="mt-1 ml-4">
-                        <p className="text-xs text-gray-500 mb-1">Adicionais:</p>
-                        <ul className="text-xs text-gray-600 space-y-1">
-                          {item.additionals.map((additional, index) => (
-                            <li key={index}>
-                              <ItemRow
-                                name={`+ ${additional.quantity}x ${additional.name}`}
-                                value={formatCurrency(additional.price * additional.quantity)}
-                              />
-                            </li>
-                          ))}
-                        </ul>
+                    <div className="space-y-1">
+                      {/* Nome do produto e preço base */}
+                      <div className="flex justify-between">
+                        <span>{item.quantity}x {item.name} ({item.size})</span>
+                        <span>{formatCurrency(item.price)}</span>
                       </div>
-                    )}
+                      
+                      {/* Lista de adicionais */}
+                      {item.additionals && item.additionals.length > 0 && (
+                        <div className="ml-4">
+                          <ul className="text-xs text-gray-600 space-y-1">
+                            {item.additionals.map((additional, index) => (
+                              <li key={index} className="flex justify-between">
+                                <span>+ {additional.quantity}x {additional.name}</span>
+                                <span>+ {formatCurrency(additional.price * (additional.quantity || 1))}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {/* Subtotal do item */}
+                      <div className="pt-2 border-t border-gray-100 mt-2">
+                        <div className="flex justify-between font-medium">
+                          <span>Subtotal:</span>
+                          <span>
+                            {formatCurrency(
+                              item.originalPrice 
+                                ? item.originalPrice * item.quantity 
+                                : (item.price + (item.additionals?.reduce((sum, a) => sum + (a.price * (a.quantity || 1)), 0) || 0)) * item.quantity
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Adicionais movidos para junto do nome do produto */}
 
                     <div className="flex items-center mt-2">
                       <div className="flex items-center border rounded-md mr-4 h-8">

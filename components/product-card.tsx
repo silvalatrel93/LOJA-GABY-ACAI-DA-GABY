@@ -79,26 +79,29 @@ export default function ProductCard({ product }: ProductCardProps) {
 
     // Converter os adicionais selecionados para o formato do carrinho
     const cartAdditionals = Object.values(selectedAdditionals).map(({ additional, quantity }) => ({
-      id: additional.id,
-      name: additional.name,
-      price: additional.price,
-      quantity,
+      ...additional, // Inclui todas as propriedades do adicional
+      quantity, // Sobrescreve a quantidade para o valor selecionado
     }))
 
-    // Calcular o preço total incluindo adicionais
+    // Calcular o preço total dos adicionais
     const additionalsTotal = Object.values(selectedAdditionals).reduce(
       (sum, { additional, quantity }) => sum + additional.price * quantity,
       0,
     )
 
+    // Preço base do produto (sem adicionais)
+    const basePrice = selectedSizeInfo.price
+
     await addToCart({
-      productId: product.id, // Alterado de id para productId
+      productId: product.id,
       name: product.name,
-      price: selectedSizeInfo.price + additionalsTotal,
+      price: basePrice, // Preço base do produto
       size: selectedSize,
       image: product.image || "",
       quantity: 1,
       additionals: cartAdditionals.length > 0 ? cartAdditionals : undefined,
+      // Armazenamos o preço total em um campo separado para referência
+      originalPrice: basePrice + additionalsTotal,
     })
 
     setIsModalOpen(false)
@@ -117,12 +120,9 @@ export default function ProductCard({ product }: ProductCardProps) {
     setSelectedAdditionals((prev) => {
       const newSelected = { ...prev }
 
-      // Se já existe, incrementa a quantidade
+      // Se já existe, não faz nada (limite de 1 unidade)
       if (newSelected[additional.id]) {
-        newSelected[additional.id] = {
-          ...newSelected[additional.id],
-          quantity: newSelected[additional.id].quantity + 1,
-        }
+        return newSelected;
       } else {
         // Se não existe, adiciona com quantidade 1
         newSelected[additional.id] = {

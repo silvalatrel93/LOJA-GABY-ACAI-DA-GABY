@@ -11,6 +11,7 @@ import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
 import { saveOrder } from "@/lib/services/order-service"
 import { getStoreConfig } from "@/lib/services/store-config-service"
 import { getStoreStatus } from "@/lib/store-utils"
+import type { StoreConfig } from "@/lib/types"
 
 // Componente para exibir um item com nome à esquerda e valor à direita
 function ItemRow({ name, value }: { name: string; value: string }) {
@@ -36,7 +37,7 @@ function CheckoutPageContent() {
     paymentMethod: "pix",
   })
   const [deliveryFee, setDeliveryFee] = useState(5.0)
-  const [storeConfig, setStoreConfig] = useState<{ name: string; delivery_fee: number } | null>(null)
+  const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null)
   const [storeStatus, setStoreStatus] = useState({ isOpen: true, statusText: "", statusClass: "" })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -46,8 +47,8 @@ function CheckoutPageContent() {
       try {
         const config = await getStoreConfig()
         setStoreConfig(config)
-        if (config && config.delivery_fee !== undefined) {
-          setDeliveryFee(config.delivery_fee)
+        if (config && config.deliveryFee !== undefined) {
+          setDeliveryFee(config.deliveryFee)
         }
       } catch (error) {
         console.error("Erro ao carregar configurações da loja:", error)
@@ -64,7 +65,22 @@ function CheckoutPageContent() {
   }, [])
 
   // Calcular subtotal e total
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const subtotal = cart.reduce((sum, item) => {
+    // Usar originalPrice se disponível, senão calcular preço base + adicionais
+    if (item.originalPrice) {
+      return sum + (item.originalPrice * item.quantity)
+    }
+    
+    // Cálculo para compatibilidade com itens antigos
+    const itemTotal = item.price * item.quantity
+    const additionalsTotal = (item.additionals || []).reduce(
+      (sum, additional) => sum + (additional.price * (additional.quantity ?? 1)), 
+      0
+    )
+    
+    return sum + (itemTotal + additionalsTotal)
+  }, 0)
+  
   const total = subtotal + deliveryFee
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -140,7 +156,8 @@ function CheckoutPageContent() {
         if (item.additionals && item.additionals.length > 0) {
           message += `  Com Adicionais:\n`
           item.additionals.forEach((additional) => {
-            message += `  • ${additional.quantity}x ${additional.name} - ${formatCurrency(additional.price * additional.quantity)}\n`
+            const quantity = additional.quantity ?? 1
+            message += `  • ${quantity}x ${additional.name} - ${formatCurrency(additional.price * quantity)}\n`
           })
         } else {
           message += `  Sem Adicionais:\n`
@@ -394,9 +411,9 @@ function CheckoutPageContent() {
                         {item.additionals.map((additional, idx) => (
                           <div key={idx} className="flex justify-between items-center mt-1">
                             <div>
-                              + {additional.quantity}x {additional.name}
+                              + {(additional.quantity ?? 1)}x {additional.name}
                             </div>
-                            <div className="tabular-nums">{formatCurrency(additional.price * additional.quantity)}</div>
+                            <div className="tabular-nums">{formatCurrency(additional.price * (additional.quantity ?? 1))}</div>
                           </div>
                         ))}
                       </div>

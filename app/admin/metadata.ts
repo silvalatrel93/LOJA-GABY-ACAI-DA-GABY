@@ -1,4 +1,3 @@
-import { ReactNode } from 'react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -14,15 +13,3 @@ export const metadata: Metadata = {
     { rel: "mask-icon", url: "/icons/icon-192x192.png", color: "#6B21A8" }
   ]
 };
-
-export default function AdminLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {children}
-    </div>
-  );
-}
