@@ -18,6 +18,9 @@ export default function PWARegister() {
     // Verificar se estamos no painel administrativo - verificação mais rigorosa
     const isAdmin = pathname ? pathname.startsWith('/admin') : false;
     setShouldRender(isAdmin);
+    
+    // Se não estamos no admin, não continuar com o restante da lógica
+    if (!isAdmin) return;
 
     if ('serviceWorker' in navigator) {
       if (isAdmin) {
@@ -86,11 +89,15 @@ export default function PWARegister() {
   };
 
   // Verificação adicional para garantir que o botão só apareça no painel administrativo
+  // Verificação tripla para garantir que o botão nunca apareça fora do admin
   const isAdminPath = pathname ? pathname.startsWith('/admin') : false;
+  
+  // Se não estamos em uma rota de admin, não renderizar nada
+  if (!isAdminPath) return null;
   
   return (
     <>
-      {isInstallable && shouldRender && isAdminPath && (
+      {isInstallable && shouldRender && (
         <div className="fixed bottom-4 right-4 z-50">
           <button
             onClick={handleInstallClick}
