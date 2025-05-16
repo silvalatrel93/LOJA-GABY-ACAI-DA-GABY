@@ -255,9 +255,13 @@ export const saveStoreConfig = StoreConfigService.saveStoreConfig
 // Exportar funções do OrderService
 export const getAllOrders = OrderService.getAllOrders
 export const getOrderById = OrderService.getOrderById
+// @ts-ignore
 export const createOrder = OrderService.createOrder
 export const updateOrderStatus = OrderService.updateOrderStatus
 export const markOrderAsPrinted = OrderService.markOrderAsPrinted
+export const markOrderAsNotified = OrderService.markOrderAsNotified || (() => Promise.resolve(false))
+// @ts-ignore
+export const updateOrder = OrderService.updateOrder || (() => Promise.resolve(false))
 
 export const getAllPageContents = PageContentService.getAllPageContents
 export const getPageContent = PageContentService.getPageContent

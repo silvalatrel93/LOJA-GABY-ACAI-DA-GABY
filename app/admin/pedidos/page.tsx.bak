@@ -27,157 +27,342 @@ export default function OrdersPage() {
 
   // Função para carregar pedidos
   const fetchOrders = React.useCallback(async (silent = false, isMounted = true): Promise<Order[] | null> => {
+    console.log('[fetchOrders] Iniciando fetchOrders, silent:', silent, 'isMounted:', isMounted);
     try {
-      if (!silent) setIsLoading(true);
-      const ordersList = await getAllOrders();
+      if (!silent) {
+        console.log('[fetchOrders] Ativando estado de carregamento');
+        setIsLoading(true);
+      }
       
-      if (!isMounted) return null;
+      console.log('[fetchOrders] Chamando getAllOrders()...');
+      const startTime = Date.now();
+      const ordersList = await getAllOrders();
+      console.log(`[fetchOrders] getAllOrders concluído em ${Date.now() - startTime}ms`, { count: ordersList?.length });
+      
+      if (!isMounted) {
+        console.log('[fetchOrders] Componente desmontado, retornando null');
+        return null;
+      }
       
       // Ordenar por data, mais recentes primeiro
-      return [...ordersList].sort((a, b) => 
+      const sortedOrders = [...(ordersList || [])].sort((a, b) => 
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
+      
+      console.log(`[fetchOrders] Retornando ${sortedOrders.length} pedidos ordenados`);
+      return sortedOrders;
+      
     } catch (error) {
-      console.error("Erro ao carregar pedidos:", error);
+      console.error('[fetchOrders] Erro ao carregar pedidos:', error);
       return null;
     } finally {
-      if (!silent) setIsLoading(false);
+      if (!silent) {
+        console.log('[fetchOrders] Desativando estado de carregamento');
+        setIsLoading(false);
+      }
     }
   }, []);
 
   // Função para processar e atualizar pedidos
-  const processOrders = React.useCallback(async (orders: Order[] | null, isMounted = true) => {
-    if (!orders || !isMounted) return;
+  const processOrders = React.useCallback(async (newOrdersList: Order[] | null, isMounted = true) => {
+    console.log('[processOrders] Iniciando processamento de pedidos');
     
-    // Verificar se há novos pedidos comparando com a referência anterior
-    const currentOrderIds = new Set(prevOrdersRef.current.map(order => order.id));
-    const newOrders = orders.filter(order => !currentOrderIds.has(order.id));
+    if (!newOrdersList || !isMounted) {
+      console.log('[processOrders] Sem pedidos ou componente desmontado');
+      return;
+    }
     
-    // Se houver novos pedidos, marcá-los como notificados
-    if (newOrders.length > 0) {
-      try {
-        // Marcar cada pedido como notificado no banco de dados
-        await Promise.all(
-          newOrders.map(order =>
-            OrderService.markOrderAsNotified(order.id).catch(error => {
-              console.error(`Erro ao marcar pedido ${order.id} como notificado:`, error);
-              return false; // Continuar mesmo em caso de erro
-            })
-          )
-        );
-        
-        // Atualizar os pedidos localmente para refletir a mudança
-        const updatedOrders = orders.map(order => 
-          newOrders.some(o => o.id === order.id) 
-            ? { ...order, notified: true } 
-            : order
-        );
-        
-        // Usar atualização de estado em lote
-        React.startTransition(() => {
-          if (!isMounted) return;
-          
-          // Tocar som e mostrar notificação para novos pedidos
-          if (isSoundEnabled) {
-            playSound('newOrder');
-          }
-          
-          // Atualizar contador de novos pedidos
-          setNewOrdersCount(prev => prev + newOrders.length);
-          
-          // Mostrar notificação
-          setShowNewOrderNotification(true);
-          
-          // Esconder notificação após 10 segundos
-          if (notificationTimeoutRef.current) {
-            clearTimeout(notificationTimeoutRef.current);
-          }
-          
-          notificationTimeoutRef.current = setTimeout(() => {
-            if (isMounted) {
-              setShowNewOrderNotification(false);
-              setNewOrdersCount(0);
-            }
-          }, 10000);
-          
-          // Atualizar a referência para os pedidos atuais
-          prevOrdersRef.current = updatedOrders;
-          setOrders(updatedOrders);
-        });
-        
-      } catch (error) {
-        console.error("Erro ao marcar pedidos como notificados:", error);
-        // Continuar mesmo em caso de erro
+    try {
+      // Criar um mapa de IDs para verificação rápida
+      const currentOrderIds = new Set(prevOrdersRef.current.map(order => order.id));
+      
+      // Encontrar apenas pedidos realmente novos
+      const newOrders = newOrdersList.filter(order => !currentOrderIds.has(order.id));
+      
+      console.log(`[processOrders] ${newOrders.length} novos pedidos encontrados`);
+      
+      // Se não houver pedidos novos e a lista for a mesma, não faz nada
+      if (newOrders.length === 0 && 
+          JSON.stringify(prevOrdersRef.current) === JSON.stringify(newOrdersList)) {
+        console.log('[processOrders] Nenhuma alteração nos pedidos, ignorando atualização');
+        return;
       }
-    } else if (JSON.stringify(prevOrdersRef.current) !== JSON.stringify(orders)) {
-      // Se não houver novos pedidos, mas houver outras mudanças, atualizar a lista
-      React.startTransition(() => {
-        if (isMounted) {
-          prevOrdersRef.current = orders;
-          setOrders(orders);
+      
+      // Se houver pedidos novos, marcá-los como notificados
+      if (newOrders.length > 0) {
+        try {
+          console.log('[processOrders] Marcando novos pedidos como notificados...');
+          
+          // Usar Promise.allSettled para continuar mesmo se alguma notificação falhar
+          const results = await Promise.allSettled(
+            newOrders.map(order =>
+              OrderService.markOrderAsNotified(order.id)
+                .then(success => {
+                  console.log(`[processOrders] Pedido ${order.id} marcado como notificado:`, success);
+                  return { order, success };
+                })
+            )
+          );
+          
+          // Processar resultados
+          const successfulNotifications = results
+            .filter((result): result is PromiseFulfilledResult<{order: Order, success: boolean}> => 
+              result.status === 'fulfilled' && result.value.success
+            )
+            .map(result => result.value.order);
+          
+          console.log(`[processOrders] ${successfulNotifications.length} pedidos marcados com sucesso`);
+          
+          // Se não houver notificações bem-sucedidas, não há nada para atualizar
+          if (successfulNotifications.length === 0) {
+            console.log('[processOrders] Nenhum pedido foi marcado como notificado com sucesso');
+            return;
+          }
+          
+          // Atualizar os pedidos localmente para refletir a mudança
+          const updatedOrders = newOrdersList.map(order => 
+            successfulNotifications.some(o => o.id === order.id) 
+              ? { ...order, notified: true } 
+              : order
+          );
+          
+          console.log('[processOrders] Atualizando estado com novos pedidos...');
+          
+          // Usar requestAnimationFrame para agrupar atualizações de estado
+          requestAnimationFrame(() => {
+            if (!isMounted) {
+              console.log('[processOrders] Componente desmontado durante atualização de estado');
+              return;
+            }
+            
+            // Tocar som e mostrar notificação para novos pedidos
+            if (isSoundEnabled) {
+              console.log('[processOrders] Tocando som de notificação');
+              playSound('newOrder');
+              
+              // Mostrar notificação
+              console.log('[processOrders] Mostrando notificação de novos pedidos');
+              setShowNewOrderNotification(true);
+              
+              // Esconder notificação após 10 segundos
+              if (notificationTimeoutRef.current) {
+                clearTimeout(notificationTimeoutRef.current);
+              }
+              
+              notificationTimeoutRef.current = setTimeout(() => {
+                if (isMounted) {
+                  console.log('[processOrders] Escondendo notificação após timeout');
+                  setShowNewOrderNotification(false);
+                  setNewOrdersCount(0);
+                }
+              }, 10000);
+            }
+            
+            // Atualizar contador de novos pedidos
+            setNewOrdersCount(prev => prev + successfulNotifications.length);
+            
+            // Atualizar a referência para os pedidos atuais
+            console.log(`[processOrders] Atualizando referência para ${updatedOrders.length} pedidos`);
+            prevOrdersRef.current = updatedOrders;
+            
+            // Atualizar o estado dos pedidos
+            console.log('[processOrders] Atualizando estado dos pedidos');
+            setOrders(updatedOrders);
+          });
+          
+        } catch (error) {
+          console.error('[processOrders] Erro ao processar novos pedidos:', error);
         }
-      });
+      } else {
+        // Se não há pedidos novos, apenas atualiza a referência se necessário
+        console.log('[processOrders] Atualizando lista de pedidos (sem novos pedidos)');
+        
+        requestAnimationFrame(() => {
+          if (isMounted) {
+            console.log(`[processOrders] Atualizando referência para ${newOrdersList.length} pedidos`);
+            prevOrdersRef.current = newOrdersList;
+            setOrders(newOrdersList);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('[processOrders] Erro inesperado ao processar pedidos:', error);
     }
   }, [isSoundEnabled, playSound]);
 
   // Função para carregar pedidos (usada externamente)
   const loadOrders = React.useCallback(async (silent = false): Promise<void> => {
-    const orders = await fetchOrders(silent);
-    if (orders) {
-      processOrders(orders);
+    console.log('[loadOrders] Iniciando carregamento de pedidos, silent:', silent);
+    try {
+      const orders = await fetchOrders(silent);
+      if (orders) {
+        console.log(`[loadOrders] ${orders.length} pedidos carregados, processando...`);
+        await processOrders(orders);
+      } else {
+        console.log('[loadOrders] Nenhum pedido retornado do fetchOrders');
+      }
+    } catch (error) {
+      console.error('[loadOrders] Erro ao carregar pedidos:', error);
+    }
+  }, [fetchOrders, processOrders]);
+    } catch (error) {
+      console.error('[loadOrders] Erro ao carregar pedidos:', error);
     }
   }, [fetchOrders, processOrders]);
 
   // Configurar verificação periódica de novos pedidos
   useEffect(() => {
+    console.log('[useEffect] Configurando verificação periódica de pedidos');
     let isMounted = true;
     let isFetching = false;
+    let pollingInterval: NodeJS.Timeout | null = null;
+    
+    // Flag para controlar se já temos os dados iniciais
+    let hasInitialData = false;
     
     // Função para carregar e processar pedidos
-    const loadAndProcessOrders = async (silent = true) => {
-      if (isFetching) return;
+    const loadAndProcessOrders = async (isPolling = false) => {
+      // Se já está buscando, ignora chamadas simultâneas
+      if (isFetching) {
+        console.log('[loadAndProcessOrders] Busca já em andamento, ignorando...');
+        return;
+      }
+      
+      // Se é uma chamada de polling e ainda não temos os dados iniciais, ignora
+      if (isPolling && !hasInitialData) {
+        console.log('[loadAndProcessOrders] Dados iniciais ainda não carregados, ignorando polling');
+        return;
+      }
+      
       isFetching = true;
+      const requestId = Math.random().toString(36).substr(2, 6);
+      const silent = isPolling; // Se for polling, é silencioso
+      
+      console.log(`[loadAndProcessOrders:${requestId}] Iniciando ${isPolling ? 'polling' : 'carregamento'}${silent ? ' silencioso' : ''}`);
       
       try {
-        const orders = await fetchOrders(silent, isMounted);
-        if (orders && isMounted) {
-          processOrders(orders, isMounted);
+        // Usar um pequeno atraso para evitar sobrecarga
+        await new Promise(resolve => setTimeout(resolve, silent ? 0 : 100));
+        
+        if (!isMounted) {
+          console.log(`[loadAndProcessOrders:${requestId}] Componente desmontado durante o atraso`);
+          return;
         }
+        
+        console.log(`[loadAndProcessOrders:${requestId}] Buscando pedidos...`);
+        const startTime = Date.now();
+        
+        // Buscar pedidos
+        const orders = await fetchOrders(silent, isMounted);
+        
+        if (!isMounted) {
+          console.log(`[loadAndProcessOrders:${requestId}] Componente desmontado durante busca`);
+          return;
+        }
+        
+        console.log(`[loadAndProcessOrders:${requestId}] ${orders?.length || 0} pedidos encontrados em ${Date.now() - startTime}ms`);
+        
+        if (orders) {
+          // Se for o carregamento inicial, marcar que temos os dados iniciais
+          if (!isPolling) {
+            hasInitialData = true;
+          }
+          
+          // Processar pedidos
+          console.log(`[loadAndProcessOrders:${requestId}] Processando pedidos...`);
+          await processOrders(orders, isMounted);
+          console.log(`[loadAndProcessOrders:${requestId}] Processamento concluído`);
+        }
+      } catch (error) {
+        console.error(`[loadAndProcessOrders:${requestId}] Erro:`, error);
       } finally {
         if (isMounted) {
           isFetching = false;
+          console.log(`[loadAndProcessOrders:${requestId}] Busca finalizada`);
         }
       }
     };
     
-    // Carregar pedidos iniciais
-    void loadAndProcessOrders(false);
-    
-    // Configurar polling a cada 30 segundos
-    const pollingInterval = setInterval(() => {
-      if (isMounted) {
-        void loadAndProcessOrders(true);
+    // Função para configurar o polling
+    const setupPolling = () => {
+      // Limpar intervalo existente se houver
+      if (pollingInterval) {
+        console.log('[setupPolling] Limpando intervalo de polling existente');
+        clearInterval(pollingInterval);
       }
-    }, 30000);
+      
+      // Configurar novo intervalo (30 segundos)
+      const POLLING_INTERVAL = 30000;
+      console.log(`[setupPolling] Configurando novo intervalo de polling (${POLLING_INTERVAL}ms)`);
+      
+      pollingInterval = setInterval(() => {
+        if (!isMounted) {
+          console.log('[setupPolling] Componente desmontado, ignorando polling');
+          return;
+        }
+        
+        console.log('[setupPolling] Verificação periódica de pedidos...');
+        void loadAndProcessOrders(true);
+      }, POLLING_INTERVAL);
+      
+      return pollingInterval;
+    };
     
-    // Armazenar a referência do intervalo
-    checkIntervalRef.current = pollingInterval;
+    // Iniciar o carregamento inicial
+    console.log('[useEffect] Iniciando carregamento inicial de pedidos...');
     
-    // Limpar intervalos e timeouts ao desmontar
+    // Usar um pequeno atraso para evitar sobrecarga inicial
+    const initialLoadTimeout = setTimeout(() => {
+      if (!isMounted) {
+        console.log('[useEffect] Componente desmontado antes do carregamento inicial');
+        return;
+      }
+      
+      console.log('[useEffect] Iniciando carga inicial de pedidos...');
+      
+      loadAndProcessOrders(false).then(() => {
+        if (!isMounted) {
+          console.log('[useEffect] Componente desmontado após carga inicial');
+          return;
+        }
+        
+        console.log('[useEffect] Carga inicial concluída, configurando polling...');
+        checkIntervalRef.current = setupPolling();
+      }).catch(error => {
+        console.error('[useEffect] Erro na carga inicial:', error);
+      });
+    }, 300); // Pequeno atraso para evitar sobrecarga
+    
+    // Limpar recursos ao desmontar
     return () => {
+      console.log('[useEffect] Iniciando limpeza...');
       isMounted = false;
       
+      // Limpar timeouts
+      console.log('[useEffect] Limpando timeouts...');
+      clearTimeout(initialLoadTimeout);
+      
+      // Limpar intervalo de polling
+      if (pollingInterval) {
+        console.log('[useEffect] Limpando intervalo de polling');
+        clearInterval(pollingInterval);
+      }
+      
+      // Limpar referências
+      if (notificationTimeoutRef.current) {
+        console.log('[useEffect] Limpando timeout de notificação');
+        clearTimeout(notificationTimeoutRef.current);
+        notificationTimeoutRef.current = null;
+      }
       if (checkIntervalRef.current) {
+        console.log('[useEffect] Limpando intervalo de verificação de pedidos');
         clearInterval(checkIntervalRef.current);
         checkIntervalRef.current = null;
       }
       
-      if (notificationTimeoutRef.current) {
-        clearTimeout(notificationTimeoutRef.current);
-        notificationTimeoutRef.current = null;
-      }
+      console.log('[useEffect] Limpeza concluída');
     };
-  }, [isSoundEnabled, playSound]); // Dependências do efeito
+  }, [isSoundEnabled, playSound, fetchOrders, processOrders]); // Dependências do efeito
 
   const handleStatusChange = React.useCallback(async (orderId: Order['id'], status: OrderStatus): Promise<void> => {
     try {

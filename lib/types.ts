@@ -125,6 +125,7 @@ export interface Order {
   status: OrderStatus
   date: Date
   printed: boolean
+  notified: boolean
 }
 
 // Endereço
