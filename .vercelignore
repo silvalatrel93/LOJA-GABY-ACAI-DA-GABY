@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.env.local
+.env.development
+.env.test
+.env.production
+vercel.json
+.vercel

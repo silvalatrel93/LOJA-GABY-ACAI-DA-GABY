@@ -1,0 +1,11 @@
+{
+  "buildCommand": "pnpm install && pnpm run build",
+  "installCommand": "pnpm install",
+  "build": {
+    "env": {
+      "NODE_VERSION": "20",
+      "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+    }
+  },
+  "framework": "nextjs"
+}
