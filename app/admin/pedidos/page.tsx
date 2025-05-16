@@ -1,68 +1,183 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { ArrowLeft, Printer, RefreshCw } from "lucide-react"
+import { ArrowLeft, Printer, RefreshCw, Bell, BellOff, X } from "lucide-react"
 import { getAllOrders, markOrderAsPrinted, updateOrderStatus, type Order } from "@/lib/db"
+import type { OrderStatus } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import OrderLabelPrinter from "@/components/order-label-printer"
+import { useNotificationSound } from "@/hooks/useNotificationSound"
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false)
+  const [isSoundEnabled, setIsSoundEnabled] = useState(true)
+  const [showNewOrderNotification, setShowNewOrderNotification] = useState(false)
+  const [newOrdersCount, setNewOrdersCount] = useState(0)
+  const { playSound } = useNotificationSound()
+  const prevOrdersRef = useRef<Order[]>([])
+  const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const notificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const loadOrders = async () => {
+  // Função para carregar pedidos
+  const fetchOrders = React.useCallback(async (silent = false, isMounted = true): Promise<Order[] | null> => {
     try {
-      setIsLoading(true)
-      const ordersList = await getAllOrders()
+      if (!silent) setIsLoading(true);
+      const ordersList = await getAllOrders();
+      
+      if (!isMounted) return null;
+      
       // Ordenar por data, mais recentes primeiro
-      ordersList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      setOrders(ordersList)
+      return [...ordersList].sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
     } catch (error) {
-      console.error("Erro ao carregar pedidos:", error)
+      console.error("Erro ao carregar pedidos:", error);
+      return null;
     } finally {
-      setIsLoading(false)
+      if (!silent) setIsLoading(false);
     }
-  }
+  }, []);
 
+  // Função para processar e atualizar pedidos
+  const processOrders = React.useCallback((orders: Order[] | null, isMounted = true) => {
+    if (!orders || !isMounted) return;
+    
+    // Verificar se há novos pedidos comparando com a referência anterior
+    const currentOrderIds = new Set(prevOrdersRef.current.map(order => order.id));
+    const newOrders = orders.filter(order => !currentOrderIds.has(order.id));
+    
+    // Usar atualização de estado em lote
+    React.startTransition(() => {
+      if (!isMounted) return;
+      
+      // Tocar som e mostrar notificação para novos pedidos
+      if (newOrders.length > 0) {
+        if (isSoundEnabled) {
+          playSound('newOrder');
+        }
+        
+        // Atualizar contador de novos pedidos
+        setNewOrdersCount(prev => prev + newOrders.length);
+        
+        // Mostrar notificação
+        setShowNewOrderNotification(true);
+        
+        // Esconder notificação após 10 segundos
+        if (notificationTimeoutRef.current) {
+          clearTimeout(notificationTimeoutRef.current);
+        }
+        
+        notificationTimeoutRef.current = setTimeout(() => {
+          if (isMounted) {
+            setShowNewOrderNotification(false);
+            setNewOrdersCount(0);
+          }
+        }, 10000);
+      }
+      
+      // Atualizar a referência para os pedidos atuais apenas se houver mudanças
+      if (JSON.stringify(prevOrdersRef.current) !== JSON.stringify(orders)) {
+        prevOrdersRef.current = orders;
+        setOrders(orders);
+      }
+    });
+  }, [isSoundEnabled, playSound]);
+
+  // Função para carregar pedidos (usada externamente)
+  const loadOrders = React.useCallback(async (silent = false): Promise<void> => {
+    const orders = await fetchOrders(silent);
+    if (orders) {
+      processOrders(orders);
+    }
+  }, [fetchOrders, processOrders]);
+
+  // Configurar verificação periódica de novos pedidos
   useEffect(() => {
-    loadOrders()
-  }, [])
+    let isMounted = true;
+    let isFetching = false;
+    
+    // Função para carregar e processar pedidos
+    const loadAndProcessOrders = async (silent = true) => {
+      if (isFetching) return;
+      isFetching = true;
+      
+      try {
+        const orders = await fetchOrders(silent, isMounted);
+        if (orders && isMounted) {
+          processOrders(orders, isMounted);
+        }
+      } finally {
+        if (isMounted) {
+          isFetching = false;
+        }
+      }
+    };
+    
+    // Carregar pedidos iniciais
+    void loadAndProcessOrders(false);
+    
+    // Configurar polling a cada 30 segundos
+    const pollingInterval = setInterval(() => {
+      if (isMounted) {
+        void loadAndProcessOrders(true);
+      }
+    }, 30000);
+    
+    // Armazenar a referência do intervalo
+    checkIntervalRef.current = pollingInterval;
+    
+    // Limpar intervalos e timeouts ao desmontar
+    return () => {
+      isMounted = false;
+      
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+        checkIntervalRef.current = null;
+      }
+      
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+        notificationTimeoutRef.current = null;
+      }
+    };
+  }, [isSoundEnabled, playSound]); // Dependências do efeito
 
-  const handleStatusChange = async (orderId: number, status: Order["status"]) => {
+  const handleStatusChange = React.useCallback(async (orderId: Order['id'], status: OrderStatus): Promise<void> => {
     try {
-      await updateOrderStatus(orderId, status)
+      await updateOrderStatus(orderId, status);
       // Atualizar a lista de pedidos
-      loadOrders()
+      await loadOrders(true); // Usar carregamento silencioso
     } catch (error) {
-      console.error("Erro ao atualizar status do pedido:", error)
-      alert("Erro ao atualizar status do pedido. Tente novamente.")
+      console.error("Erro ao atualizar status do pedido:", error);
+      alert("Erro ao atualizar status do pedido. Tente novamente.");
     }
-  }
+  }, [loadOrders]);
 
-  const handlePrintLabel = (order: Order) => {
-    setSelectedOrder(order)
-    setIsPrinterModalOpen(true)
-  }
+  const handlePrintLabel = React.useCallback((order: Order) => {
+    setSelectedOrder(order);
+    setIsPrinterModalOpen(true);
+  }, []);
 
-  const handlePrintComplete = async () => {
+  const handlePrintComplete = React.useCallback(async () => {
     if (selectedOrder?.id) {
       try {
-        await markOrderAsPrinted(selectedOrder.id)
-        loadOrders()
+        await markOrderAsPrinted(selectedOrder.id);
+        await loadOrders(true); // Usar carregamento silencioso
       } catch (error) {
-        console.error("Erro ao marcar pedido como impresso:", error)
+        console.error("Erro ao marcar pedido como impresso:", error);
       }
     }
-    setIsPrinterModalOpen(false)
-    setSelectedOrder(null)
-  }
+    setIsPrinterModalOpen(false);
+    setSelectedOrder(null);
+  }, [selectedOrder, loadOrders]);
 
-  const getStatusColor = (status: Order["status"]) => {
+  const getStatusColor = (status: OrderStatus): string => {
     switch (status) {
       case "new":
         return "bg-blue-100 text-blue-800"
@@ -79,7 +194,7 @@ export default function OrdersPage() {
     }
   }
 
-  const getStatusText = (status: Order["status"]) => {
+  const getStatusText = (status: OrderStatus): string => {
     switch (status) {
       case "new":
         return "Novo"
@@ -106,15 +221,44 @@ export default function OrdersPage() {
             </Link>
             <h1 className="text-xl font-bold">Gerenciar Pedidos</h1>
           </div>
-          <button
-            onClick={loadOrders}
-            className="bg-white text-purple-900 px-4 py-2 rounded-md font-medium flex items-center"
-          >
-            <RefreshCw size={18} className="mr-1" />
-            Atualizar
-          </button>
+          <div className="flex items-center">
+            <button
+              onClick={() => loadOrders(false)}
+              className="bg-white text-purple-900 px-4 py-2 rounded-md font-medium flex items-center"
+            >
+              <RefreshCw size={18} className="mr-1" />
+              Atualizar
+            </button>
+            <button 
+              onClick={() => setIsSoundEnabled(!isSoundEnabled)} 
+              className="ml-3 p-2 rounded-full hover:bg-purple-200 transition-colors"
+              title={isSoundEnabled ? "Desativar notificações de som" : "Ativar notificações de som"}
+            >
+              {isSoundEnabled ? <Bell size={18} /> : <BellOff size={18} />}
+            </button>
+          </div>
         </div>
       </header>
+
+      {/* Notificação de novo pedido */}
+      {showNewOrderNotification && (
+        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-4 animate-bounce">
+          <div className="flex-1">
+            <p className="font-semibold">Novo Pedido Recebido!</p>
+            <p className="text-sm">{newOrdersCount} novo{newOrdersCount > 1 ? 's' : ''} pedido{newOrdersCount > 1 ? 's' : ''} para preparo.</p>
+          </div>
+          <button 
+            onClick={() => {
+              setShowNewOrderNotification(false)
+              setNewOrdersCount(0)
+            }}
+            className="text-white hover:text-gray-200"
+            aria-label="Fechar notificação"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 container mx-auto p-4">
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
@@ -188,8 +332,8 @@ export default function OrdersPage() {
                                 <ul className="pl-4">
                                   {item.additionals.map((additional, idx) => (
                                     <li key={idx} className="text-sm">
-                                      • {additional.quantity}x {additional.name} -{" "}
-                                      {formatCurrency(additional.price * additional.quantity)}
+                                      • {additional.quantity || 1}x {additional.name} -{" "}
+                                      {formatCurrency(additional.price * (additional.quantity || 1))}
                                     </li>
                                   ))}
                                 </ul>

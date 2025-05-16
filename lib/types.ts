@@ -108,6 +108,9 @@ export interface SpecialDate {
   description: string
 }
 
+// Status do pedido
+export type OrderStatus = 'new' | 'pending' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'completed' | 'cancelled' | 'canceled';
+
 // Pedido
 export interface Order {
   id: number
@@ -119,7 +122,7 @@ export interface Order {
   deliveryFee: number
   total: number
   paymentMethod: string
-  status: string
+  status: OrderStatus
   date: Date
   printed: boolean
 }

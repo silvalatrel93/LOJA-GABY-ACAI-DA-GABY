@@ -1,8 +1,11 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Bell } from "lucide-react"
+import { Bell, BellRing, BellOff } from "lucide-react"
 import { getActiveNotifications, markNotificationAsRead, markAllNotificationsAsRead, type Notification } from "@/lib/db"
+import { usePushNotifications } from "@/hooks/usePushNotifications"
+import { Button } from "@/components/ui/button"
+import { toast } from "@/components/ui/use-toast"
 
 // Adicione este estilo para a animação flutuante
 const floatAnimation = `
@@ -49,6 +52,9 @@ export function notifyNewNotification() {
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [isPushSupported, setIsPushSupported] = useState(false)
+  const [isPushEnabled, setIsPushEnabled] = useState(false)
+  const { permission, isSubscribed, subscribeToPushNotifications, unsubscribeFromPushNotifications } = usePushNotifications()
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [newNotification, setNewNotification] = useState(false)
@@ -96,20 +102,20 @@ export default function NotificationBell() {
   }
 
   useEffect(() => {
-    // Carregar notificações imediatamente
     loadNotifications()
 
-    // Registrar listener para atualizações
-    const listener = () => loadNotifications()
-    notificationListeners.push(listener)
+    // Adicionar listener para novas notificações
+    notificationListeners.push(loadNotifications)
 
-    // Atualizar notificações a cada 15 segundos (mais frequente)
-    const interval = setInterval(loadNotifications, 15000)
+    // Configurar polling para atualizações a cada 10 segundos
+    const interval = setInterval(loadNotifications, 10000)
 
     return () => {
-      // Limpar intervalo e remover listener
+      // Limpar listeners e intervalo
+      notificationListeners = notificationListeners.filter(
+        (listener) => listener !== loadNotifications
+      )
       clearInterval(interval)
-      notificationListeners = notificationListeners.filter((l) => l !== listener)
     }
   }, [])
 
@@ -143,13 +149,40 @@ export default function NotificationBell() {
   }
 
   const handleMarkAllAsRead = async () => {
+    await markAllNotificationsAsRead()
+    loadNotifications()
+  }
+
+  const togglePushNotifications = async () => {
     try {
-      await markAllNotificationsAsRead()
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
-      setUnreadCount(0)
-      prevUnreadCountRef.current = 0
+      if (isPushEnabled) {
+        await unsubscribeFromPushNotifications()
+        toast({
+          title: "Notificações desativadas",
+          description: "Você não receberá mais notificações no navegador.",
+        })
+      } else {
+        const result = await subscribeToPushNotifications()
+        if (result) {
+          toast({
+            title: "Notificações ativadas!",
+            description: "Você receberá notificações de novos pedidos.",
+          })
+        } else {
+          toast({
+            title: "Permissão necessária",
+            description: "Por favor, permita as notificações para receber atualizações.",
+            variant: "destructive",
+          })
+        }
+      }
     } catch (error) {
-      console.error("Erro ao marcar todas notificações como lidas:", error)
+      console.error("Erro ao alternar notificações:", error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar as configurações de notificação.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -185,21 +218,38 @@ export default function NotificationBell() {
   return (
     <>
       <style jsx>{floatAnimation}</style>
-      <div className="relative" ref={dropdownRef}>
-        <button
-          onClick={handleBellClick}
-          className={`relative p-1 text-white hover:text-yellow-200 focus:outline-none ${bellAnimation}`}
-          aria-label="Notificações"
-        >
-          <Bell size={24} className="stroke-current stroke-2" />
-          {unreadCount > 0 && (
-            <span
-              className={`absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-green-500 rounded-full ${newNotification ? "animate-pulse-custom" : ""}`}
+      <div className="relative">
+        <div className="flex items-center space-x-2">
+          {isPushSupported && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={togglePushNotifications}
+              title={isPushEnabled ? "Desativar notificações" : "Ativar notificações"}
+              className="text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
             >
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
+              {isPushEnabled ? (
+                <BellRing className="h-5 w-5 text-green-500" />
+              ) : (
+                <BellOff className="h-5 w-5 text-gray-400" />
+              )}
+            </Button>
           )}
-        </button>
+          <button
+            onClick={handleBellClick}
+            className={`relative p-2 text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white focus:outline-none ${bellAnimation}`}
+            aria-label="Notificações"
+          >
+            <Bell className="h-6 w-6" />
+            {unreadCount > 0 && (
+              <span
+                className={`absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-green-500 rounded-full ${newNotification ? "animate-pulse-custom" : ""}`}
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
 
         {isOpen && (
           <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-50 overflow-hidden">
@@ -238,7 +288,7 @@ export default function NotificationBell() {
                           </h4>
                           <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {new Date(notification.createdAt).toLocaleDateString("pt-BR", {
+                            {new Date(notification.startDate).toLocaleDateString("pt-BR", {
                               day: "2-digit",
                               month: "2-digit",
                               year: "numeric",
