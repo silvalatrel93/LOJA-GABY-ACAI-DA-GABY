@@ -16,6 +16,7 @@ import {
 } from "@/lib/db"
 import type { AdditionalCategory } from "@/lib/services/additional-category-service"
 import { formatCurrency } from "@/lib/utils"
+import { createSafeKey } from "@/lib/key-utils";
 
 export default function AdditionalsAdminPage() {
   const [additionals, setAdditionals] = useState<Additional[]>([])
@@ -25,6 +26,12 @@ export default function AdditionalsAdminPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [deleteStatus, setDeleteStatus] = useState<{ id: number; status: "pending" | "success" | "error" } | null>(null)
+  
+  // Função para obter o nome da categoria de um adicional
+  const getCategoryName = (categoryId: number): string => {
+    const category = additionalCategories.find(c => c.id === categoryId);
+    return category ? category.name : "Sem categoria";
+  }
 
   // Função para carregar adicionais e categorias
   const loadData = async () => {
@@ -51,7 +58,13 @@ export default function AdditionalsAdminPage() {
   }, [])
 
   const handleEditAdditional = (additional: Additional) => {
-    setEditingAdditional({ ...additional })
+    // Verificar se o adicional tem preço definido ou não
+    const hasPricing = additional.price > 0;
+    
+    setEditingAdditional({ 
+      ...additional,
+      hasPricing // Adicionar propriedade para controlar se tem preço ou não
+    })
     setIsModalOpen(true)
   }
 
@@ -64,6 +77,7 @@ export default function AdditionalsAdminPage() {
       id: 0, // ID temporário que será ignorado pelo backend
       name: "",
       price: 0,
+      hasPricing: false, // Inicialmente sem preço definido
       categoryId: defaultCategoryId,
       active: true,
       image: "",
@@ -98,9 +112,18 @@ export default function AdditionalsAdminPage() {
       alert("O nome do adicional é obrigatório")
       return
     }
+    
+    // Se não tem preço definido, garantir que o preço seja zero
+    const additionalToSave = {
+      ...editingAdditional,
+      price: editingAdditional.hasPricing ? editingAdditional.price : 0
+    };
+    
+    // Remover a propriedade hasPricing antes de salvar no banco
+    delete (additionalToSave as any).hasPricing;
 
     try {
-      await saveAdditional(editingAdditional)
+      await saveAdditional(additionalToSave)
 
       // Atualizar a lista de adicionais após salvar
       await loadData()
@@ -186,8 +209,8 @@ export default function AdditionalsAdminPage() {
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {additionals.map((additional) => (
-                <div key={additional.id} className="border rounded-lg overflow-hidden flex flex-col sm:flex-row">
+              {additionals.map((additional, index) => (
+                <div key={createSafeKey(additional.id, 'admin-additional-item', index)} className="border rounded-lg overflow-hidden flex flex-col sm:flex-row">
                   <div className="w-full sm:w-24 h-24 relative bg-purple-50">
                     {additional.image ? (
                       <Image
@@ -210,13 +233,10 @@ export default function AdditionalsAdminPage() {
 
                   <div className="p-3 flex-1">
                     <div className="flex justify-between items-start flex-wrap gap-2">
-                      <div>
+                      <div className="flex-1">
                         <h3 className="font-semibold">{additional.name}</h3>
-                        <p className="text-sm text-purple-700 font-medium">{formatCurrency(additional.price)}</p>
-                        <p className="text-xs text-gray-500">
-                          {additional.categoryName || 
-                            additionalCategories.find(c => c.id === additional.categoryId)?.name || 
-                            "Sem categoria"}
+                        <p className="text-sm text-gray-500">
+                          {additional.price > 0 ? formatCurrency(additional.price) : "Grátis"} • {getCategoryName(additional.categoryId)}
                         </p>
                       </div>
 
@@ -297,22 +317,51 @@ export default function AdditionalsAdminPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Preço</label>
-                <input
-                  type="number"
-                  value={editingAdditional.price}
-                  onChange={(e) =>
-                    setEditingAdditional({
-                      ...editingAdditional,
-                      price: Number.parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Preço do adicional"
-                  step="0.01"
-                  min="0"
-                  inputMode="decimal"
-                />
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Preço</label>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="hasPricing"
+                      checked={editingAdditional.hasPricing}
+                      onChange={(e) => {
+                        const hasPricing = e.target.checked;
+                        setEditingAdditional({
+                          ...editingAdditional,
+                          hasPricing,
+                          // Se desmarcar a opção de preço, zera o valor
+                          price: hasPricing ? editingAdditional.price : 0
+                        });
+                      }}
+                      className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="hasPricing" className="ml-2 text-sm text-gray-700">
+                      Adicional com preço
+                    </label>
+                  </div>
+                </div>
+                
+                {editingAdditional.hasPricing ? (
+                  <input
+                    type="number"
+                    value={editingAdditional.price}
+                    onChange={(e) =>
+                      setEditingAdditional({
+                        ...editingAdditional,
+                        price: Number.parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Preço do adicional"
+                    step="0.01"
+                    min="0"
+                    inputMode="decimal"
+                  />
+                ) : (
+                  <div className="text-sm text-gray-500 italic py-2 px-3 bg-gray-50 rounded-md">
+                    Este adicional será gratuito
+                  </div>
+                )}
               </div>
 
               <div>
@@ -325,8 +374,8 @@ export default function AdditionalsAdminPage() {
                   {additionalCategories.length === 0 ? (
                     <option value="0">Nenhuma categoria disponível</option>
                   ) : (
-                    additionalCategories.map((category) => (
-                      <option key={category.id} value={category.id}>
+                    additionalCategories.map((category, index) => (
+                      <option key={createSafeKey(category.id, 'admin-additional-category-option', index)} value={category.id}>
                         {category.name}
                       </option>
                     ))

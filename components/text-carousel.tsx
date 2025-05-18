@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import type { Phrase } from "@/lib/services/phrase-service"
+import { createSafeKey } from "@/lib/key-utils"
 
 interface TextCarouselProps {
   phrases: Phrase[]
@@ -50,7 +51,7 @@ export default function TextCarousel({ phrases }: TextCarouselProps) {
           >
             {phrases.map((phrase, index) => (
               <div
-                key={phrase.id}
+                key={createSafeKey(phrase.id, 'phrase-item', index)}
                 className="min-w-full flex items-center justify-center text-center text-white text-sm md:text-base font-medium px-4"
               >
                 {phrase.text}

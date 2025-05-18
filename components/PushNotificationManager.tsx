@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Bell, BellOff, X } from 'lucide-react';
+import { Bell, BellOff, X, Info } from 'lucide-react';
 
 interface PushNotificationManagerProps {
   autoSubscribe?: boolean;
@@ -27,6 +27,21 @@ export default function PushNotificationManager({
   const [isLoading, setIsLoading] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [promptPosition, setPromptPosition] = useState({ bottom: 4, right: 4 });
+
+  // Detectar rolagem da página para ajustar posição do prompt
+  const handleScroll = useCallback(() => {
+    const offset = window.scrollY;
+    if (offset > 10) {
+      setScrolled(true);
+      // Ajustar posição do prompt quando o cabeçalho está fixo
+      setPromptPosition({ bottom: 4, right: 4 });
+    } else {
+      setScrolled(false);
+      setPromptPosition({ bottom: 4, right: 4 });
+    }
+  }, []);
 
   // Verificar inscrição ao carregar o componente
   useEffect(() => {
@@ -53,10 +68,15 @@ export default function PushNotificationManager({
     
     verifySubscription();
     
+    // Adicionar listener para detectar rolagem
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Verificar posição inicial
+    
     return () => {
       isMounted = false;
+      window.removeEventListener('scroll', handleScroll);
     };
-  }, [checkSubscription, isSubscribed, permission, hasInteracted]);
+  }, [checkSubscription, isSubscribed, permission, hasInteracted, handleScroll]);
 
   // Lidar com a inscrição automática
   useEffect(() => {
@@ -183,12 +203,12 @@ export default function PushNotificationManager({
           onClick={handleSubscribe}
           disabled={isLoading}
           variant="default"
-          className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2"
+          className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2 transition-all duration-300 transform hover:scale-105 active:scale-95"
         >
           {isLoading ? (
             <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></span>
           ) : (
-            <Bell className="h-4 w-4" />
+            <Bell className="h-4 w-4 animate-float" />
           )}
           Ativar Notificações
         </Button>
@@ -197,7 +217,7 @@ export default function PushNotificationManager({
 
     return (
       <div className="text-sm text-green-600 flex items-center">
-        <Bell className="h-4 w-4 mr-1" />
+        <Bell className="h-4 w-4 mr-1 animate-float" />
         Notificações ativadas
       </div>
     );
@@ -207,12 +227,23 @@ export default function PushNotificationManager({
     <>
       {children}
       {showPrompt && !isSubscribed && permission !== 'denied' && (
-        <div className="fixed bottom-4 right-4 p-4 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-w-xs animate-fadeIn">
+        <div 
+          className="fixed p-4 bg-white rounded-lg shadow-xl border border-purple-100 z-50 max-w-xs animate-slideInUp"
+          style={{
+            bottom: `${promptPosition.bottom}rem`,
+            right: `${promptPosition.right}rem`,
+            backdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)'
+          }}
+        >
           <div className="flex justify-between items-start mb-2">
-            <h3 className="font-medium text-gray-900">Receba atualizações em tempo real</h3>
+            <div className="flex items-center">
+              <Info className="h-5 w-5 text-purple-600 mr-2 animate-pulse-slow" />
+              <h3 className="font-medium text-gray-900">Receba atualizações em tempo real</h3>
+            </div>
             <button 
               onClick={handleDismiss}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 transition-colors transform hover:rotate-90 duration-300"
               aria-label="Fechar"
             >
               <X className="h-4 w-4" />
@@ -222,7 +253,12 @@ export default function PushNotificationManager({
             Ative as notificações para ser avisado sobre o status dos seus pedidos em tempo real.
           </p>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={handleDismiss}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleDismiss}
+              className="hover:bg-gray-100 transition-all duration-300"
+            >
               Agora não
             </Button>
             {renderNotificationButton()}
@@ -234,8 +270,38 @@ export default function PushNotificationManager({
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        
+        @keyframes slideInUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
         .animate-fadeIn {
           animation: fadeIn 0.3s ease-out;
+        }
+        
+        .animate-slideInUp {
+          animation: slideInUp 0.4s ease-out;
+        }
+        
+        @keyframes float {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-3px); }
+          100% { transform: translateY(0px); }
+        }
+        
+        .animate-float {
+          animation: float 4s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-slow {
+          0% { opacity: 0.7; }
+          50% { opacity: 1; }
+          100% { opacity: 0.7; }
+        }
+        
+        .animate-pulse-slow {
+          animation: pulse-slow 2s ease-in-out infinite;
         }
       `}</style>
     </>

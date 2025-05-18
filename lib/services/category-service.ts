@@ -1,5 +1,6 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Category } from "../types"
+export type { Category } from "../types"; 
 import { DEFAULT_STORE_ID } from "../constants"
 import { safelyGetRecordById } from "../supabase-utils"
 

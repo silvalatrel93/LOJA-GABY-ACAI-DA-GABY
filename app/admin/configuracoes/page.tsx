@@ -179,6 +179,20 @@ export default function StoreConfigPage() {
                     Formato internacional sem espaços ou caracteres especiais. Ex: 5511999999999
                   </p>
                 </div>
+                
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Chave PIX</label>
+                  <input
+                    type="text"
+                    value={storeConfig?.pixKey || ""}
+                    onChange={(e) => setStoreConfig({ ...storeConfig!, pixKey: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Será usada para gerar QR Code de pagamento PIX no checkout
+                  </p>
+                </div>
 
                 {storeConfig?.deliveryFee !== 0 && (
                   <div>

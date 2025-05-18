@@ -8,6 +8,7 @@ import {
   backupData,
 } from "@/lib/db"
 import type { AdditionalCategory } from "@/lib/services/additional-category-service"
+import { createSafeKey } from "@/lib/key-utils";
 
 export default function AdditionalCategoriesAdminPage() {
   const [categories, setCategories] = useState<AdditionalCategory[]>([])
@@ -160,8 +161,8 @@ export default function AdditionalCategoriesAdminPage() {
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {categories.map((category) => (
-                <div key={category.id} className="border rounded-lg overflow-hidden flex flex-col sm:flex-row">
+              {categories.map((category, index) => (
+                <div key={createSafeKey(category.id, 'admin-additional-category-item', index)} className="border rounded-lg overflow-hidden flex flex-col sm:flex-row">
                   <div className="p-3 flex-1">
                     <div className="flex justify-between items-start flex-wrap gap-2">
                       <div>

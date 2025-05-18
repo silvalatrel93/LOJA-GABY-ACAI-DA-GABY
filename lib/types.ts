@@ -37,6 +37,7 @@ export interface Additional {
   active: boolean
   image?: string
   quantity?: number // Quantidade no carrinho
+  hasPricing?: boolean // Indica se o adicional tem preço ou é gratuito
 }
 
 // Item do carrinho
@@ -89,6 +90,7 @@ export interface StoreConfig {
   operatingHours: OperatingHours
   specialDates: SpecialDate[]
   whatsappNumber?: string
+  pixKey?: string
   lastUpdated?: string
 }
 

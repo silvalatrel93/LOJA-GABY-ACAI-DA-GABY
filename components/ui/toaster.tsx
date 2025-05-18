@@ -9,15 +9,16 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
+import { createSafeKey } from "@/lib/key-utils"
 
 export function Toaster() {
   const { toasts } = useToast()
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+      {toasts.map(function ({ id, title, description, action, ...props }, index) {
         return (
-          <Toast key={id} {...props}>
+          <Toast key={createSafeKey(id, 'toast', index)} {...props}>
             <div className="grid gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && (

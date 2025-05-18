@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
 import { createSafeKey } from "@/lib/key-utils";
 
-// Adicione este estilo para a animação flutuante
-const floatAnimation = `
+// Adicione este estilo para as animações
+const animations = `
   @keyframes float {
     0% { transform: translateY(0px); }
     50% { transform: translateY(-3px); }
@@ -41,6 +41,36 @@ const floatAnimation = `
   .animate-shake {
     animation: shake 0.5s ease-in-out;
   }
+  
+  @keyframes fadeInDown {
+    from { 
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to { 
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-fadeInDown {
+    animation: fadeInDown 0.3s ease-out forwards;
+  }
+  
+  @keyframes scaleIn {
+    from { 
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to { 
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  .animate-scaleIn {
+    animation: scaleIn 0.2s ease-out forwards;
+  }
 `
 
 // Contexto global para notificações
@@ -60,6 +90,7 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false)
   const [newNotification, setNewNotification] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const prevUnreadCountRef = useRef(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -67,8 +98,23 @@ export default function NotificationBell() {
   // Criar elemento de áudio para notificação
   useEffect(() => {
     audioRef.current = new Audio("/notification-sound.mp3")
+    
+    // Detectar rolagem da página para ajustar o estilo do sino
+    const handleScroll = () => {
+      const offset = window.scrollY
+      if (offset > 10) {
+        setScrolled(true)
+      } else {
+        setScrolled(false)
+      }
+    }
+    
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll() // Verificar posição inicial
+    
     return () => {
       audioRef.current = null
+      window.removeEventListener('scroll', handleScroll)
     }
   }, [])
 
@@ -328,8 +374,8 @@ export default function NotificationBell() {
 
   return (
     <>
-      <style jsx>{floatAnimation}</style>
-      <div className="relative">
+      <style jsx>{animations}</style>
+      <div className="relative" ref={dropdownRef}>
         <div className="flex items-center space-x-2">
           {isPushSupported && (
             <Button
@@ -348,22 +394,26 @@ export default function NotificationBell() {
           )}
           <button
             onClick={handleBellClick}
-            className={`relative p-1.5 sm:p-2 text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white focus:outline-none ${bellAnimation}`}
+            className={`relative p-1.5 sm:p-2 text-gray-100 hover:text-white focus:outline-none transition-all duration-300 ${bellAnimation} ${scrolled ? 'scale-90' : 'scale-100'}`}
             aria-label="Notificações"
           >
-            <Bell className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 transition-all duration-200" />
+            <Bell 
+              className={`transition-all duration-300 ${scrolled ? 'h-5 w-5 sm:h-5 sm:w-5' : 'h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6'}`} 
+            />
             {unreadCount > 0 && (
               <span
-                className={`absolute top-0 right-0 inline-flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 text-xs font-bold text-white bg-green-500 rounded-full ${newNotification ? "animate-pulse-custom" : ""}`}
+                className={`absolute top-0 right-0 inline-flex items-center justify-center ${scrolled ? 'w-3.5 h-3.5 sm:w-4 sm:h-4' : 'w-4 h-4 sm:w-5 sm:h-5'} text-xs font-bold text-white bg-green-500 rounded-full transition-all duration-300 ${newNotification ? "animate-pulse-custom" : ""}`}
               >
-                <span className="text-[10px] sm:text-xs">{unreadCount > 99 ? "99+" : unreadCount > 9 ? "9+" : unreadCount}</span>
+                <span className={`transition-all duration-300 ${scrolled ? 'text-[8px] sm:text-[10px]' : 'text-[10px] sm:text-xs'}`}>
+                  {unreadCount > 99 ? "99+" : unreadCount > 9 ? "9+" : unreadCount}
+                </span>
               </span>
             )}
           </button>
         </div>
 
         {isOpen && (
-          <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-50 overflow-hidden">
+          <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-50 overflow-hidden animate-fadeInDown">
             <div className="p-3 bg-purple-700 text-white flex justify-between items-center">
               <h3 className="font-semibold">Notificações</h3>
               {unreadCount > 0 && (
@@ -385,7 +435,8 @@ export default function NotificationBell() {
                     <div
                       key={createSafeKey(notification.id, 'notification-item', index)}
                       onClick={() => handleNotificationClick(notification)}
-                      className={`p-3 border-b cursor-pointer hover:bg-gray-50 ${!notification.read ? "bg-purple-50" : ""}`}
+                      className={`p-3 border-b cursor-pointer hover:bg-gray-50 transition-all duration-200 ${!notification.read ? "bg-purple-50" : ""}`}
+                      style={{ animationDelay: `${index * 0.05}s` }}
                     >
                       <div className="flex items-start">
                         <div

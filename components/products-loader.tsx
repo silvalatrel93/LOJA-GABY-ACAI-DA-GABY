@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { getAllProducts, getProductsByCategory, type Product } from "@/lib/db"
 import ProductCard from "@/components/product-card"
+import { createSafeKey } from "@/lib/key-utils"
 
 interface ProductsLoaderProps {
   categoryId: number | null
@@ -100,8 +101,8 @@ export default function ProductsLoader({ categoryId }: ProductsLoaderProps) {
 
   return (
     <>
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} />
+      {products.map((product, index) => (
+        <ProductCard key={createSafeKey(product.id, 'product-card-loader', index)} product={product} />
       ))}
     </>
   )

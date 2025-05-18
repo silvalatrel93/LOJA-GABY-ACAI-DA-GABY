@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import type { CarouselSlide } from "@/lib/services/carousel-service"
+import { createSafeKey } from "@/lib/key-utils"
 
 interface HeroCarouselProps {
   slides: CarouselSlide[]
@@ -78,7 +79,7 @@ export default function HeroCarousel({ slides }: HeroCarouselProps) {
         {/* Slides com efeito de fade */}
         {slides.map((slide, index) => (
           <div
-            key={slide.id}
+            key={createSafeKey(slide.id, 'hero-slide', index)}
             className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
             style={{ opacity: currentIndex === index ? 1 : 0 }}
           >

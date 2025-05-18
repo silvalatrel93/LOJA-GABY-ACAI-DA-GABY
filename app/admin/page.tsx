@@ -33,12 +33,14 @@ import {
 } from "@/lib/db"
 import type { AdditionalCategory } from "@/lib/services/additional-category-service"
 import { formatCurrency } from "@/lib/utils"
+import { createSafeKey } from "@/lib/key-utils";
 
 export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [additionals, setAdditionals] = useState<Additional[]>([])
   const [additionalCategories, setAdditionalCategories] = useState<AdditionalCategory[]>([])
+  const [additionalsByCategory, setAdditionalsByCategory] = useState<{[key: number]: Additional[]}>({})
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isAdditionalsModalOpen, setIsAdditionalsModalOpen] = useState(false)
@@ -65,13 +67,24 @@ export default function AdminPage() {
         const category = additionalCategoriesList.find(cat => cat.id === additional.categoryId);
         return {
           ...additional,
-          categoryName: category ? category.name : "Sem categoria"
+          categoryName: category ? category.name : "Sem categoria",
+          categoryOrder: category ? category.order : 999 // Usar um valor alto para itens sem categoria
         };
+      });
+      
+      // Ordenar adicionais por ordem de categoria e depois por nome
+      const sortedAdditionals = [...additionalsWithCategoryName].sort((a, b) => {
+        // Primeiro ordenar por ordem de categoria
+        if (a.categoryOrder !== b.categoryOrder) {
+          return a.categoryOrder - b.categoryOrder;
+        }
+        // Se mesma categoria, ordenar por nome
+        return a.name.localeCompare(b.name);
       });
       
       setProducts(productsList)
       setCategories(categoriesList)
-      setAdditionals(additionalsWithCategoryName)
+      setAdditionals(sortedAdditionals)
       setAdditionalCategories(additionalCategoriesList)
     } catch (error) {
       console.error("Erro ao carregar dados:", error)
@@ -103,8 +116,6 @@ export default function AdminPage() {
       image: "/placeholder.svg?key=5xlcq",
       sizes: [
         { size: "300ml", price: 0 },
-        { size: "500ml", price: 0 },
-        { size: "700ml", price: 0 },
       ],
       categoryId: defaultCategoryId,
       allowedAdditionals: [], // Inicialmente sem adicionais permitidos
@@ -162,21 +173,64 @@ export default function AdminPage() {
   }
 
   const handleSizeChange = (index: number, field: string, value: string) => {
-    if (!editingProduct) return
-
-    const updatedSizes = [...editingProduct.sizes]
-    updatedSizes[index] = {
-      ...updatedSizes[index],
-      [field]: field === "price" ? Number.parseFloat(value) || 0 : value,
+    if (!editingProduct) return;
+    
+    const updatedSizes = [...editingProduct.sizes];
+    if (field === "size") {
+      updatedSizes[index].size = value;
+    } else if (field === "price") {
+      updatedSizes[index].price = parseFloat(value) || 0;
     }
+    setEditingProduct({ ...editingProduct, sizes: updatedSizes });
+  };
 
-    setEditingProduct({ ...editingProduct, sizes: updatedSizes })
-  }
+  // Função para adicionar um novo tamanho
+  const handleAddSize = () => {
+    if (!editingProduct) return;
+    
+    const updatedSizes = [...editingProduct.sizes, { size: "", price: 0 }];
+    setEditingProduct({ ...editingProduct, sizes: updatedSizes });
+  };
+
+  // Função para remover um tamanho
+  const handleRemoveSize = (index: number) => {
+    if (!editingProduct) return;
+    
+    // Não permitir remover se só houver um tamanho
+    if (editingProduct.sizes.length <= 1) {
+      return;
+    }
+    
+    const updatedSizes = editingProduct.sizes.filter((_, i) => i !== index);
+    setEditingProduct({ ...editingProduct, sizes: updatedSizes });
+  };
 
   // Função para abrir o modal de seleção de adicionais
   const handleManageAdditionals = () => {
-    if (!editingProduct) return
-    setIsAdditionalsModalOpen(true)
+    // Agrupar adicionais por categoria
+    const groupedAdditionals: {[key: number]: Additional[]} = {};
+    
+    // Primeiro, garantir que todas as categorias tenham uma entrada, mesmo que vazia
+    additionalCategories.forEach(category => {
+      groupedAdditionals[category.id] = [];
+    });
+    
+    // Adicionar categoria "Sem categoria" com ID 0 se houver adicionais sem categoria
+    if (additionals.some(add => !add.categoryId)) {
+      groupedAdditionals[0] = [];
+    }
+    
+    // Agrupar os adicionais por categoria
+    additionals.forEach(additional => {
+      const categoryId = additional.categoryId || 0;
+      if (!groupedAdditionals[categoryId]) {
+        groupedAdditionals[categoryId] = [];
+      }
+      groupedAdditionals[categoryId].push(additional);
+    });
+    
+    setAdditionalsByCategory(groupedAdditionals);
+    setIsAdditionalsModalOpen(true);
   }
 
   // Função para alternar a seleção de um adicional
@@ -271,7 +325,7 @@ export default function AdminPage() {
             </Link>
             <h1 className="text-xl font-bold">Painel Administrativo</h1>
           </div>
-          <div className="flex space-x-2 flex-wrap gap-2">
+          <div className="flex space-x-2">
             <button
               onClick={loadData}
               className="bg-purple-800 text-white px-4 py-2 rounded-md font-medium flex items-center"
@@ -364,7 +418,7 @@ export default function AdminPage() {
             className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
           >
             <div className="bg-purple-100 p-3 rounded-full mr-4">
-              <Bell size={24} className="text-purple-700" />
+              <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-purple-700 transition-all duration-200" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-purple-900">Gerenciar Notificações</h2>
@@ -565,10 +619,20 @@ export default function AdminPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tamanhos e Preços</label>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Tamanhos e Preços</label>
+                  <button 
+                    type="button"
+                    onClick={handleAddSize}
+                    className="text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded-md flex items-center"
+                  >
+                    <Plus size={16} className="mr-1" />
+                    Adicionar Tamanho
+                  </button>
+                </div>
 
                 {editingProduct.sizes.map((size, index) => (
-                  <div key={index} className="flex space-x-2 mb-2">
+                  <div key={createSafeKey(index, 'size-item')} className="flex items-center space-x-2 mb-2">
                     <input
                       type="text"
                       value={size.size}
@@ -586,8 +650,20 @@ export default function AdminPage() {
                       min="0"
                       inputMode="decimal"
                     />
+                    <button 
+                      type="button"
+                      onClick={() => handleRemoveSize(index)}
+                      disabled={editingProduct.sizes.length <= 1}
+                      className={`p-2 rounded-full ${editingProduct.sizes.length <= 1 ? 'bg-gray-100 text-gray-400' : 'bg-red-100 text-red-600'}`}
+                      title="Remover tamanho"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 ))}
+                {editingProduct.sizes.length === 0 && (
+                  <p className="text-sm text-gray-500 italic">Adicione pelo menos um tamanho para o produto.</p>
+                )}
               </div>
 
               <div>
@@ -663,50 +739,116 @@ export default function AdminPage() {
                   Nenhum adicional cadastrado. Adicione adicionais na página de gerenciamento de adicionais.
                 </p>
               ) : (
-                <div className="space-y-2">
-                  {additionals.map((additional) => {
-                    const isSelected = editingProduct.allowedAdditionals?.includes(additional.id) || false
+                <div className="space-y-6">
+                  {/* Renderizar adicionais agrupados por categoria */}
+                  {additionalCategories
+                    .sort((a, b) => a.order - b.order)
+                    .map((category) => {
+                      // Obter adicionais desta categoria
+                      const categoryAdditionals = additionalsByCategory[category.id] || [];
+                      
+                      // Não mostrar categorias vazias
+                      if (categoryAdditionals.length === 0) return null;
+                      
+                      return (
+                        <div key={createSafeKey(category.id, 'admin-additional-category')} className="mb-4">
+                          <h3 className="text-md font-medium text-purple-800 mb-2 pb-1 border-b border-purple-200">
+                            {category.name} <span className="text-xs text-gray-500">({categoryAdditionals.length})</span>
+                          </h3>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {categoryAdditionals.map((additional, index) => (
+                              <div
+                                key={createSafeKey(additional.id, 'admin-additional-option', index)}
+                                className={`flex items-center justify-between p-3 border rounded-md ${
+                                  editingProduct.allowedAdditionals?.includes(additional.id) ? "border-purple-500 bg-purple-50" : "border-gray-200"
+                                }`}
+                              >
+                                <div className="flex items-center">
+                                  <div className="w-10 h-10 relative mr-3 bg-purple-100 rounded-md overflow-hidden">
+                                    {additional.image ? (
+                                      <Image
+                                        src={additional.image || "/placeholder.svg"}
+                                        alt={additional.name}
+                                        fill
+                                        className="object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex items-center justify-center h-full text-purple-300">
+                                        <Plus size={16} />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">{additional.name}</p>
+                                    <p className="text-sm text-purple-700">{additional.price > 0 ? formatCurrency(additional.price) : "Grátis"}</p>
+                                  </div>
+                                </div>
 
-                    return (
-                      <div
-                        key={additional.id}
-                        className={`flex items-center justify-between p-3 border rounded-md ${
-                          isSelected ? "border-purple-500 bg-purple-50" : "border-gray-200"
-                        }`}
-                      >
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 relative mr-3 bg-purple-100 rounded-md overflow-hidden">
-                            {additional.image ? (
-                              <Image
-                                src={additional.image || "/placeholder.svg"}
-                                alt={additional.name}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="flex items-center justify-center h-full text-purple-300">
-                                <Plus size={16} />
+                                <button
+                                  onClick={() => toggleAdditionalSelection(additional.id)}
+                                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                    editingProduct.allowedAdditionals?.includes(additional.id) ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-600"
+                                  }`}
+                                >
+                                  {editingProduct.allowedAdditionals?.includes(additional.id) ? <Check size={16} /> : <Plus size={16} />}
+                                </button>
                               </div>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium">{additional.name}</p>
-                            <p className="text-sm text-purple-700">{formatCurrency(additional.price)}</p>
-                            <p className="text-xs text-gray-500">{additional.categoryName || "Sem categoria"}</p>
+                            ))}
                           </div>
                         </div>
+                      );
+                    })}
+                    
+                  {/* Renderizar adicionais sem categoria */}
+                  {additionalsByCategory[0] && additionalsByCategory[0].length > 0 && (
+                    <div className="mb-4">
+                      <h3 className="text-md font-medium text-gray-600 mb-2 pb-1 border-b border-gray-200">
+                        Sem categoria <span className="text-xs text-gray-500">({additionalsByCategory[0].length})</span>
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {additionalsByCategory[0].map((additional, index) => (
+                          <div
+                            key={createSafeKey(additional.id, 'admin-additional-option-no-category', index)}
+                            className={`flex items-center justify-between p-3 border rounded-md ${
+                              editingProduct.allowedAdditionals?.includes(additional.id) ? "border-purple-500 bg-purple-50" : "border-gray-200"
+                            }`}
+                          >
+                            <div className="flex items-center">
+                              <div className="w-10 h-10 relative mr-3 bg-purple-100 rounded-md overflow-hidden">
+                                {additional.image ? (
+                                  <Image
+                                    src={additional.image || "/placeholder.svg"}
+                                    alt={additional.name}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex items-center justify-center h-full text-purple-300">
+                                    <Plus size={16} />
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-medium">{additional.name}</p>
+                                <p className="text-sm text-purple-700">{additional.price > 0 ? formatCurrency(additional.price) : "Grátis"}</p>
+                              </div>
+                            </div>
 
-                        <button
-                          onClick={() => toggleAdditionalSelection(additional.id)}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            isSelected ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-600"
-                          }`}
-                        >
-                          {isSelected ? <Check size={16} /> : <Plus size={16} />}
-                        </button>
+                            <button
+                              onClick={() => toggleAdditionalSelection(additional.id)}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                editingProduct.allowedAdditionals?.includes(additional.id) ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-600"
+                              }`}
+                            >
+                              {editingProduct.allowedAdditionals?.includes(additional.id) ? <Check size={16} /> : <Plus size={16} />}
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    )
-                  })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

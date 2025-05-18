@@ -10,19 +10,33 @@ import NotificationBell from "@/components/notification-bell"
 import SideMenu from "@/components/side-menu"
 import type { CarouselSlide } from "@/lib/services/carousel-service"
 import type { StoreConfig } from "@/lib/types"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { getStoreConfig } from "@/lib/services/store-config-service"
 
 interface MainLayoutProps {
   children: ReactNode
   carouselSlides?: CarouselSlide[]
+  showCart?: boolean
 }
 
-export default function MainLayout({ children, carouselSlides = [] }: MainLayoutProps) {
+export default function MainLayout({ children, carouselSlides = [], showCart = false }: MainLayoutProps) {
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  // Função para detectar rolagem da página
+  const handleScroll = useCallback(() => {
+    const offset = window.scrollY
+    // Aplicar efeito quando rolar mais de 10px
+    if (offset > 10) {
+      setScrolled(true)
+    } else {
+      setScrolled(false)
+    }
+  }, [])
 
   useEffect(() => {
+    // Carregar configuração da loja
     const loadStoreConfig = async () => {
       try {
         const config = await getStoreConfig()
@@ -33,7 +47,18 @@ export default function MainLayout({ children, carouselSlides = [] }: MainLayout
     }
 
     loadStoreConfig()
-  }, [])
+
+    // Adicionar listener para detectar rolagem
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    
+    // Verificar posição inicial da rolagem
+    handleScroll()
+    
+    // Limpar listener ao desmontar o componente
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [handleScroll])
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
@@ -42,23 +67,27 @@ export default function MainLayout({ children, carouselSlides = [] }: MainLayout
   return (
     <CartProvider>
       <div className="min-h-screen flex flex-col bg-gray-50 overflow-x-hidden w-full">
-        {/* Cabeçalho */}
+        {/* Cabeçalho com efeito de transição e glassmorphism */}
         <header
-          className="bg-purple-600 text-white p-3 sticky top-0 z-20"
+          className={`text-white fixed top-0 left-0 right-0 w-full z-30 transition-all duration-300 ease-in-out header-animation py-3 ${
+            scrolled 
+              ? 'bg-purple-600/90 backdrop-blur-md shadow-lg shadow-purple-900/30' 
+              : 'bg-purple-600'
+          }`}
           style={{ width: "100vw", marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)" }}
         >
           <div className="w-full max-w-screen-xl mx-auto px-4 flex justify-between items-center">
             <div className="flex items-center">
               <button
                 onClick={toggleMenu}
-                className="mr-3 p-1 rounded-md hover:bg-purple-800 transition-colors"
+                className="mr-3 p-1 rounded-md hover:bg-purple-800 transition-all duration-300"
                 aria-label="Abrir menu"
               >
-                <Menu size={24} />
+                <Menu size={24} className="transition-all duration-300" />
               </button>
               <Link href="/" className="flex items-center">
                 {storeConfig?.logoUrl && (
-                  <div className="relative w-10 h-10 mr-2 transition-transform duration-300 ease-in-out transform hover:scale-110">
+                  <div className="relative w-10 h-10 mr-2 transition-all duration-300 ease-in-out transform hover:scale-110">
                     <Image
                       src={storeConfig.logoUrl || "/placeholder.svg"}
                       alt={`Logo ${storeConfig.name || "Açaí Online"}`}
@@ -68,7 +97,9 @@ export default function MainLayout({ children, carouselSlides = [] }: MainLayout
                     />
                   </div>
                 )}
-                <span className="text-xl font-bold">{storeConfig?.name || "Açaí Online"}</span>
+                <span className="text-xl font-bold transition-all duration-300">
+                  {storeConfig?.name || "Açaí Online"}
+                </span>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
@@ -83,6 +114,32 @@ export default function MainLayout({ children, carouselSlides = [] }: MainLayout
         {/* Carrossel */}
         {carouselSlides.length > 0 && <HeroCarousel slides={carouselSlides} />}
 
+        {/* Espaçador para compensar o cabeçalho fixo */}
+        <div className="h-16 md:h-20"></div>
+        
+        {/* Estilo global para animações */}
+        <style jsx global>{`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          
+          @keyframes slideInDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+          
+          .header-animation {
+            animation: slideInDown 0.4s ease-out;
+          }
+          
+          /* Efeito de vidro para o cabeçalho quando rolado */
+          .backdrop-blur-md {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+          }
+        `}</style>
+        
         {/* Conteúdo principal */}
         <main className="flex-1 flex flex-col overflow-x-hidden w-full">{children}</main>
 

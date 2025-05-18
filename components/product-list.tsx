@@ -1,36 +1,51 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { getAllActiveProducts } from "@/lib/services/product-service"
 import { getActiveCategories } from "@/lib/services/category-service"
 import ProductCard from "@/components/product-card"
 import type { Product } from "@/lib/services/product-service"
 import type { Category } from "@/lib/services/category-service"
-
-// Estilo global para ocultar a barra de rolagem mas manter a funcionalidade
-const globalStyles = `
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-`
+import { createSafeKey } from "@/lib/key-utils"
 
 export default function ProductList({ products: initialProducts = [], categories: initialCategories = [] }) {
   const [allProducts, setAllProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>(initialCategories)
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(0)
+  const [activeCategory, setActiveCategory] = useState<number | null>(null)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [isBarFixed, setIsBarFixed] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const prevScrollY = useRef(0)
+  const categoriesBarRef = useRef<HTMLDivElement>(null)
+  const categoryRefs = useRef<Map<number, HTMLDivElement | null>>(new Map())
+  const categoryButtonsRef = useRef<Map<number, HTMLButtonElement | null>>(new Map())
+  const initialCategoriesBarPosition = useRef<number | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
 
-  // Injetar estilos globais
+  // Injetar estilos CSS para a barra de categorias
   useEffect(() => {
     const styleElement = document.createElement("style")
-    styleElement.innerHTML = globalStyles
+    styleElement.innerHTML = `
+      .categories-scrollbar::-webkit-scrollbar {
+        height: 4px;
+        background-color: transparent;
+      }
+      
+      .categories-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(139, 92, 246, 0.3);
+        border-radius: 10px;
+      }
+      
+      .categories-scrollbar::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(139, 92, 246, 0.5);
+      }
+      
+      .categories-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+      }
+    `
     document.head.appendChild(styleElement)
 
     return () => {
@@ -78,32 +93,127 @@ export default function ProductList({ products: initialProducts = [], categories
     return allProducts.filter((product) => product.categoryId === selectedCategory)
   }, [selectedCategory, allProducts])
 
-  // Salvar a posição de scroll atual
-  useEffect(() => {
-    const handleScroll = () => {
-      prevScrollY.current = window.scrollY
+  // Função para controlar a barra fixa durante o scroll
+  const handleScroll = useCallback(() => {
+    const currentScrollY = window.scrollY
+    
+    // Salvar a posição inicial da barra de categorias
+    if (initialCategoriesBarPosition.current === null && categoriesBarRef.current) {
+      initialCategoriesBarPosition.current = categoriesBarRef.current.getBoundingClientRect().top + window.scrollY
     }
+    
+    // Verificar se a barra deve ser fixa
+    if (initialCategoriesBarPosition.current !== null) {
+      const shouldBeFixed = currentScrollY > initialCategoriesBarPosition.current - 60
+      
+      // Quando rolamos para baixo, fixamos a barra
+      if (currentScrollY > prevScrollY.current) {
+        setIsBarFixed(shouldBeFixed)
+      } else {
+        setIsBarFixed(false)
+      }
+    }
+    
+    prevScrollY.current = currentScrollY
+    
+    // Detectar categoria ativa durante a rolagem
+    if (selectedCategory === 0) {
+      const headerHeight = 60
+      const categoriesBarHeight = 56
+      const offset = headerHeight + categoriesBarHeight + 20
+      
+      let activeId = null
+      let minDistance = Infinity
+      
+      categoryRefs.current.forEach((ref, id) => {
+        if (ref) {
+          const rect = ref.getBoundingClientRect()
+          if (rect.top <= offset) {
+            const distance = Math.abs(rect.top - offset)
+            if (distance < minDistance) {
+              minDistance = distance
+              activeId = id
+            }
+          }
+        }
+      })
+      
+      if (activeId !== activeCategory) {
+        setActiveCategory(activeId)
+        
+        // Rolar a barra de categorias para mostrar a categoria ativa
+        const buttonRef = activeId !== null ? categoryButtonsRef.current.get(activeId) : null
+        if (buttonRef && categoriesBarRef.current) {
+          const barRect = categoriesBarRef.current.getBoundingClientRect()
+          const buttonRect = buttonRef.getBoundingClientRect()
+          
+          const scrollLeft = buttonRect.left - barRect.left - (barRect.width / 2) + (buttonRect.width / 2)
+          categoriesBarRef.current.scrollTo({
+            left: categoriesBarRef.current.scrollLeft + scrollLeft,
+            behavior: 'smooth'
+          })
+        }
+      }
+    }
+  }, [selectedCategory, activeCategory])
+  
+  // Função throttle para limitar a frequência de execução do handler de scroll
+  function throttle(func: Function, limit: number) {
+    let inThrottle = false
+    return function(this: any, ...args: any[]) {
+      if (!inThrottle) {
+        func.apply(this, args)
+        inThrottle = true
+        setTimeout(() => (inThrottle = false), limit)
+      }
+    }
+  }
+  
+  const throttledScrollHandler = useCallback(
+    throttle(handleScroll, 100),
+    [handleScroll]
+  )
 
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+  // Adicionar listener de scroll
+  useEffect(() => {
+    window.addEventListener('scroll', throttledScrollHandler)
+    handleScroll()
+    
+    return () => {
+      window.removeEventListener('scroll', throttledScrollHandler)
+    }
+  }, [throttledScrollHandler, handleScroll])
 
   // Função para mudar de categoria com transição suave
   const handleCategoryChange = (categoryId: number) => {
     if (categoryId === selectedCategory) return
 
-    // Iniciar transição
-    setIsTransitioning(true)
+    // Mudar a categoria imediatamente
+    setSelectedCategory(categoryId)
+    setActiveCategory(categoryId) // Atualizar a categoria ativa
 
-    // Mudar a categoria após um pequeno delay
+    // Rolar para a categoria selecionada se for "Todos" e a categoria existe
+    if (categoryId !== 0 && selectedCategory === 0) {
+      const categoryRef = categoryRefs.current.get(categoryId)
+      if (categoryRef) {
+        const headerHeight = 60 // Altura do cabeçalho fixo
+        const categoriesBarHeight = 56 // Altura da barra de categorias
+        const headerOffset = headerHeight + categoriesBarHeight + 10 // Adicionar margem extra
+        
+        const elementPosition = categoryRef.getBoundingClientRect().top + window.scrollY
+        const offsetPosition = elementPosition - headerOffset
+        
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth"
+        })
+      }
+    }
+
+    // Terminar a transição após um breve período
     setTimeout(() => {
-      setSelectedCategory(categoryId)
-
-      // Terminar a transição após um breve período
-      setTimeout(() => {
-        setIsTransitioning(false)
-      }, 300)
-    }, 50)
+      setIsTransitioning(false)
+    }, 300)
   }
 
   // Renderizar produtos agrupados por categoria quando "Todos" está selecionado
@@ -116,11 +226,18 @@ export default function ProductList({ products: initialProducts = [], categories
         if (categoryProducts.length === 0) return null
 
         return (
-          <div key={category.id} className="mb-8">
+          <div 
+            key={createSafeKey(category.id, 'category')} 
+            className="mb-8"
+            ref={(el) => {
+              if (el) categoryRefs.current.set(category.id, el);
+            }}
+            id={`category-${category.id}`}
+          >
             <h2 className="text-xl font-bold mb-4 text-purple-800">{category.name}</h2>
             <div className="grid grid-cols-2 gap-4">
               {categoryProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={createSafeKey(product.id, 'product')} product={product} />
               ))}
             </div>
           </div>
@@ -130,17 +247,20 @@ export default function ProductList({ products: initialProducts = [], categories
 
   return (
     <div className="w-full">
-      {/* Filtro de categorias - sticky */}
+      {/* Barra de categorias */}
       <div
-        className="sticky top-[56px] z-20 py-2 shadow-sm w-screen left-0 right-0"
+        className={`${isBarFixed ? 'fixed top-[60px]' : 'relative'} left-0 right-0 w-full z-20 py-2 shadow-md transition-all duration-300`}
         style={{
-          marginLeft: "calc(-50vw + 50%)",
-          marginRight: "calc(-50vw + 50%)",
-          width: "100vw",
+          marginLeft: 0,
+          marginRight: 0,
+          width: "100%",
           boxSizing: "border-box",
-          background: "linear-gradient(to bottom, white, #f5f5f5)",
+          background: "rgba(255, 255, 255, 0.95)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
           borderBottom: "1px solid #eaeaea",
         }}
+        ref={categoriesBarRef}
       >
         <div className="relative">
           {/* Gradiente de fade à esquerda */}
@@ -152,20 +272,23 @@ export default function ProductList({ products: initialProducts = [], categories
           ></div>
 
           <div
-            className="flex overflow-x-auto py-1 gap-3 no-scrollbar pl-4 pr-4"
+            ref={categoriesBarRef}
+            className="flex overflow-x-auto py-1 gap-3 pl-4 pr-4 categories-scrollbar"
             style={{
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
               WebkitOverflowScrolling: "touch",
               scrollBehavior: "smooth",
             }}
           >
             {categories.map((category) => (
               <button
-                key={category.id}
+                key={createSafeKey(category.id, 'category-tab')}
+                ref={(el) => {
+                  if (el) categoryButtonsRef.current.set(category.id, el);
+                }}
                 onClick={() => handleCategoryChange(category.id)}
                 className={`px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-400 ${
-                  selectedCategory === category.id
+                  // Destacar o botão se for a categoria selecionada OU se for a categoria ativa durante o scroll
+                  selectedCategory === category.id || (selectedCategory === 0 && activeCategory === category.id)
                     ? "bg-purple-600 text-white shadow-sm font-medium"
                     : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
                 }`}
@@ -185,16 +308,19 @@ export default function ProductList({ products: initialProducts = [], categories
         </div>
       </div>
 
+      {/* Espaçador para compensar a barra de categorias fixa (apenas quando está fixa) */}
+      {isBarFixed && <div className="h-[56px]"></div>}
+      
       {/* Conteúdo dos produtos com transição suave */}
       <div className="px-4 py-4 min-h-[500px]">
         {isInitialLoading ? (
-          <div className="flex justify-center py-12">
+          <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700"></div>
           </div>
         ) : (
           <div
             ref={contentRef}
-            className={`transition-all duration-300 ${isTransitioning ? "opacity-0" : "opacity-100"}`}
+            className="transition-opacity duration-300 opacity-100"
           >
             {filteredProducts.length === 0 && selectedCategory !== 0 ? (
               <div className="text-center py-12">
@@ -207,7 +333,7 @@ export default function ProductList({ products: initialProducts = [], categories
               // Exibição normal para categorias específicas
               <div className="grid grid-cols-2 gap-4">
                 {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard key={createSafeKey(product.id, 'product')} product={product} />
                 ))}
               </div>
             )}

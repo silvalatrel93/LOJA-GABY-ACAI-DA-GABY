@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 import { Trash2, Plus, Minus } from "lucide-react"
 import Image from "next/image"
-import { cleanSizeDisplay } from "@/lib/utils"
+import { createSafeKey } from "@/lib/key-utils"
+
+// Função para limpar a exibição do tamanho
+function cleanSizeDisplay(size: string): string {
+  return size.replace("_", " ").replace(/^\w/, (c) => c.toUpperCase())
+}
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, clearCart, isLoading } = useCart()
@@ -44,7 +49,7 @@ export default function CartPage() {
     (sum, item) =>
       sum +
       item.price * item.quantity +
-      (item.additionals?.reduce((addSum, add) => addSum + add.price * add.quantity, 0) || 0),
+      (item.additionals?.reduce((addSum, add) => addSum + add.price * (add.quantity || 1), 0) || 0),
     0,
   )
 
@@ -87,7 +92,7 @@ export default function CartPage() {
                   const displaySize = cleanSizeDisplay(item.size)
 
                   return (
-                    <li key={`${item.id}`} className="p-4">
+                    <li key={createSafeKey(item.id)} className="p-4">
                       <div className="flex items-center">
                         {item.image && (
                           <div className="relative h-16 w-16 flex-shrink-0">
@@ -108,9 +113,9 @@ export default function CartPage() {
                             <div className="mt-1">
                               <p className="text-xs text-gray-500">Adicionais:</p>
                               <ul className="text-xs text-gray-600">
-                                {item.additionals.map((add) => (
-                                  <li key={add.id}>
-                                    {add.name} (x{add.quantity}) - R$ {(add.price * add.quantity).toFixed(2)}
+                                {item.additionals.map((add, addIndex) => (
+                                  <li key={createSafeKey(`${item.id}-${addIndex}`)}>
+                                    {add.name} (x{add.quantity || 1}) {add.price === 0 ? "- Grátis" : `- R$ ${(add.price * (add.quantity || 1)).toFixed(2)}`}
                                   </li>
                                 ))}
                               </ul>
@@ -157,9 +162,23 @@ export default function CartPage() {
               </ul>
 
               <div className="p-4 border-t">
-                <button onClick={() => clearCart()} className="text-red-500 hover:text-red-700 text-sm">
-                  Limpar Carrinho
-                </button>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => router.push("/")}
+                      className="text-purple-700 hover:underline flex items-center"
+                    >
+                      Continuar comprando
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => clearCart()}
+                    className="text-red-500 hover:underline"
+                    data-testid="clear-cart"
+                  >
+                    Limpar carrinho
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
 import { ArrowLeft, Printer, RefreshCw, Bell, BellOff, X } from "lucide-react"
 import { getAllOrders, markOrderAsPrinted, updateOrderStatus, type Order } from "@/lib/db"
@@ -20,10 +20,61 @@ export default function OrdersPage() {
   const [isSoundEnabled, setIsSoundEnabled] = useState(true)
   const [showNewOrderNotification, setShowNewOrderNotification] = useState(false)
   const [newOrdersCount, setNewOrdersCount] = useState(0)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [showSoundActivationMessage, setShowSoundActivationMessage] = useState(false)
+  const [updatingStatus, setUpdatingStatus] = useState(false)
   const { playSound } = useNotificationSound()
   const prevOrdersRef = useRef<Order[]>([])
   const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const notificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const notificationTimeoutRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  // Função para tocar o som de notificação continuamente
+  const startContinuousSound = useCallback(() => {
+    try {
+      // Criar um novo elemento de áudio se não existir
+      if (!audioRef.current) {
+        audioRef.current = new Audio('/sounds/new-order.mp3');
+        audioRef.current.volume = 0.7; // Volume mais alto (70%)
+        
+        // Configurar para tocar em loop
+        audioRef.current.loop = true;
+      }
+      
+      // Adicionar um evento de clique ao documento para iniciar o som
+      // (contorna a política de autoplay dos navegadores)
+      const playSound = () => {
+        if (audioRef.current) {
+          audioRef.current.play().catch(err => {
+            console.error('Erro ao reproduzir som após interação:', err);
+          });
+          // Remover o listener após o primeiro clique
+          document.removeEventListener('click', playSound);
+        }
+      };
+      
+      // Tentar reproduzir diretamente (pode falhar devido à política de autoplay)
+      audioRef.current.play().catch(err => {
+        console.log('Aguardando interação do usuário para tocar o som...');
+        // Mostrar mensagem para o usuário clicar na tela
+        setShowSoundActivationMessage(true);
+        // Adicionar o listener de clique se a reprodução direta falhar
+        document.addEventListener('click', playSound);
+      });
+    } catch (err) {
+      console.error('Erro ao configurar som:', err);
+    }
+  }, [setShowSoundActivationMessage]);
+  
+  // Função para parar o som
+  const stopContinuousSound = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    // Resetar a mensagem de ativação de som
+    setShowSoundActivationMessage(false);
+  }, [setShowSoundActivationMessage]);
 
   // Função para carregar pedidos
   const fetchOrders = React.useCallback(async (silent = false, isMounted = true): Promise<Order[] | null> => {
@@ -49,9 +100,9 @@ export default function OrdersPage() {
   const processOrders = React.useCallback(async (orders: Order[] | null, isMounted = true) => {
     if (!orders || !isMounted) return;
     
-    // Verificar se há novos pedidos comparando com a referência anterior
-    const currentOrderIds = new Set(prevOrdersRef.current.map(order => order.id));
-    const newOrders = orders.filter(order => !currentOrderIds.has(order.id));
+    // Verificar se há novos pedidos que ainda não foram notificados
+    // Em vez de comparar com a referência anterior, verificamos a propriedade notified
+    const newOrders = orders.filter(order => !order.notified && order.status === "new");
     
     // Se houver novos pedidos, marcá-los como notificados
     if (newOrders.length > 0) {
@@ -79,26 +130,15 @@ export default function OrdersPage() {
           
           // Tocar som e mostrar notificação para novos pedidos
           if (isSoundEnabled) {
-            playSound('newOrder');
+            // Iniciar o som contínuo que tocará em loop até ser parado
+            startContinuousSound();
           }
           
           // Atualizar contador de novos pedidos
           setNewOrdersCount(prev => prev + newOrders.length);
           
-          // Mostrar notificação
+          // Mostrar notificação (permanecerá visível até ser fechada manualmente)
           setShowNewOrderNotification(true);
-          
-          // Esconder notificação após 10 segundos
-          if (notificationTimeoutRef.current) {
-            clearTimeout(notificationTimeoutRef.current);
-          }
-          
-          notificationTimeoutRef.current = setTimeout(() => {
-            if (isMounted) {
-              setShowNewOrderNotification(false);
-              setNewOrdersCount(0);
-            }
-          }, 10000);
           
           // Atualizar a referência para os pedidos atuais
           prevOrdersRef.current = updatedOrders;
@@ -118,7 +158,7 @@ export default function OrdersPage() {
         }
       });
     }
-  }, [isSoundEnabled, playSound]);
+  }, [isSoundEnabled, startContinuousSound, showNewOrderNotification]);
 
   // Função para carregar pedidos (usada externamente)
   const loadOrders = React.useCallback(async (silent = false): Promise<void> => {
@@ -153,12 +193,12 @@ export default function OrdersPage() {
     // Carregar pedidos iniciais
     void loadAndProcessOrders(false);
     
-    // Configurar polling a cada 30 segundos
+    // Configurar polling a cada 5 segundos para verificar novos pedidos mais rapidamente
     const pollingInterval = setInterval(() => {
       if (isMounted) {
         void loadAndProcessOrders(true);
       }
-    }, 30000);
+    }, 5000); // Reduzido de 30000 para 5000 (5 segundos)
     
     // Armazenar a referência do intervalo
     checkIntervalRef.current = pollingInterval;
@@ -173,11 +213,11 @@ export default function OrdersPage() {
       }
       
       if (notificationTimeoutRef.current) {
-        clearTimeout(notificationTimeoutRef.current);
+        clearInterval(notificationTimeoutRef.current);
         notificationTimeoutRef.current = null;
       }
     };
-  }, [isSoundEnabled, playSound]); // Dependências do efeito
+  }, [fetchOrders, processOrders, isSoundEnabled]); // Dependências do efeito
 
   const handleStatusChange = React.useCallback(async (orderId: Order['id'], status: OrderStatus): Promise<void> => {
     try {
@@ -241,6 +281,24 @@ export default function OrdersPage() {
         return status
     }
   }
+  
+  // Função para formatar número de telefone no padrão brasileiro
+  const formatPhoneNumber = (phone: string): string => {
+    // Remover todos os caracteres não numéricos
+    const numbers = phone.replace(/\D/g, '');
+    
+    // Verificar se é um número válido com DDD
+    if (numbers.length === 11) {
+      // Formato: (XX) XXXXX-XXXX
+      return `(${numbers.substring(0, 2)}) ${numbers.substring(2, 7)}-${numbers.substring(7)}`;
+    } else if (numbers.length === 10) {
+      // Formato: (XX) XXXX-XXXX (telefone fixo)
+      return `(${numbers.substring(0, 2)}) ${numbers.substring(2, 6)}-${numbers.substring(6)}`;
+    }
+    
+    // Retornar o número original se não for possível formatar
+    return phone;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -265,7 +323,11 @@ export default function OrdersPage() {
               className="ml-3 p-2 rounded-full hover:bg-purple-200 transition-colors"
               title={isSoundEnabled ? "Desativar notificações de som" : "Ativar notificações de som"}
             >
-              {isSoundEnabled ? <Bell size={18} /> : <BellOff size={18} />}
+              {isSoundEnabled ? 
+                <Bell className="w-4 h-4 sm:w-[18px] sm:h-[18px] transition-all duration-200" /> 
+                : 
+                <BellOff className="w-4 h-4 sm:w-[18px] sm:h-[18px] transition-all duration-200" />
+              }
             </button>
           </div>
         </div>
@@ -273,21 +335,130 @@ export default function OrdersPage() {
 
       {/* Notificação de novo pedido */}
       {showNewOrderNotification && (
-        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-4 animate-bounce">
-          <div className="flex-1">
-            <p className="font-semibold">Novo Pedido Recebido!</p>
-            <p className="text-sm">{newOrdersCount} novo{newOrdersCount > 1 ? 's' : ''} pedido{newOrdersCount > 1 ? 's' : ''} para preparo.</p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-green-600 text-white px-8 py-6 rounded-lg shadow-2xl max-w-md w-full animate-pulse">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <Bell className="mr-2 sm:mr-3 w-5 h-5 sm:w-6 sm:h-6 transition-all duration-200" />
+                <p className="font-bold text-xl">Novo Pedido Recebido!</p>
+              </div>
+              <button 
+                onClick={() => {
+                  // Parar o som contínuo
+                  stopContinuousSound();
+                  
+                  // Limpar o intervalo se existir
+                  if (notificationTimeoutRef.current) {
+                    clearInterval(notificationTimeoutRef.current);
+                    notificationTimeoutRef.current = null;
+                  }
+                  setShowNewOrderNotification(false);
+                  setNewOrdersCount(0);
+                }}
+                className="text-white hover:text-gray-200 p-1 rounded-full hover:bg-green-700 transition-colors"
+                aria-label="Fechar notificação"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="bg-green-700 px-5 py-4 rounded-md mb-5">
+              <p className="text-lg font-medium text-center">{newOrdersCount} novo{newOrdersCount > 1 ? 's' : ''} pedido{newOrdersCount > 1 ? 's' : ''} para preparo</p>
+              
+              {showSoundActivationMessage && (
+                <div className="mt-3 bg-yellow-600 p-3 rounded-md animate-pulse">
+                  <p className="text-white text-center font-medium">
+                    Clique em qualquer lugar da tela para ativar o som de notificação
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-center pt-2">
+              <button
+                onClick={async () => {
+                  // Parar o som contínuo
+                  stopContinuousSound();
+                  
+                  // Marcar como concluído e fechar notificação
+                  if (notificationTimeoutRef.current) {
+                    clearInterval(notificationTimeoutRef.current);
+                    notificationTimeoutRef.current = null;
+                  }
+                  setShowNewOrderNotification(false);
+                  setNewOrdersCount(0);
+                  
+                  // Obter os novos pedidos e atualizar seus status para "completed"
+                  // Vamos atualizar TODOS os pedidos visíveis na tela para "completed"
+                  // Isso garante que o usuário veja a mudança imediatamente
+                  try {
+                    // Indicar que estamos atualizando o status
+                    setUpdatingStatus(true);
+                    console.log('Atualizando todos os pedidos visíveis para "completed"...');
+                    
+                    // Primeiro, vamos atualizar a interface imediatamente para feedback visual
+                    const updatedOrders = orders.map(order => {
+                      if (order.status === "new") {
+                        console.log(`Marcando pedido #${order.id} como concluído na interface`);
+                        return { ...order, status: "completed" as OrderStatus };
+                      }
+                      return order;
+                    });
+                    
+                    // Atualizar o estado local imediatamente para feedback visual
+                    setOrders(updatedOrders);
+                    
+                    // Agora, atualizar no banco de dados
+                    const ordersToUpdate = orders.filter(order => order.status === "new");
+                    console.log(`Encontrados ${ordersToUpdate.length} pedidos para atualizar no banco de dados`);
+                    
+                    if (ordersToUpdate.length > 0) {
+                      // Atualizar cada pedido no banco de dados
+                      for (const order of ordersToUpdate) {
+                        console.log(`Atualizando pedido #${order.id} no banco de dados...`);
+                        const success = await updateOrderStatus(order.id, "completed");
+                        console.log(`Pedido #${order.id} atualizado com sucesso: ${success}`);
+                      }
+                      
+                      // Recarregar os pedidos do servidor após a atualização
+                      console.log('Recarregando pedidos do servidor...');
+                      await loadOrders(true);
+                      console.log('Pedidos recarregados com sucesso');
+                      
+                      // Desativar o estado de atualização
+                      setUpdatingStatus(false);
+                    } else {
+                      console.log('Nenhum pedido com status "new" encontrado para atualizar no banco de dados');
+                    }
+                  } catch (error) {
+                    console.error("Erro ao atualizar status dos pedidos:", error);
+                    // Mesmo em caso de erro, tentamos recarregar os pedidos para garantir a sincronização
+                    await loadOrders(true);
+                  } finally {
+                    // Garantir que o estado de atualização seja desativado mesmo em caso de erro
+                    setUpdatingStatus(false);
+                  }
+                  
+                  // Redirecionar para a seção de novos pedidos
+                  const newOrdersSection = document.getElementById('new-orders-section');
+                  if (newOrdersSection) {
+                    newOrdersSection.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
+                className="bg-white text-green-700 px-6 py-3 rounded-md font-medium text-lg hover:bg-green-100 transition-colors w-full flex items-center justify-center"
+                disabled={updatingStatus}
+              >
+                {updatingStatus ? (
+                  <>
+                    <span className="h-4 w-4 rounded-full border-2 border-green-700 border-t-transparent animate-spin mr-2"></span>
+                    Atualizando...
+                  </>
+                ) : (
+                  'Concluído'
+                )}
+              </button>
+            </div>
           </div>
-          <button 
-            onClick={() => {
-              setShowNewOrderNotification(false)
-              setNewOrdersCount(0)
-            }}
-            className="text-white hover:text-gray-200"
-            aria-label="Fechar notificação"
-          >
-            <X size={20} />
-          </button>
         </div>
       )}
 
@@ -302,21 +473,28 @@ export default function OrdersPage() {
           ) : orders.length === 0 ? (
             <p className="text-center text-gray-500 py-8">Nenhum pedido recebido ainda.</p>
           ) : (
-            <div className="space-y-4">
+            <div id="new-orders-section" className="space-y-4">
               {orders.map((order) => (
                 <div key={order.id} className="border rounded-lg overflow-hidden">
                   <div className="p-4">
-                    <div className="flex justify-between items-start">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                       <div>
                         <h3 className="font-semibold text-lg">Pedido #{order.id}</h3>
                         <p className="text-sm text-gray-500">
                           {formatDistanceToNow(new Date(order.date), { addSuffix: true, locale: ptBR })}
                         </p>
                       </div>
-                      <div className="flex items-center">
-                        <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)} mr-2`}>
-                          {getStatusText(order.status)}
-                        </span>
+                      <div className="flex items-center flex-wrap gap-2">
+                        {updatingStatus && order.status === "new" ? (
+                          <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 mr-2 flex items-center">
+                            <span className="mr-1 h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                            Concluindo...
+                          </span>
+                        ) : (
+                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)} mr-2`}>
+                            {getStatusText(order.status)}
+                          </span>
+                        )}
                         {order.printed ? (
                           <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full">Impresso</span>
                         ) : (
@@ -333,17 +511,54 @@ export default function OrdersPage() {
 
                     <div className="mt-3">
                       <h4 className="font-medium text-sm text-gray-700">Cliente</h4>
-                      <p>
-                        {order.customerName} • {order.customerPhone}
-                      </p>
+                      <div className="flex flex-col">
+                        <p className="font-medium">{order.customerName}</p>
+                        <div className="text-sm text-gray-600">
+                          <div className="flex items-center mb-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                            </svg>
+                            <span className="mr-1">Celular:</span> {formatPhoneNumber(order.customerPhone)}
+                          </div>
+                          <div className="flex space-x-2 ml-4">
+                            <a 
+                              href={`tel:${order.customerPhone}`} 
+                              className="text-xs flex items-center text-blue-600 hover:text-blue-800"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                              </svg>
+                              Ligar
+                            </a>
+                            <a 
+                              href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}`} 
+                              className="text-xs flex items-center text-green-600 hover:text-green-800"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 448 512" fill="currentColor">
+                                <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
+                              </svg>
+                              WhatsApp
+                            </a>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="mt-3">
                       <h4 className="font-medium text-sm text-gray-700">Endereço</h4>
-                      <p>
-                        {order.address.street}, {order.address.number} - {order.address.neighborhood}
-                        {order.address.complement && ` (${order.address.complement})`}
-                      </p>
+                      <div className="flex flex-col">
+                        <p className="font-medium">
+                          {order.address.street}, {order.address.number}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {order.address.neighborhood}
+                          {order.address.complement && ` (${order.address.complement})`}
+                        </p>
+                      </div>
                     </div>
 
                     <div className="mt-3">
@@ -351,107 +566,60 @@ export default function OrdersPage() {
                       <ul className="space-y-3">
                         {order.items.map((item, index) => (
                           <li key={index} className="border-b pb-2 last:border-b-0">
-                            <div className="flex justify-between">
-                              <span>
-                                {item.quantity}x {item.name} ({item.size})
+                            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                              <span className="font-medium">
+                                {item.quantity}x {item.name} <span className="text-sm text-gray-600">({item.size})</span>
                               </span>
-                              <span>{formatCurrency(item.price * item.quantity)}</span>
+                              <span className="text-right sm:text-left font-medium">{formatCurrency(item.price * item.quantity)}</span>
                             </div>
                             {item.additionals && item.additionals.length > 0 ? (
                               <div className="mt-1">
                                 <p className="text-sm text-purple-700 italic">Com Adicionais:</p>
-                                <ul className="pl-4">
+                                <ul className="pl-4 space-y-1">
                                   {item.additionals.map((additional, idx) => (
-                                    <li key={idx} className="text-sm">
-                                      • {additional.quantity || 1}x {additional.name} -{" "}
-                                      {formatCurrency(additional.price * (additional.quantity || 1))}
+                                    <li key={idx} className="text-sm flex flex-col sm:flex-row sm:justify-between">
+                                      <span>
+                                        • {additional.quantity || 1}x {additional.name}
+                                      </span>
+                                      <span className="pl-4 sm:pl-0 text-right sm:text-left">
+                                        {additional.price > 0 ? formatCurrency(additional.price * (additional.quantity || 1)) : 
+                                        <span className="text-green-600 font-medium">Grátis</span>}
+                                      </span>
                                     </li>
                                   ))}
                                 </ul>
                               </div>
                             ) : (
-                              <p className="text-sm text-gray-500 italic mt-1">Sem Adicionais:</p>
+                              <p className="text-sm text-gray-500 italic mt-1">Sem Adicionais</p>
                             )}
                           </li>
                         ))}
                       </ul>
                     </div>
 
-                    <div className="mt-3 pt-2 border-t">
-                      <div className="flex justify-between">
-                        <span>Subtotal</span>
-                        <span>{formatCurrency(order.subtotal)}</span>
+                    <div className="mt-4 pt-3 border-t">
+                      <div className="grid grid-cols-2 gap-2">
+                        <span className="text-gray-700">Subtotal</span>
+                        <span className="text-right font-medium">{formatCurrency(order.subtotal)}</span>
+                      
+                        <span className="text-gray-700">Taxa de entrega</span>
+                        <span className="text-right font-medium">{formatCurrency(order.deliveryFee)}</span>
+                      
+                        <span className="text-gray-900 font-bold">Total</span>
+                        <span className="text-right font-bold text-purple-700">{formatCurrency(order.total)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Taxa de entrega</span>
-                        <span>{formatCurrency(order.deliveryFee)}</span>
-                      </div>
-                      <div className="flex justify-between font-bold">
-                        <span>Total</span>
-                        <span>{formatCurrency(order.total)}</span>
-                      </div>
-                      <div className="mt-1">
-                        <span className="text-sm text-gray-600">
-                          Pagamento: {order.paymentMethod === "pix" ? "PIX" : "Cartão na Entrega"}
+                      
+                      <div className="mt-3 p-2 bg-gray-50 rounded-md">
+                        <span className="flex items-center text-sm">
+                          <span className="font-medium mr-2">Forma de pagamento:</span>
+                          <span className="text-purple-700">
+                            {order.paymentMethod === "pix" ? "PIX" : "Cartão na Entrega"}
+                          </span>
                         </span>
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t">
-                      <h4 className="font-medium text-sm text-gray-700 mb-2">Atualizar Status</h4>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => handleStatusChange(order.id!, "new")}
-                          className={`px-2 py-1 text-xs rounded-md ${
-                            order.status === "new"
-                              ? "bg-blue-600 text-white"
-                              : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-                          }`}
-                        >
-                          Novo
-                        </button>
-                        <button
-                          onClick={() => handleStatusChange(order.id!, "preparing")}
-                          className={`px-2 py-1 text-xs rounded-md ${
-                            order.status === "preparing"
-                              ? "bg-yellow-600 text-white"
-                              : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-                          }`}
-                        >
-                          Em Preparo
-                        </button>
-                        <button
-                          onClick={() => handleStatusChange(order.id!, "delivering")}
-                          className={`px-2 py-1 text-xs rounded-md ${
-                            order.status === "delivering"
-                              ? "bg-purple-600 text-white"
-                              : "bg-purple-100 text-purple-800 hover:bg-purple-200"
-                          }`}
-                        >
-                          Em Entrega
-                        </button>
-                        <button
-                          onClick={() => handleStatusChange(order.id!, "completed")}
-                          className={`px-2 py-1 text-xs rounded-md ${
-                            order.status === "completed"
-                              ? "bg-green-600 text-white"
-                              : "bg-green-100 text-green-800 hover:bg-green-200"
-                          }`}
-                        >
-                          Concluído
-                        </button>
-                        <button
-                          onClick={() => handleStatusChange(order.id!, "cancelled")}
-                          className={`px-2 py-1 text-xs rounded-md ${
-                            order.status === "cancelled"
-                              ? "bg-red-600 text-white"
-                              : "bg-red-100 text-red-800 hover:bg-red-200"
-                          }`}
-                        >
-                          Cancelado
-                        </button>
-                      </div>
-                    </div>
+
                   </div>
                 </div>
               ))}

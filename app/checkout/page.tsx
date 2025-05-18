@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Clock, MapPin, CreditCard, Truck, Home, Building, MapPinned } from "lucide-react"
 import { useCart, CartProvider } from "@/lib/cart-context"
@@ -11,6 +12,7 @@ import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
 import { saveOrder } from "@/lib/services/order-service"
 import { getStoreConfig } from "@/lib/services/store-config-service"
 import { getStoreStatus } from "@/lib/store-utils"
+import { generateSimplePixQRCode } from "@/lib/pix-utils"
 import type { StoreConfig } from "@/lib/types"
 
 // Componente para exibir um item com nome à esquerda e valor à direita
@@ -113,9 +115,11 @@ function CheckoutPageContent() {
           number: formData.number,
           neighborhood: formData.neighborhood,
           complement: formData.complement,
+          city: "BRASIL", // Adicionando cidade padrão
+          state: "BR", // Adicionando estado padrão
         },
         items: cart.map((item) => ({
-          id: item.id,
+          productId: item.productId || item.id, // Usando productId se disponível, ou id como fallback
           name: item.name,
           size: item.size, // Mantém o tamanho original com identificador para o banco de dados
           price: item.price,
@@ -126,9 +130,10 @@ function CheckoutPageContent() {
         deliveryFee,
         total,
         paymentMethod: formData.paymentMethod,
-        status: "new",
+        status: "new" as const,
         date: new Date(),
         printed: false,
+        notified: false, // Adicionando a propriedade notified que estava faltando
       }
 
       // Salvar pedido no banco de dados
@@ -387,6 +392,65 @@ function CheckoutPageContent() {
                   Cartão na Entrega
                 </label>
               </div>
+              
+              {formData.paymentMethod === "pix" && (
+                <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <h3 className="text-md font-medium text-gray-800 mb-2">QR Code PIX</h3>
+                  
+                  {storeConfig?.pixKey ? (
+                    <>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Escaneie o QR Code abaixo para pagar com PIX ou copie a chave:
+                      </p>
+                      
+                      <div className="flex flex-col items-center justify-center mb-3">
+                        <div className="relative w-48 h-48 mb-2 border border-gray-300 rounded-lg overflow-hidden bg-white p-2">
+                          {/* Gera o QR Code com base no código PIX */}
+                          <Image
+                            src={generateSimplePixQRCode(storeConfig.pixKey, total)}
+                            alt="QR Code PIX"
+                            fill
+                            className="object-contain"
+                            unoptimized // Importante para garantir que a URL data: funcione corretamente
+                          />
+                        </div>
+                        
+                        <div className="text-center">
+                          <p className="text-sm font-medium text-gray-700 mb-1">Chave PIX:</p>
+                          <div className="flex items-center justify-center">
+                            <code className="bg-white px-3 py-1 rounded border border-gray-300 text-sm">
+                              {storeConfig.pixKey}
+                            </code>
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(storeConfig.pixKey);
+                                alert("Chave PIX copiada!");
+                              }}
+                              className="ml-2 text-purple-600 hover:text-purple-800 text-xs"
+                            >
+                              Copiar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <p className="text-xs text-gray-500 mt-2 text-center">
+                        Após o pagamento, finalize o pedido para enviar o comprovante pelo WhatsApp
+                      </p>
+                    </>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-red-600 mb-2">
+                        A chave PIX não foi configurada pelo administrador.
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        Por favor, entre em contato com o estabelecimento para obter a chave PIX para pagamento.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -413,7 +477,7 @@ function CheckoutPageContent() {
                             <div>
                               + {(additional.quantity ?? 1)}x {additional.name}
                             </div>
-                            <div className="tabular-nums">{formatCurrency(additional.price * (additional.quantity ?? 1))}</div>
+                            <div className="tabular-nums">{additional.price === 0 ? "Grátis" : formatCurrency(additional.price * (additional.quantity ?? 1))}</div>
                           </div>
                         ))}
                       </div>

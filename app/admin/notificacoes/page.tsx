@@ -233,7 +233,7 @@ export default function NotificationsPage() {
       <div className="flex-1 container mx-auto p-4">
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
           <div className="flex items-center mb-4">
-            <Bell size={24} className="text-purple-700 mr-2" />
+            <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-purple-700 mr-1 sm:mr-2 transition-all duration-200" />
             <h2 className="text-lg font-semibold text-purple-900">Notificações do Sistema</h2>
           </div>
 
@@ -244,7 +244,7 @@ export default function NotificationsPage() {
 
           {notifications.length === 0 ? (
             <div className="text-center py-8 bg-gray-50 rounded-lg">
-              <Bell size={48} className="text-gray-300 mx-auto mb-4" />
+              <Bell className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 mx-auto mb-3 sm:mb-4 transition-all duration-200" />
               <p className="text-gray-500">Nenhuma notificação cadastrada.</p>
               <p className="text-gray-500">Clique em "Nova Notificação" para começar.</p>
             </div>

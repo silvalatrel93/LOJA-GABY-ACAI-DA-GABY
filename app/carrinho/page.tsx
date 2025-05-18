@@ -10,11 +10,11 @@ import { formatCurrency } from "@/lib/utils"
 import { getStoreConfig } from "@/lib/services/store-config-service"
 
 // Componente para exibir um item com nome à esquerda e valor à direita
-function ItemRow({ name, value }: { name: string; value: string }) {
+function ItemRow({ name, value, className }: { name: string; value: string; className?: string }) {
   return (
-    <div className="flex items-center w-full">
+    <div className={`flex items-center w-full ${className || ''}`}>
       <div className="flex-grow">{name}</div>
-      <div className="flex-shrink-0 w-16 text-right tabular-nums">{value}</div>
+      <div className="flex-shrink-0 w-20 text-right tabular-nums">{value}</div>
     </div>
   )
 }
@@ -49,8 +49,8 @@ function CartPageContent() {
     const loadDeliveryFee = async () => {
       try {
         const storeConfig = await getStoreConfig()
-        if (storeConfig && storeConfig.delivery_fee !== undefined) {
-          setDeliveryFee(storeConfig.delivery_fee)
+        if (storeConfig && storeConfig.deliveryFee !== undefined) {
+          setDeliveryFee(storeConfig.deliveryFee)
         }
       } catch (error) {
         console.error("Erro ao carregar taxa de entrega:", error)
@@ -139,92 +139,100 @@ function CartPageContent() {
         </div>
       </header>
 
-      <div className="flex-1 container mx-auto p-4">
+      <div className="flex-1 container mx-auto p-2 sm:p-4">
         <div className="bg-white rounded-lg shadow-md overflow-hidden mb-4">
-          <div className="p-4 border-b">
-            <h2 className="text-lg font-semibold text-purple-900">Itens do Carrinho</h2>
+          <div className="p-3 sm:p-4 border-b">
+            <h2 className="text-base sm:text-lg font-semibold text-purple-900">Itens do Carrinho</h2>
           </div>
 
           <ul className="divide-y divide-gray-200">
             {cart.map((item) => (
-              <li key={`${item.id}`} className="p-4">
-                <div className="flex items-start">
-                  {item.image && (
-                    <div className="w-16 h-16 relative flex-shrink-0 mr-4">
-                      <Image
-                        src={item.image || "/placeholder.svg"}
-                        alt={item.name}
-                        fill
-                        className="object-cover rounded-md"
-                      />
-                    </div>
-                  )}
-
-                  <div className="flex-1">
-                    <div className="space-y-1">
-                      {/* Nome do produto e preço base */}
-                      <div className="flex justify-between">
-                        <span>{item.quantity}x {item.name} ({item.size})</span>
-                        <span>{formatCurrency(item.price)}</span>
+              <li key={`${item.id}`} className="p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-start">
+                  {/* Primeira linha: imagem e informações principais */}
+                  <div className="flex w-full mb-3 sm:mb-0">
+                    {item.image && (
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 relative flex-shrink-0 mr-3 sm:mr-4">
+                        <Image
+                          src={item.image || "/placeholder.svg"}
+                          alt={item.name}
+                          fill
+                          className="object-cover rounded-md"
+                        />
                       </div>
-                      
-                      {/* Lista de adicionais */}
-                      {item.additionals && item.additionals.length > 0 && (
-                        <div className="ml-4">
-                          <ul className="text-xs text-gray-600 space-y-1">
-                            {item.additionals.map((additional, index) => (
-                              <li key={index} className="flex justify-between">
-                                <span>+ {additional.quantity}x {additional.name}</span>
-                                <span>+ {formatCurrency(additional.price * (additional.quantity || 1))}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      
-                      {/* Subtotal do item */}
-                      <div className="pt-2 border-t border-gray-100 mt-2">
-                        <div className="flex justify-between font-medium">
-                          <span>Subtotal:</span>
-                          <span>
-                            {formatCurrency(
-                              item.originalPrice 
-                                ? item.originalPrice * item.quantity 
-                                : (item.price + (item.additionals?.reduce((sum, a) => sum + (a.price * (a.quantity || 1)), 0) || 0)) * item.quantity
-                            )}
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="space-y-1">
+                        {/* Nome do produto e preço base */}
+                        <div className="flex justify-between">
+                          <span className="font-medium text-sm sm:text-base truncate pr-2">
+                            {item.quantity}x {item.name} <span className="text-xs text-gray-500">({item.size})</span>
                           </span>
+                          <span className="text-sm sm:text-base whitespace-nowrap">{formatCurrency(item.price)}</span>
+                        </div>
+                        
+                        {/* Lista de adicionais */}
+                        {item.additionals && item.additionals.length > 0 && (
+                          <div className="ml-2 sm:ml-4">
+                            <ul className="text-xs text-gray-600 space-y-1">
+                              {item.additionals.map((additional, index) => (
+                                <li key={index} className="flex justify-between">
+                                  <span className="truncate pr-2">+ {additional.quantity}x {additional.name}</span>
+                                  <span className="whitespace-nowrap">{additional.price === 0 ? "Grátis" : `+ ${formatCurrency(additional.price * (additional.quantity || 1))}`}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {/* Subtotal do item */}
+                        <div className="pt-2 border-t border-gray-100 mt-2">
+                          <div className="flex justify-between font-medium text-sm">
+                            <span>Subtotal:</span>
+                            <span>
+                              {formatCurrency(
+                                item.originalPrice 
+                                  ? item.originalPrice * item.quantity 
+                                  : (item.price + (item.additionals?.reduce((sum, a) => sum + (a.price * (a.quantity || 1)), 0) || 0)) * item.quantity
+                              )}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Adicionais movidos para junto do nome do produto */}
-
-                    <div className="flex items-center mt-2">
-                      <div className="flex items-center border rounded-md mr-4 h-8">
-                        <button
-                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                          className="px-2 py-1 text-gray-600 hover:bg-gray-100 h-full w-8 flex items-center justify-center"
-                          disabled={isUpdating[item.id]}
-                        >
-                          <Minus size={16} />
-                        </button>
-                        <span className="px-3 py-1 min-w-[2rem] text-center">{item.quantity}</span>
-                        <button
-                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                          className="px-2 py-1 text-gray-600 hover:bg-gray-100 h-full w-8 flex items-center justify-center"
-                          disabled={isUpdating[item.id]}
-                        >
-                          <Plus size={16} />
-                        </button>
-                      </div>
+                  {/* Segunda linha: controles de quantidade e botão remover */}
+                  <div className="flex items-center justify-between sm:justify-start sm:mt-2 w-full sm:w-auto">
+                    <div className="flex items-center border rounded-md h-8">
                       <button
-                        onClick={() => handleRemoveItem(item.id)}
-                        className="text-red-500 hover:text-red-700 text-sm flex items-center"
+                        onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                        className="px-2 py-1 text-gray-600 hover:bg-gray-100 h-full w-8 flex items-center justify-center"
                         disabled={isUpdating[item.id]}
+                        aria-label="Diminuir quantidade"
                       >
-                        <Trash2 size={14} className="mr-1" /> Remover
+                        <Minus size={14} />
+                      </button>
+                      <span className="px-2 sm:px-3 py-1 min-w-[1.5rem] sm:min-w-[2rem] text-center text-sm">{item.quantity}</span>
+                      <button
+                        onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                        className="px-2 py-1 text-gray-600 hover:bg-gray-100 h-full w-8 flex items-center justify-center"
+                        disabled={isUpdating[item.id]}
+                        aria-label="Aumentar quantidade"
+                      >
+                        <Plus size={14} />
                       </button>
                     </div>
+                    <button
+                      onClick={() => handleRemoveItem(item.id)}
+                      className="text-red-500 hover:text-red-700 text-xs sm:text-sm flex items-center ml-4"
+                      disabled={isUpdating[item.id]}
+                      aria-label="Remover item"
+                    >
+                      <Trash2 size={14} className="mr-1" /> 
+                      <span className="hidden xs:inline">Remover</span>
+                    </button>
                   </div>
                 </div>
               </li>
@@ -232,26 +240,30 @@ function CartPageContent() {
           </ul>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-          <h2 className="text-lg font-semibold text-purple-900 mb-4">Resumo do Pedido</h2>
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 mb-4">
+          <h2 className="text-base sm:text-lg font-semibold text-purple-900 mb-3 sm:mb-4">Resumo do Pedido</h2>
 
           <div className="space-y-2">
             <ItemRow name="Subtotal" value={formatCurrency(subtotal)} />
             <ItemRow name="Taxa de entrega" value={formatCurrency(deliveryFee)} />
             <div className="pt-2 mt-2 border-t">
-              <ItemRow name="Total" value={formatCurrency(total)} />
+              <ItemRow 
+                name="Total" 
+                value={formatCurrency(total)} 
+                className="text-base sm:text-lg font-bold text-purple-900"
+              />
             </div>
           </div>
         </div>
 
-        <div className="flex space-x-4">
-          <Link href="/" className="flex-1">
-            <button className="w-full border border-purple-700 text-purple-700 py-3 rounded-lg font-semibold">
+        <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-3 sm:space-y-0">
+          <Link href="/" className="sm:flex-1 order-2 sm:order-1">
+            <button className="w-full border-2 border-purple-700 text-purple-700 py-3 rounded-lg font-semibold hover:bg-purple-50 transition-colors duration-200">
               Continuar Comprando
             </button>
           </Link>
-          <Link href="/checkout" className="flex-1">
-            <button className="w-full bg-purple-700 hover:bg-purple-800 text-white py-3 rounded-lg font-semibold">
+          <Link href="/checkout" className="sm:flex-1 order-1 sm:order-2">
+            <button className="w-full bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-700 hover:to-purple-900 text-white py-3 rounded-lg font-semibold shadow-md transition-all duration-200 hover:shadow-lg">
               Finalizar Pedido
             </button>
           </Link>

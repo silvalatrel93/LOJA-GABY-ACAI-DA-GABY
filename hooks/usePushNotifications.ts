@@ -11,12 +11,46 @@ interface PushSubscriptionData {
   };
 }
 
-// Função para log condicional que só exibe em ambiente de desenvolvimento
-const logDebug = (message: string, data?: any) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[PushNotifications] ${message}`, data || '');
+// Tipos de logs para notificações push
+enum LogLevel {
+  DEBUG = 'debug',
+  INFO = 'info',
+  WARN = 'warn',
+  ERROR = 'error'
+}
+
+// Função para log condicional com níveis de severidade
+const log = (level: LogLevel, message: string, data?: any) => {
+  const prefix = `[PushNotifications]`;
+  
+  // Em produção, não exibir logs de debug
+  if (level === LogLevel.DEBUG && process.env.NODE_ENV !== 'development') {
+    return;
+  }
+  
+  // Formatar dados para exibição mais limpa
+  const formattedData = data ? (typeof data === 'object' ? data : String(data)) : '';
+  
+  switch (level) {
+    case LogLevel.DEBUG:
+      console.log(`${prefix} ${message}`, formattedData);
+      break;
+    case LogLevel.INFO:
+      console.info(`${prefix} ${message}`, formattedData);
+      break;
+    case LogLevel.WARN:
+      console.warn(`${prefix} ${message}`, formattedData);
+      break;
+    case LogLevel.ERROR:
+      console.error(`${prefix} ${message}`, formattedData);
+      break;
   }
 };
+
+// Atalhos para os diferentes níveis de log
+const logDebug = (message: string, data?: any) => log(LogLevel.DEBUG, message, data);
+const logInfo = (message: string, data?: any) => log(LogLevel.INFO, message, data);
+const logWarn = (message: string, data?: any) => log(LogLevel.WARN, message, data);
 
 // Função para log de erro que exibe em todos os ambientes, mas de forma mais controlada
 const logError = (message: string, error: any) => {
@@ -24,99 +58,208 @@ const logError = (message: string, error: any) => {
   const isExpectedError = 
     error?.message?.includes('subscription failed - no active Service Worker') ||
     error?.message?.includes('Registration failed - no Service Worker') ||
-    error?.message?.includes('Permission denied');
+    error?.message?.includes('Permission denied') ||
+    error?.message?.includes('Failed to register a ServiceWorker') ||
+    error?.message?.includes('NotAllowedError') ||
+    error?.name === 'NotAllowedError';
     
   if (isExpectedError) {
-    console.warn(`[PushNotifications] ${message}:`, error);
+    log(LogLevel.WARN, `${message} (erro esperado)`, error);
   } else {
-    console.error(`[PushNotifications] ${message}:`, error);
+    log(LogLevel.ERROR, message, error);
   }
 };
 
-export function usePushNotifications() {
-  const [permission, setPermission] = useState<NotificationPermission>('default');
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [subscription, setSubscription] = useState<PushSubscription | null>(null);
-  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+// Interface para o estado do hook
+interface PushNotificationState {
+  permission: NotificationPermission;
+  isSubscribed: boolean;
+  subscription: PushSubscription | null;
+  registration: ServiceWorkerRegistration | null;
+  isLoading: boolean;
+  error: Error | null;
+  isSupported: boolean;
+}
 
-  // Verificar permissão de notificação
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setPermission(Notification.permission as NotificationPermission);
-      logDebug(`Status de permissão atual: ${Notification.permission}`);
-    } else {
-      logDebug('API de Notificação não disponível neste navegador');
-    }
+export function usePushNotifications() {
+  // Estado centralizado para melhor gerenciamento
+  const [state, setState] = useState<PushNotificationState>({
+    permission: 'default',
+    isSubscribed: false,
+    subscription: null,
+    registration: null,
+    isLoading: false,
+    error: null,
+    isSupported: false
+  });
+  
+  // Função auxiliar para atualizar apenas parte do estado
+  const updateState = useCallback((newState: Partial<PushNotificationState>) => {
+    setState(prevState => ({ ...prevState, ...newState }));
   }, []);
+
+  // Verificar suporte a notificações e permissão inicial
+  useEffect(() => {
+    const checkNotificationSupport = () => {
+      const isSupported = (
+        typeof window !== 'undefined' && 
+        'Notification' in window && 
+        'serviceWorker' in navigator && 
+        'PushManager' in window
+      );
+      
+      updateState({ isSupported });
+      
+      if (isSupported) {
+        const currentPermission = Notification.permission as NotificationPermission;
+        updateState({ permission: currentPermission });
+        logInfo(`Status de permissão atual: ${currentPermission}`);
+      } else {
+        logWarn('Notificações push não são suportadas neste navegador');
+      }
+    };
+    
+    checkNotificationSupport();
+  }, [updateState]);
 
   // Registrar service worker
   useEffect(() => {
     let isMounted = true;
     
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      const registerServiceWorker = async () => {
-        try {
-          // Verificar se já existe um service worker registrado
-          const existingRegistrations = await navigator.serviceWorker.getRegistrations();
-          
-          if (existingRegistrations.length > 0) {
-            // Usar o primeiro service worker existente
-            const existingReg = existingRegistrations[0];
-            if (isMounted) {
-              setRegistration(existingReg);
-              logDebug('Usando Service Worker existente');
-            }
-          } else {
-            // Registrar novo service worker
+    if (!state.isSupported) {
+      return;
+    }
+    
+    const registerServiceWorker = async () => {
+      try {
+        updateState({ isLoading: true, error: null });
+        
+        // Verificar se já existe um service worker registrado
+        const existingRegistrations = await navigator.serviceWorker.getRegistrations();
+        
+        if (existingRegistrations.length > 0) {
+          // Usar o primeiro service worker existente
+          const existingReg = existingRegistrations[0];
+          if (isMounted) {
+            updateState({ 
+              registration: existingReg,
+              isLoading: false
+            });
+            logInfo('Usando Service Worker existente');
+          }
+        } else {
+          // Registrar novo service worker com retry em caso de falha
+          try {
             const registration = await navigator.serviceWorker.register('/sw.js');
             if (isMounted) {
-              setRegistration(registration);
-              logDebug('Service Worker registrado com sucesso');
+              updateState({ 
+                registration,
+                isLoading: false
+              });
+              logInfo('Service Worker registrado com sucesso');
             }
+          } catch (initialError) {
+            // Tentar novamente após um pequeno atraso
+            logWarn('Primeira tentativa de registro falhou, tentando novamente...', initialError);
+            
+            setTimeout(async () => {
+              try {
+                const registration = await navigator.serviceWorker.register('/sw.js');
+                if (isMounted) {
+                  updateState({ 
+                    registration,
+                    isLoading: false
+                  });
+                  logInfo('Service Worker registrado com sucesso na segunda tentativa');
+                }
+              } catch (retryError) {
+                if (isMounted) {
+                  updateState({ 
+                    error: new Error('Falha ao registrar Service Worker após tentativas'),
+                    isLoading: false
+                  });
+                  logError('Falha ao registrar Service Worker após tentativas', retryError);
+                }
+              }
+            }, 1000);
           }
-        } catch (error) {
+        }
+      } catch (error) {
+        if (isMounted) {
+          updateState({ 
+            error: error instanceof Error ? error : new Error('Erro desconhecido'),
+            isLoading: false
+          });
           logError('Falha ao registrar Service Worker', error);
         }
-      };
+      }
+    };
 
-      registerServiceWorker();
-    } else {
-      logDebug('Service Worker não suportado neste navegador');
-    }
+    registerServiceWorker();
     
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [state.isSupported, updateState]);
 
-  // Verificar inscrição existente
+  // Verificar inscrição existente com retry em caso de falha
   const checkSubscription = useCallback(async () => {
-    if (!registration) {
-      logDebug('Não foi possível verificar inscrição: Service Worker não registrado');
+    if (!state.registration) {
+      logWarn('Não foi possível verificar inscrição: Service Worker não registrado');
       return null;
     }
 
+    updateState({ isLoading: true, error: null });
+    
     try {
-      const existingSubscription = await registration.pushManager.getSubscription();
-      setSubscription(existingSubscription);
-      setIsSubscribed(!!existingSubscription);
+      const existingSubscription = await state.registration.pushManager.getSubscription();
+      
+      updateState({ 
+        subscription: existingSubscription,
+        isSubscribed: !!existingSubscription,
+        isLoading: false
+      });
       
       if (existingSubscription) {
-        logDebug('Inscrição existente encontrada');
+        logInfo('Inscrição existente encontrada', {
+          endpoint: existingSubscription.endpoint.substring(0, 50) + '...'
+        });
       } else {
-        logDebug('Nenhuma inscrição existente encontrada');
+        logInfo('Nenhuma inscrição existente encontrada');
       }
       
       return existingSubscription;
     } catch (error) {
-      logError('Erro ao verificar inscrição', error);
-      return null;
+      // Tentar novamente uma vez em caso de falha
+      logWarn('Primeira tentativa de verificar inscrição falhou, tentando novamente...', error);
+      
+      try {
+        // Pequeno atraso antes da segunda tentativa
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const existingSubscription = await state.registration.pushManager.getSubscription();
+        
+        updateState({ 
+          subscription: existingSubscription,
+          isSubscribed: !!existingSubscription,
+          isLoading: false
+        });
+        
+        logInfo('Inscrição verificada com sucesso na segunda tentativa');
+        return existingSubscription;
+      } catch (retryError) {
+        updateState({ 
+          error: retryError instanceof Error ? retryError : new Error('Erro desconhecido'),
+          isLoading: false
+        });
+        logError('Erro ao verificar inscrição após tentativas', retryError);
+        return null;
+      }
     }
-  }, [registration]);
+  }, [state.registration, updateState]);
 
   // Solicitar permissão e se inscrever para notificações push
   const subscribeToPushNotifications = useCallback(async () => {
-    if (!registration) {
+    if (!state.registration) {
       logDebug('Não foi possível se inscrever: Service Worker não registrado');
       return null;
     }
@@ -130,15 +273,15 @@ export function usePushNotifications() {
       }
       
       // Verificar permissão
-      if (permission === 'denied') {
+      if (state.permission === 'denied') {
         logDebug('Permissão para notificações foi negada pelo usuário');
         return null;
       }
 
-      if (permission === 'default') {
+      if (state.permission === 'default') {
         logDebug('Solicitando permissão para notificações...');
         const permissionResult = await Notification.requestPermission();
-        setPermission(permissionResult as NotificationPermission);
+        updateState({ permission: permissionResult as NotificationPermission });
         
         if (permissionResult !== 'granted') {
           logDebug(`Permissão para notificações não concedida: ${permissionResult}`);
@@ -163,53 +306,55 @@ export function usePushNotifications() {
       // Converter a chave VAPID para o formato Uint8Array
       const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
       
-      logDebug('Inscrevendo usuário para notificações push...');
-      // Inscrever o usuário para notificações push
-      const subscription = await registration.pushManager.subscribe({
+      logDebug('Criando nova inscrição...');
+      const subscription = await state.registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: convertedVapidKey
       });
       
-      // Enviar a inscrição para o servidor
+      // Enviar inscrição para o servidor
       try {
         await sendSubscriptionToServer(subscription);
-        logDebug('Inscrição enviada para o servidor com sucesso');
       } catch (serverError) {
+        // Continuar mesmo com erro no servidor
         logError('Erro ao enviar inscrição para o servidor', serverError);
-        // Continuar mesmo com erro no servidor, pois a inscrição local ainda é válida
       }
       
-      setSubscription(subscription);
-      setIsSubscribed(true);
+      updateState({
+        subscription: subscription,
+        isSubscribed: true
+      });
       
       return subscription;
     } catch (error) {
       logError('Erro ao se inscrever para notificações push', error);
       return null;
     }
-  }, [permission, registration, checkSubscription]);
+  }, [state.permission, state.registration, checkSubscription, updateState]);
 
   // Cancelar inscrição nas notificações push
   const unsubscribeFromPushNotifications = useCallback(async () => {
-    if (!subscription) {
+    if (!state.subscription) {
       logDebug('Não há inscrição ativa para cancelar');
       return false;
     }
 
     try {
       logDebug('Cancelando inscrição no navegador...');
-      await subscription.unsubscribe();
+      await state.subscription.unsubscribe();
       
       try {
         logDebug('Removendo inscrição do servidor...');
-        await removeSubscriptionFromServer(subscription);
+        await removeSubscriptionFromServer(state.subscription);
       } catch (serverError) {
         // Continuar mesmo com erro no servidor
         logError('Erro ao remover inscrição do servidor', serverError);
       }
       
-      setSubscription(null);
-      setIsSubscribed(false);
+      updateState({
+        subscription: null,
+        isSubscribed: false
+      });
       logDebug('Inscrição cancelada com sucesso');
       return true;
     } catch (error) {
@@ -217,15 +362,17 @@ export function usePushNotifications() {
       
       // Tentar limpar o estado mesmo com erro
       try {
-        setSubscription(null);
-        setIsSubscribed(false);
+        updateState({
+          subscription: null,
+          isSubscribed: false
+        });
       } catch (stateError) {
         logError('Erro ao limpar estado após falha na desinscrição', stateError);
       }
       
       return false;
     }
-  }, [subscription]);
+  }, [state.subscription, updateState]);
 
   // Função auxiliar para converter chave VAPID
   const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
@@ -342,32 +489,60 @@ export function usePushNotifications() {
 
   // Efeito para verificar a inscrição quando o service worker estiver registrado
   useEffect(() => {
-    if (registration) {
+    if (state.registration && !state.isLoading) {
       checkSubscription().catch(error => {
         logError('Erro ao verificar inscrição inicial', error);
+        updateState({ 
+          error: error instanceof Error ? error : new Error('Erro desconhecido')
+        });
       });
     }
-  }, [registration, checkSubscription]);
+  }, [state.registration, state.isLoading, checkSubscription, updateState]);
 
+  // Função para solicitar permissão com tratamento de erros melhorado
+  const requestPermission = useCallback(async () => {
+    if (!state.isSupported) {
+      logWarn('Notificações não são suportadas neste navegador');
+      return 'denied' as NotificationPermission;
+    }
+    
+    updateState({ isLoading: true, error: null });
+    
+    try {
+      logInfo('Solicitando permissão para notificações...');
+      const result = await Notification.requestPermission();
+      updateState({ 
+        permission: result as NotificationPermission,
+        isLoading: false
+      });
+      logInfo(`Resultado da solicitação de permissão: ${result}`);
+      return result;
+    } catch (error) {
+      updateState({ 
+        error: error instanceof Error ? error : new Error('Erro ao solicitar permissão'),
+        isLoading: false
+      });
+      logError('Erro ao solicitar permissão', error);
+      return 'denied' as NotificationPermission;
+    }
+  }, [state.isSupported, updateState]);
+  
+  // Retornar API do hook com valores do estado centralizado
   return {
-    permission,
-    isSubscribed,
-    subscription,
+    permission: state.permission,
+    isSubscribed: state.isSubscribed,
+    subscription: state.subscription,
+    isLoading: state.isLoading,
+    error: state.error,
+    isSupported: state.isSupported,
     checkSubscription,
     subscribeToPushNotifications,
     unsubscribeFromPushNotifications,
-    requestPermission: async () => {
-      try {
-        logDebug('Solicitando permissão para notificações...');
-        const result = await Notification.requestPermission();
-        setPermission(result as NotificationPermission);
-        logDebug(`Resultado da solicitação de permissão: ${result}`);
-        return result;
-      } catch (error) {
-        logError('Erro ao solicitar permissão', error);
-        return 'denied' as NotificationPermission;
-      }
-    }
+    requestPermission,
+    // Método para limpar erros
+    clearError: useCallback(() => {
+      updateState({ error: null });
+    }, [updateState])
   };
 }
 
