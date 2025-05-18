@@ -20,49 +20,87 @@ export default function StoreStatus({ inSideMenu = false }: StoreStatusProps) {
   const [realtimeChannel, setRealtimeChannel] = useState<RealtimeChannel | null>(null)
 
   useEffect(() => {
+    let isMounted = true;
+    let channel: RealtimeChannel | null = null;
+    
     const loadStatus = async () => {
+      if (!isMounted) return;
+      
       try {
-        setIsLoading(true)
-        const storeStatus = await getStoreStatus()
-        setStatus(storeStatus)
+        setIsLoading(true);
+        const storeStatus = await getStoreStatus();
+        if (isMounted) {
+          setStatus(storeStatus);
+        }
       } catch (error) {
-        console.error("Erro ao carregar status da loja:", error)
+        console.error("Erro ao carregar status da loja:", error);
       } finally {
-        setIsLoading(false)
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
-    }
+    };
 
-    loadStatus()
-
-    // Configurar subscrição em tempo real
-    const channel = StoreConfigService.subscribeToStoreStatus(
-      (isOpen) => {
-        setStatus((prevStatus) => {
-          if (prevStatus) {
-            return {
-              ...prevStatus,
-              isOpen,
-              statusText: isOpen ? "Aberto" : "Fechado",
-              statusClass: isOpen ? "text-green-600" : "text-red-600"
-            }
+    // Função para configurar a subscrição em tempo real
+    const setupRealtimeSubscription = () => {
+      try {
+        // Configurar subscrição em tempo real
+        channel = StoreConfigService.subscribeToStoreStatus(
+          // Handler para mudanças de status
+          (isOpen) => {
+            if (!isMounted) return;
+            
+            setStatus((prevStatus) => {
+              if (!prevStatus) return prevStatus;
+              
+              return {
+                ...prevStatus,
+                isOpen,
+                statusText: isOpen ? "Aberto" : "Fechado",
+                statusClass: isOpen ? "text-green-600" : "text-red-600"
+              };
+            });
+          },
+          // Handler de erro
+          (error) => {
+            if (!isMounted) return;
+            console.warn('Erro na subscrição em tempo real (não crítico):', error);
+            // Tentar reconectar após um erro
+            setTimeout(() => {
+              if (isMounted) {
+                console.log('Tentando reconectar após erro...');
+                if (channel) {
+                  StoreConfigService.unsubscribeFromStoreStatus(channel);
+                }
+                setupRealtimeSubscription();
+              }
+            }, 5000);
           }
-          return prevStatus
-        })
-      },
-      (error) => console.error('Erro na subscrição em tempo real:', error)
-    )
+        );
 
-    setRealtimeChannel(channel)
+        if (isMounted && channel) {
+          setRealtimeChannel(channel);
+        }
+      } catch (error) {
+        console.warn('Erro ao configurar subscrição em tempo real:', error);
+      }
+    };
+
+    // Inicializar
+    loadStatus();
+    setupRealtimeSubscription();
 
     // Atualizar o status a cada minuto
-    const interval = setInterval(loadStatus, 60000)
+    const interval = setInterval(loadStatus, 60000);
     
+    // Cleanup
     return () => {
-      clearInterval(interval)
+      isMounted = false;
+      clearInterval(interval);
       if (channel) {
-        StoreConfigService.unsubscribeFromStoreStatus(channel)
+        StoreConfigService.unsubscribeFromStoreStatus(channel);
       }
-    }
+    };
   }, [])
 
   // Se não estiver no menu lateral e não for explicitamente solicitado para aparecer no cabeçalho, não renderize nada

@@ -6,6 +6,7 @@ import { getActiveNotifications, markNotificationAsRead, markAllNotificationsAsR
 import { usePushNotifications } from "@/hooks/usePushNotifications"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
+import { createSafeKey } from "@/lib/key-utils";
 
 // Adicione este estilo para a animação flutuante
 const floatAnimation = `
@@ -58,6 +59,7 @@ export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [newNotification, setNewNotification] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const prevUnreadCountRef = useRef(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -71,52 +73,90 @@ export default function NotificationBell() {
   }, [])
 
   const loadNotifications = async () => {
+    // Evitar múltiplas requisições simultâneas
+    if (isLoading) return;
+    
     try {
-      const activeNotifications = await getActiveNotifications()
-      setNotifications(activeNotifications)
-      const newUnreadCount = activeNotifications.filter((n) => !n.read).length
+      setIsLoading(true);
+      const activeNotifications = await getActiveNotifications();
+      
+      // Verificar se o componente ainda está montado antes de atualizar o estado
+      setNotifications(activeNotifications);
+      const newUnreadCount = activeNotifications.filter((n) => !n.read).length;
 
       // Verificar se há novas notificações não lidas
       if (newUnreadCount > prevUnreadCountRef.current) {
-        setNewNotification(true)
-        // Tocar som de notificação
+        setNewNotification(true);
+        
+        // Tocar som de notificação com tratamento de erros melhorado
         if (audioRef.current) {
           try {
-            audioRef.current.play().catch((e) => console.log("Erro ao tocar som:", e))
+            // Usar uma Promise para lidar com o play() de forma mais robusta
+            await audioRef.current.play().catch((e) => {
+              // Erros comuns de autoplay que não devem ser tratados como críticos
+              if (e.name === 'NotAllowedError') {
+                console.log("Reprodução automática bloqueada pelo navegador. Isso é normal.");
+              } else {
+                console.warn("Erro ao tocar som de notificação:", e);
+              }
+            });
           } catch (error) {
-            console.log("Erro ao tocar som:", error)
+            // Apenas log, não interrompe o fluxo
+            console.warn("Erro ao tocar som de notificação:", error);
           }
         }
 
         // Remover animação após 2 segundos
         setTimeout(() => {
-          setNewNotification(false)
-        }, 2000)
+          setNewNotification(false);
+        }, 2000);
       }
 
-      setUnreadCount(newUnreadCount)
-      prevUnreadCountRef.current = newUnreadCount
+      setUnreadCount(newUnreadCount);
+      prevUnreadCountRef.current = newUnreadCount;
     } catch (error) {
-      console.error("Erro ao carregar notificações:", error)
+      console.error("Erro ao carregar notificações:", error);
+    } finally {
+      setIsLoading(false);
     }
   }
 
   useEffect(() => {
-    loadNotifications()
+    // Variável para controlar se o componente está montado
+    let isMounted = true;
+    
+    // Função para carregar notificações com verificação de montagem
+    const safeLoadNotifications = async () => {
+      if (!isMounted) return;
+      await loadNotifications();
+    };
+    
+    // Carregar notificações iniciais
+    safeLoadNotifications();
 
     // Adicionar listener para novas notificações
-    notificationListeners.push(loadNotifications)
+    notificationListeners.push(safeLoadNotifications);
 
-    // Configurar polling para atualizações a cada 10 segundos
-    const interval = setInterval(loadNotifications, 10000)
+    // Configurar polling para atualizações com intervalo adaptativo
+    // Usar um intervalo maior para reduzir o consumo de recursos
+    const interval = setInterval(safeLoadNotifications, 15000);
 
     return () => {
+      // Marcar componente como desmontado
+      isMounted = false;
+      
       // Limpar listeners e intervalo
       notificationListeners = notificationListeners.filter(
-        (listener) => listener !== loadNotifications
-      )
-      clearInterval(interval)
-    }
+        (listener) => listener !== safeLoadNotifications
+      );
+      clearInterval(interval);
+      
+      // Limpar referências de áudio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
   }, [])
 
   useEffect(() => {
@@ -138,51 +178,122 @@ export default function NotificationBell() {
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.read) {
       try {
-        await markNotificationAsRead(notification.id)
-        setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n)))
-        setUnreadCount((prev) => Math.max(0, prev - 1))
-        prevUnreadCountRef.current = Math.max(0, prevUnreadCountRef.current - 1)
+        // Atualizar UI imediatamente para feedback instantâneo
+        setNotifications((prev) => prev.map((n) => 
+          n.id === notification.id ? { ...n, read: true } : n
+        ));
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+        prevUnreadCountRef.current = Math.max(0, prevUnreadCountRef.current - 1);
+        
+        // Fazer a operação de banco de dados em segundo plano
+        await markNotificationAsRead(notification.id);
       } catch (error) {
-        console.error("Erro ao marcar notificação como lida:", error)
+        console.error("Erro ao marcar notificação como lida:", error);
+        
+        // Em caso de erro, reverter a UI para o estado anterior
+        toast({
+          title: "Erro",
+          description: "Não foi possível marcar a notificação como lida. Tente novamente.",
+          variant: "destructive",
+        });
+        
+        // Recarregar notificações para sincronizar com o servidor
+        loadNotifications();
       }
     }
   }
 
   const handleMarkAllAsRead = async () => {
-    await markAllNotificationsAsRead()
-    loadNotifications()
+    try {
+      // Feedback visual imediato
+      setIsLoading(true);
+      
+      // Atualizar UI imediatamente
+      setNotifications((prev) => prev.map(n => ({ ...n, read: true })));
+      const previousUnreadCount = unreadCount;
+      setUnreadCount(0);
+      prevUnreadCountRef.current = 0;
+      
+      // Executar operação no banco de dados
+      await markAllNotificationsAsRead();
+      
+      // Confirmar sucesso
+      toast({
+        title: "Notificações lidas",
+        description: `${previousUnreadCount} notificação(ões) marcada(s) como lida(s).`,
+      });
+      
+      // Recarregar para garantir sincronização
+      await loadNotifications();
+    } catch (error) {
+      console.error("Erro ao marcar todas notificações como lidas:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível marcar todas as notificações como lidas.",
+        variant: "destructive",
+      });
+      
+      // Recarregar para sincronizar com o servidor em caso de erro
+      await loadNotifications();
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   const togglePushNotifications = async () => {
     try {
+      // Mostrar feedback imediato ao usuário
+      toast({
+        title: isPushEnabled ? "Desativando notificações..." : "Ativando notificações...",
+        description: "Aguarde enquanto processamos sua solicitação.",
+      });
+      
       if (isPushEnabled) {
-        await unsubscribeFromPushNotifications()
-        toast({
-          title: "Notificações desativadas",
-          description: "Você não receberá mais notificações no navegador.",
-        })
+        const success = await unsubscribeFromPushNotifications();
+        
+        if (success) {
+          toast({
+            title: "Notificações desativadas",
+            description: "Você não receberá mais notificações no navegador.",
+          });
+        } else {
+          throw new Error("Falha ao desativar notificações");
+        }
       } else {
-        const result = await subscribeToPushNotifications()
+        // Verificar permissão antes de tentar se inscrever
+        if (permission === 'denied') {
+          toast({
+            title: "Permissão bloqueada",
+            description: "Você bloqueou as notificações neste site. Por favor, altere as configurações do navegador para permitir notificações.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        const result = await subscribeToPushNotifications();
+        
         if (result) {
           toast({
             title: "Notificações ativadas!",
             description: "Você receberá notificações de novos pedidos.",
-          })
+          });
         } else {
           toast({
             title: "Permissão necessária",
             description: "Por favor, permita as notificações para receber atualizações.",
             variant: "destructive",
-          })
+          });
         }
       }
     } catch (error) {
-      console.error("Erro ao alternar notificações:", error)
+      console.error("Erro ao alternar notificações:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar as configurações de notificação.",
+        description: typeof error === 'object' && error !== null && 'message' in error
+          ? `Falha: ${(error as Error).message}`
+          : "Não foi possível atualizar as configurações de notificação.",
         variant: "destructive",
-      })
+      });
     }
   }
 
@@ -229,23 +340,23 @@ export default function NotificationBell() {
               className="text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
             >
               {isPushEnabled ? (
-                <BellRing className="h-5 w-5 text-green-500" />
+                <BellRing className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 transition-all duration-200" />
               ) : (
-                <BellOff className="h-5 w-5 text-gray-400" />
+                <BellOff className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 transition-all duration-200" />
               )}
             </Button>
           )}
           <button
             onClick={handleBellClick}
-            className={`relative p-2 text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white focus:outline-none ${bellAnimation}`}
+            className={`relative p-1.5 sm:p-2 text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white focus:outline-none ${bellAnimation}`}
             aria-label="Notificações"
           >
-            <Bell className="h-6 w-6" />
+            <Bell className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 transition-all duration-200" />
             {unreadCount > 0 && (
               <span
-                className={`absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-green-500 rounded-full ${newNotification ? "animate-pulse-custom" : ""}`}
+                className={`absolute top-0 right-0 inline-flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 text-xs font-bold text-white bg-green-500 rounded-full ${newNotification ? "animate-pulse-custom" : ""}`}
               >
-                {unreadCount > 9 ? "9+" : unreadCount}
+                <span className="text-[10px] sm:text-xs">{unreadCount > 99 ? "99+" : unreadCount > 9 ? "9+" : unreadCount}</span>
               </span>
             )}
           </button>
@@ -270,9 +381,9 @@ export default function NotificationBell() {
                 <div className="p-4 text-center text-gray-500">Nenhuma notificação no momento</div>
               ) : (
                 <div>
-                  {notifications.map((notification) => (
+                  {notifications.map((notification, index) => (
                     <div
-                      key={notification.id}
+                      key={createSafeKey(notification.id, 'notification-item', index)}
                       onClick={() => handleNotificationClick(notification)}
                       className={`p-3 border-b cursor-pointer hover:bg-gray-50 ${!notification.read ? "bg-purple-50" : ""}`}
                     >

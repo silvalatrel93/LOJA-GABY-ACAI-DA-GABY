@@ -295,28 +295,41 @@ export const StoreConfigService = {
           }
         }
       )
-      
+    
       // Inscrever no canal
       channel.subscribe((status) => {
-        console.log('Subscription status:', status)
-        if (status === 'CHANNEL_ERROR' && onError) {
-          onError(new Error('Erro na conexão em tempo real'))
+        // Verificar se o status é de sucesso ou erro
+        if (status === 'SUBSCRIBED') {
+          console.log('Conexão em tempo real estabelecida com sucesso')
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Erro na conexão em tempo real:', status)
+          if (onError) {
+            onError(new Error('Erro na conexão em tempo real'))
+          }
+        } else if (status === 'TIMED_OUT') {
+          console.warn('Conexão em tempo real expirou')
+        } else {
+          console.log('Status da subscrição:', status)
+        }
+      })
+    
+      // Configurar o handler de erros do sistema
+      channel.on('system', { event: 'error' }, (payload: any) => {
+        // Verificar se é realmente um erro ou apenas uma mensagem informativa
+        // Muitas vezes o Supabase envia mensagens de status que não são erros reais
+        if (payload && payload.status === 'ok') {
+          console.log('Evento do sistema recebido (não é um erro):', payload)
+        } else if (payload) {
+          console.warn('Mensagem do sistema recebida:', payload)
+          // Não tratamos isso como erro, pois muitas vezes são apenas mensagens informativas
         }
       })
       
-      // Configurar o handler de erros do sistema
-      channel.on('system', { event: 'error' }, (payload: any) => {
-        console.error('Erro no canal:', payload)
-        if (onError) {
-          onError(new Error(`Erro no canal: ${payload.message || 'Erro desconhecido'}`))
-        }
-      })
-
       return channel
     } catch (error) {
-      console.error('Erro ao se inscrever para atualizações de status da loja:', error)
+      console.error('Erro ao configurar subscrição de status da loja:', error)
       if (onError) {
-        onError(error instanceof Error ? error : new Error(String(error)))
+        onError(error instanceof Error ? error : new Error('Erro desconhecido na subscrição'))
       }
       return null
     }
