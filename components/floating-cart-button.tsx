@@ -9,6 +9,8 @@ import { formatCurrency } from "@/lib/utils"
 export default function FloatingCartButton() {
   const { cart, isLoading } = useCart()
   const [isVisible, setIsVisible] = useState(true)
+  const [isScrolling, setIsScrolling] = useState(false)
+  const [scrollTimer, setScrollTimer] = useState<NodeJS.Timeout | null>(null)
   const [lastScrollY, setLastScrollY] = useState(0)
 
   // Calcular o total de itens e o valor total
@@ -19,22 +21,36 @@ export default function FloatingCartButton() {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY
-
-      // Esconder o botão quando rolar para baixo, mostrar quando rolar para cima
-      if (currentScrollY > lastScrollY) {
-        setIsVisible(false)
-      } else {
-        setIsVisible(true)
+      
+      // Sempre mostrar o botão durante a rolagem (para cima ou para baixo)
+      setIsVisible(true)
+      setIsScrolling(true)
+      
+      // Resetar o timer a cada evento de rolagem
+      if (scrollTimer) {
+        clearTimeout(scrollTimer)
       }
-
+      
+      // Definir um novo timer para manter o botão visível por um tempo após parar de rolar
+      const newTimer = setTimeout(() => {
+        setIsScrolling(false)
+      }, 1500) // Botão permanece visível por 1.5 segundos após parar de rolar
+      
+      setScrollTimer(newTimer)
       setLastScrollY(currentScrollY)
     }
 
     window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [lastScrollY])
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+      // Limpar o timer quando o componente for desmontado
+      if (scrollTimer) {
+        clearTimeout(scrollTimer)
+      }
+    }
+  }, [lastScrollY, scrollTimer])
 
-  // Não mostrar o botão se o carrinho estiver vazio ou carregando
+  // Não renderizar o botão se o carrinho estiver vazio ou carregando
   if (isLoading || itemCount === 0) {
     return null
   }
@@ -42,7 +58,7 @@ export default function FloatingCartButton() {
   return (
     <div
       className={`fixed bottom-4 right-4 z-50 transition-all duration-300 ${
-        isVisible ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"
+        isVisible || isScrolling ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"
       }`}
     >
       <Link href="/carrinho">

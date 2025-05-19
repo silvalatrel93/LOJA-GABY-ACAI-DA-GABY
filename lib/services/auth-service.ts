@@ -7,6 +7,11 @@ testSupabaseConnection().then(isConnected => {
     console.log('AuthService: Conexão com o Supabase estabelecida');
   } else {
     console.error('AuthService: Falha na conexão com o Supabase');
+    // Tentar reconectar após um breve intervalo
+    setTimeout(() => {
+      console.log('AuthService: Tentando reconectar ao Supabase...');
+      testSupabaseConnection();
+    }, 2000);
   }
 });
 
@@ -21,13 +26,19 @@ export class AuthService {
    * @returns Hash da senha com salt
    */
   static generatePasswordHash(password: string): string {
-    // Usar um salt fixo baseado em uma variável de ambiente ou gerar um dinamicamente
-    const salt = process.env.NEXT_PUBLIC_PASSWORD_SALT || 'heai-acai-salt-default';
-    
-    // Criar o hash usando SHA-256 com salt
-    return createHash('sha256')
-      .update(password + salt)
-      .digest('hex');
+    try {
+      // Usar um salt fixo baseado em uma variável de ambiente ou gerar um dinamicamente
+      const salt = process.env.NEXT_PUBLIC_PASSWORD_SALT || 'heai-acai-salt-default';
+      
+      // Criar o hash usando SHA-256 com salt
+      return createHash('sha256')
+        .update(password + salt)
+        .digest('hex');
+    } catch (error) {
+      console.error('Erro ao gerar hash da senha:', error);
+      // Fallback para um método mais simples em caso de erro
+      return createHash('sha256').update(password).digest('hex');
+    }
   }
 
   /**
@@ -48,7 +59,17 @@ export class AuthService {
    */
   static async saveAdminPassword(password: string): Promise<{ success: boolean; error?: any }> {
     try {
+      console.log('Iniciando processo de salvamento de senha...');
+      
+      // Verificar se a conexão com o Supabase está funcionando
+      const isConnected = await testSupabaseConnection();
+      if (!isConnected) {
+        console.error('Não foi possível conectar ao Supabase para salvar a senha');
+        return { success: false, error: 'Falha na conexão com o banco de dados' };
+      }
+      
       const hashedPassword = this.generatePasswordHash(password);
+      console.log('Hash da senha gerado com sucesso');
       
       // Verificar se já existe uma configuração de senha
       const { data: existingConfig, error: fetchError } = await supabase
@@ -62,20 +83,19 @@ export class AuthService {
         return { success: false, error: fetchError };
       }
       
+      let result;
+      
       if (existingConfig) {
+        console.log('Senha existente encontrada, atualizando...');
         // Atualizar senha existente
-        const { error: updateError } = await supabase
+        result = await supabase
           .from('admin_settings')
           .update({ value: hashedPassword, updated_at: new Date().toISOString() })
           .eq('key', 'admin_password');
-        
-        if (updateError) {
-          console.error('Erro ao atualizar senha:', updateError);
-          return { success: false, error: updateError };
-        }
       } else {
+        console.log('Nenhuma senha existente, criando nova entrada...');
         // Inserir nova senha
-        const { error: insertError } = await supabase
+        result = await supabase
           .from('admin_settings')
           .insert([
             { 
@@ -85,11 +105,20 @@ export class AuthService {
               updated_at: new Date().toISOString()
             }
           ]);
-        
-        if (insertError) {
-          console.error('Erro ao inserir senha:', insertError);
-          return { success: false, error: insertError };
-        }
+      }
+      
+      if (result.error) {
+        console.error('Erro na operação de banco de dados:', result.error);
+        return { success: false, error: result.error };
+      }
+      
+      console.log('Senha salva com sucesso no banco de dados');
+      
+      // Verificar se a senha foi realmente salva
+      const verificationResult = await this.hasAdminPassword();
+      if (!verificationResult) {
+        console.error('Verificação falhou: A senha parece não ter sido salva corretamente');
+        return { success: false, error: 'Falha na verificação após salvar' };
       }
       
       return { success: true };
@@ -108,6 +137,13 @@ export class AuthService {
     try {
       console.log('Verificando senha do administrador...');
       
+      // Verificar se a conexão com o Supabase está funcionando
+      const isConnected = await testSupabaseConnection();
+      if (!isConnected) {
+        console.error('Não foi possível conectar ao Supabase para verificar a senha');
+        return false;
+      }
+      
       // Buscar a senha armazenada no banco de dados
       const { data, error } = await supabase
         .from('admin_settings')
@@ -120,7 +156,7 @@ export class AuthService {
         return false;
       }
       
-      if (!data) {
+      if (!data || !data.value) {
         console.error('Nenhuma senha de administrador encontrada no banco de dados');
         return false;
       }
@@ -146,13 +182,25 @@ export class AuthService {
    */
   static async hasAdminPassword(): Promise<boolean> {
     try {
+      console.log('Verificando se existe uma senha de administrador...');
+      
+      // Verificar se a conexão com o Supabase está funcionando
+      const isConnected = await testSupabaseConnection();
+      if (!isConnected) {
+        console.error('Não foi possível conectar ao Supabase para verificar existência de senha');
+        return false;
+      }
+      
       const { data, error } = await supabase
         .from('admin_settings')
         .select('value')
         .eq('key', 'admin_password')
         .single();
       
-      return !error && !!data;
+      const hasPassword = !error && !!data && !!data.value;
+      console.log('Resultado da verificação de existência de senha:', hasPassword ? 'Existe' : 'Não existe');
+      
+      return hasPassword;
     } catch (error) {
       console.error('Erro ao verificar existência de senha:', error);
       return false;

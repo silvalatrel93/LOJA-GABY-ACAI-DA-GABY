@@ -10,6 +10,7 @@ import { formatCurrency } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import OrderLabelPrinter from "@/components/order-label-printer"
+import OrderCounterReset from "@/components/order-counter-reset"
 import { useNotificationSound } from "@/hooks/useNotificationSound"
 
 export default function OrdersPage() {
@@ -464,7 +465,10 @@ export default function OrdersPage() {
 
       <div className="flex-1 container mx-auto p-4">
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-          <h2 className="text-lg font-semibold text-purple-900 mb-4">Pedidos Recebidos</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-4">
+            <h2 className="text-lg font-semibold text-purple-900">Pedidos Recebidos</h2>
+            <OrderCounterReset />
+          </div>
 
           {isLoading ? (
             <div className="flex justify-center items-center p-8">

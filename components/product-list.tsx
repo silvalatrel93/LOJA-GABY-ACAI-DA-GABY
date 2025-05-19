@@ -8,6 +8,36 @@ import type { Product } from "@/lib/services/product-service"
 import type { Category } from "@/lib/services/category-service"
 import { createSafeKey } from "@/lib/key-utils"
 
+// Função auxiliar para abreviar nomes de categorias
+const abbreviateCategory = (name: string, isMobile: boolean): string => {
+  // Mapeamento de nomes longos para versões abreviadas
+  const abbreviations: Record<string, string> = {
+    "PROMOÇÃO DIA": "PROMOÇÃO",
+    "TOPS HEAI AÇAÍ COPO PRONTO": "AÇAÍ PRONTO",
+    "MONTE SEU AÇAÍ NO COPO": "MONTE SEU AÇAÍ",
+    "AÇAÍ TRADICIONAL": "TRADICIONAL",
+    "AÇAÍ ESPECIAL": "ESPECIAL",
+    "AÇAÍ KIDS": "KIDS",
+    "AÇAÍ ZERO AÇÚCAR": "ZERO AÇÚCAR",
+    "AÇAÍ COM SORVETE": "C/ SORVETE",
+    "MILK SHAKE": "MILK SHAKE",
+    "SORVETE TRADICIONAL": "SORVETE",
+    "PICOLÉ TRADICIONAL": "PICOLÉ"
+  };
+  
+  // Se for mobile, usar versões mais curtas
+  if (isMobile && abbreviations[name]) {
+    return abbreviations[name];
+  }
+  
+  // Para desktop, podemos usar versões um pouco mais longas
+  if (!isMobile && name.length > 20) {
+    return abbreviations[name] || name.substring(0, 20) + "...";
+  }
+  
+  return name;
+};
+
 export default function ProductList({ products: initialProducts = [], categories: initialCategories = [] }) {
   const [allProducts, setAllProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>(initialCategories)
@@ -15,7 +45,9 @@ export default function ProductList({ products: initialProducts = [], categories
   const [activeCategory, setActiveCategory] = useState<number | null>(null)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [isBarFixed, setIsBarFixed] = useState(false)
+  const [isScrollingDown, setIsScrollingDown] = useState(true)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const prevScrollY = useRef(0)
   const categoriesBarRef = useRef<HTMLDivElement>(null)
   const categoryRefs = useRef<Map<number, HTMLDivElement | null>>(new Map())
@@ -23,8 +55,23 @@ export default function ProductList({ products: initialProducts = [], categories
   const initialCategoriesBarPosition = useRef<number | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
 
-  // Injetar estilos CSS para a barra de categorias
+  // Detectar dispositivo móvel e injetar estilos CSS para a barra de categorias
   useEffect(() => {
+    // Detectar se é dispositivo móvel
+    const checkIfMobile = () => {
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+      const isSmallScreen = window.innerWidth < 768;
+      setIsMobile(isMobileDevice || isSmallScreen);
+    };
+    
+    // Verificar inicialmente
+    checkIfMobile();
+    
+    // Adicionar listener para redimensionamento da janela
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Injetar estilos CSS
     const styleElement = document.createElement("style")
     styleElement.innerHTML = `
       .categories-scrollbar::-webkit-scrollbar {
@@ -44,12 +91,40 @@ export default function ProductList({ products: initialProducts = [], categories
       .categories-scrollbar {
         scrollbar-width: thin;
         scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+        -ms-overflow-style: none; /* IE and Edge */
+      }
+      
+      .scroll-snap-align-center {
+        scroll-snap-align: center;
+      }
+      
+      /* Melhorar a suavidade da animação */
+      @media (prefers-reduced-motion: no-preference) {
+        .categories-scrollbar {
+          scroll-behavior: smooth;
+        }
+      }
+      
+      /* Ajustes responsivos para categorias */
+      @media (max-width: 640px) {
+        .category-button {
+          padding: 0.5rem 0.75rem;
+          font-size: 0.875rem;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .category-button {
+          padding: 0.375rem 0.625rem;
+          font-size: 0.75rem;
+        }
       }
     `
     document.head.appendChild(styleElement)
 
     return () => {
       document.head.removeChild(styleElement)
+      window.removeEventListener('resize', checkIfMobile);
     }
   }, [])
 
@@ -102,15 +177,20 @@ export default function ProductList({ products: initialProducts = [], categories
       initialCategoriesBarPosition.current = categoriesBarRef.current.getBoundingClientRect().top + window.scrollY
     }
     
+    // Verificar a direção do scroll
+    const isScrollDown = currentScrollY > prevScrollY.current
+    setIsScrollingDown(isScrollDown)
+    
     // Verificar se a barra deve ser fixa
     if (initialCategoriesBarPosition.current !== null) {
       const shouldBeFixed = currentScrollY > initialCategoriesBarPosition.current - 56
       
-      // Quando rolamos para baixo, fixamos a barra
-      if (currentScrollY > prevScrollY.current) {
-        setIsBarFixed(shouldBeFixed)
-      } else {
-        setIsBarFixed(false)
+      // Aplicar a fixação da barra com base na posição, sem alternar rapidamente
+      if (shouldBeFixed !== isBarFixed) {
+        // Usar um pequeno atraso para evitar mudanças rápidas de estado
+        requestAnimationFrame(() => {
+          setIsBarFixed(shouldBeFixed)
+        })
       }
     }
     
@@ -151,40 +231,40 @@ export default function ProductList({ products: initialProducts = [], categories
           // Calcular a posição de scroll para centralizar o botão
           const scrollLeft = buttonRect.left - containerRect.left - (containerRect.width / 2) + (buttonRect.width / 2);
           
-          // Aplicar o scroll com comportamento suave
-          categoriesContainer.scrollTo({
-            left: categoriesContainer.scrollLeft + scrollLeft,
-            behavior: 'smooth'
-          });
+          // Aplicar o scroll com comportamento suave apenas se a diferença for significativa
+          if (Math.abs(scrollLeft) > buttonRect.width / 2) {
+            categoriesContainer.scrollTo({
+              left: categoriesContainer.scrollLeft + scrollLeft,
+              behavior: 'smooth'
+            });
+          }
         }
       }
     }
   }, [selectedCategory, activeCategory])
   
-  // Função throttle para limitar a frequência de execução do handler de scroll
-  function throttle(func: Function, limit: number) {
-    let inThrottle = false
-    return function(this: any, ...args: any[]) {
-      if (!inThrottle) {
-        func.apply(this, args)
-        inThrottle = true
-        setTimeout(() => (inThrottle = false), limit)
+  // Função para limitar a frequência de execução do handler de scroll usando requestAnimationFrame
+  const throttledScrollHandler = useCallback(() => {
+    let ticking = false
+    return () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll()
+          ticking = false
+        })
+        ticking = true
       }
     }
-  }
-  
-  const throttledScrollHandler = useCallback(
-    throttle(handleScroll, 100),
-    [handleScroll]
-  )
+  }, [handleScroll])
 
   // Adicionar listener de scroll
   useEffect(() => {
-    window.addEventListener('scroll', throttledScrollHandler)
+    const scrollHandler = throttledScrollHandler()
+    window.addEventListener('scroll', scrollHandler)
     handleScroll()
     
     return () => {
-      window.removeEventListener('scroll', throttledScrollHandler)
+      window.removeEventListener('scroll', scrollHandler)
     }
   }, [throttledScrollHandler, handleScroll])
 
@@ -263,7 +343,9 @@ export default function ProductList({ products: initialProducts = [], categories
           zIndex: 20,
           padding: "4px 0",
           boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
-          transition: "all 0.3s ease",
+          transition: "transform 0.3s ease, opacity 0.3s ease",
+          transform: isBarFixed && !isScrollingDown ? "translateY(-100%)" : "translateY(0)",
+          opacity: isBarFixed && !isScrollingDown ? 0 : 1,
           background: "rgba(255, 255, 255, 0.95)",
           backdropFilter: "blur(8px)",
           WebkitBackdropFilter: "blur(8px)",
@@ -271,6 +353,7 @@ export default function ProductList({ products: initialProducts = [], categories
           marginLeft: 0,
           marginRight: 0,
           boxSizing: "border-box",
+          willChange: "transform, opacity"
         }}
       >
         <div className="relative">
@@ -283,10 +366,13 @@ export default function ProductList({ products: initialProducts = [], categories
           ></div>
 
           <div
-            className="flex overflow-x-auto py-1 gap-3 pl-4 pr-4 categories-scrollbar"
+            className="flex overflow-x-auto py-1 gap-2 pl-3 pr-3 md:gap-3 md:pl-4 md:pr-4 categories-scrollbar"
             style={{
               WebkitOverflowScrolling: "touch",
               scrollBehavior: "smooth",
+              scrollSnapType: "x mandatory",
+              msOverflowStyle: "none",
+              maxWidth: "100%"
             }}
           >
             {categories.map((category) => (
@@ -296,14 +382,15 @@ export default function ProductList({ products: initialProducts = [], categories
                   if (el) categoryButtonsRef.current.set(category.id, el);
                 }}
                 onClick={() => handleCategoryChange(category.id)}
-                className={`px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-400 ${
+                className={`category-button px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-400 scroll-snap-align-center ${
                   // Destacar o botão se for a categoria selecionada OU se for a categoria ativa durante o scroll
                   selectedCategory === category.id || (selectedCategory === 0 && activeCategory === category.id)
                     ? "bg-purple-600 text-white shadow-sm font-medium"
                     : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
                 }`}
+                title={category.name} // Mostrar o nome completo no tooltip
               >
-                {category.name}
+                {abbreviateCategory(category.name, isMobile)}
               </button>
             ))}
           </div>
