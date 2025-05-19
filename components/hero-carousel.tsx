@@ -72,6 +72,8 @@ export default function HeroCarousel({ slides }: HeroCarouselProps) {
         width: "100vw",
         marginLeft: "calc(-50vw + 50%)",
         marginRight: "calc(-50vw + 50%)",
+        marginTop: "0", 
+        marginBottom: "0",
       }}
     >
       {/* Container do carrossel com altura responsiva */}

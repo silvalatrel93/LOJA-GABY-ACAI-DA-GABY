@@ -104,7 +104,7 @@ export default function ProductList({ products: initialProducts = [], categories
     
     // Verificar se a barra deve ser fixa
     if (initialCategoriesBarPosition.current !== null) {
-      const shouldBeFixed = currentScrollY > initialCategoriesBarPosition.current - 60
+      const shouldBeFixed = currentScrollY > initialCategoriesBarPosition.current - 56
       
       // Quando rolamos para baixo, fixamos a barra
       if (currentScrollY > prevScrollY.current) {
@@ -118,7 +118,7 @@ export default function ProductList({ products: initialProducts = [], categories
     
     // Detectar categoria ativa durante a rolagem
     if (selectedCategory === 0) {
-      const headerHeight = 60
+      const headerHeight = 56
       const categoriesBarHeight = 56
       const offset = headerHeight + categoriesBarHeight + 20
       
@@ -143,15 +143,19 @@ export default function ProductList({ products: initialProducts = [], categories
         
         // Rolar a barra de categorias para mostrar a categoria ativa
         const buttonRef = activeId !== null ? categoryButtonsRef.current.get(activeId) : null
-        if (buttonRef && categoriesBarRef.current) {
-          const barRect = categoriesBarRef.current.getBoundingClientRect()
-          const buttonRect = buttonRef.getBoundingClientRect()
+        const categoriesContainer = document.querySelector('.categories-scrollbar');
+        if (buttonRef && categoriesContainer) {
+          const containerRect = categoriesContainer.getBoundingClientRect();
+          const buttonRect = buttonRef.getBoundingClientRect();
           
-          const scrollLeft = buttonRect.left - barRect.left - (barRect.width / 2) + (buttonRect.width / 2)
-          categoriesBarRef.current.scrollTo({
-            left: categoriesBarRef.current.scrollLeft + scrollLeft,
+          // Calcular a posição de scroll para centralizar o botão
+          const scrollLeft = buttonRect.left - containerRect.left - (containerRect.width / 2) + (buttonRect.width / 2);
+          
+          // Aplicar o scroll com comportamento suave
+          categoriesContainer.scrollTo({
+            left: categoriesContainer.scrollLeft + scrollLeft,
             behavior: 'smooth'
-          })
+          });
         }
       }
     }
@@ -196,7 +200,7 @@ export default function ProductList({ products: initialProducts = [], categories
     if (categoryId !== 0 && selectedCategory === 0) {
       const categoryRef = categoryRefs.current.get(categoryId)
       if (categoryRef) {
-        const headerHeight = 60 // Altura do cabeçalho fixo
+        const headerHeight = 56 // Altura do cabeçalho fixo
         const categoriesBarHeight = 56 // Altura da barra de categorias
         const headerOffset = headerHeight + categoriesBarHeight + 10 // Adicionar margem extra
         
@@ -249,18 +253,25 @@ export default function ProductList({ products: initialProducts = [], categories
     <div className="w-full">
       {/* Barra de categorias */}
       <div
-        className={`${isBarFixed ? 'fixed top-[60px]' : 'relative'} left-0 right-0 w-full z-20 py-2 shadow-md transition-all duration-300`}
+        ref={categoriesBarRef}
         style={{
-          marginLeft: 0,
-          marginRight: 0,
+          position: isBarFixed ? "fixed" : "relative",
+          top: isBarFixed ? "56px" : "auto",
+          left: 0,
+          right: 0,
           width: "100%",
-          boxSizing: "border-box",
+          zIndex: 20,
+          padding: "4px 0",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
+          transition: "all 0.3s ease",
           background: "rgba(255, 255, 255, 0.95)",
           backdropFilter: "blur(8px)",
           WebkitBackdropFilter: "blur(8px)",
           borderBottom: "1px solid #eaeaea",
+          marginLeft: 0,
+          marginRight: 0,
+          boxSizing: "border-box",
         }}
-        ref={categoriesBarRef}
       >
         <div className="relative">
           {/* Gradiente de fade à esquerda */}
@@ -272,7 +283,6 @@ export default function ProductList({ products: initialProducts = [], categories
           ></div>
 
           <div
-            ref={categoriesBarRef}
             className="flex overflow-x-auto py-1 gap-3 pl-4 pr-4 categories-scrollbar"
             style={{
               WebkitOverflowScrolling: "touch",

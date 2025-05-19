@@ -74,7 +74,12 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
               ? 'bg-purple-600/90 backdrop-blur-md shadow-lg shadow-purple-900/30' 
               : 'bg-purple-600'
           }`}
-          style={{ width: "100vw", marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)" }}
+          style={{ 
+            width: "100vw", 
+            marginLeft: "calc(-50vw + 50%)", 
+            marginRight: "calc(-50vw + 50%)",
+            height: "56px",
+          }}
         >
           <div className="w-full max-w-screen-xl mx-auto px-4 flex justify-between items-center">
             <div className="flex items-center">
@@ -111,11 +116,11 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
         {/* Menu lateral */}
         <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
+        {/* Espaçador mínimo para compensar o cabeçalho fixo */}
+        <div className="h-[56px]"></div>
+        
         {/* Carrossel */}
         {carouselSlides.length > 0 && <HeroCarousel slides={carouselSlides} />}
-
-        {/* Espaçador para compensar o cabeçalho fixo */}
-        <div className="h-16 md:h-20"></div>
         
         {/* Estilo global para animações */}
         <style jsx global>{`

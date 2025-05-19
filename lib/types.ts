@@ -92,6 +92,7 @@ export interface StoreConfig {
   whatsappNumber?: string
   pixKey?: string
   lastUpdated?: string
+  carousel_initialized?: boolean
 }
 
 // Horário de funcionamento
@@ -171,4 +172,5 @@ export interface Notification {
   endDate: Date
   priority: number
   read: boolean
+  createdAt?: Date
 }

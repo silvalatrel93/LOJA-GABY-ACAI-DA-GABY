@@ -203,6 +203,16 @@ export default function SupabaseInitializer() {
   // Inicializar slides do carrossel
   const initializeCarouselSlides = async () => {
     console.log("Verificando slides do carrossel...")
+    
+    // Verificar se o carrossel já foi inicializado anteriormente
+    const storeConfig = await StoreConfigService.getStoreConfig()
+    
+    // Se a configuração indicar que o carrossel já foi inicializado, não reinicializar
+    if (storeConfig?.carousel_initialized) {
+      console.log("Carrossel já foi inicializado anteriormente, respeitando as alterações do usuário.")
+      return
+    }
+    
     const slides = await CarouselService.getAllSlides()
 
     if (slides.length === 0) {
@@ -227,10 +237,26 @@ export default function SupabaseInitializer() {
         order: 2,
         active: true,
       })
+      
+      // Atualizar a configuração para indicar que o carrossel já foi inicializado
+      if (storeConfig) {
+        await StoreConfigService.saveStoreConfig({
+          ...storeConfig,
+          carousel_initialized: true
+        })
+      }
 
       console.log("Slides do carrossel padrão inicializados com sucesso!")
     } else {
       console.log(`${slides.length} slides encontrados, pulando inicialização.`)
+      
+      // Mesmo que já existam slides, marcar como inicializado para evitar reinicialização futura
+      if (storeConfig && !storeConfig.carousel_initialized) {
+        await StoreConfigService.saveStoreConfig({
+          ...storeConfig,
+          carousel_initialized: true
+        })
+      }
     }
   }
 

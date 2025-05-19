@@ -109,7 +109,7 @@ export default function Home() {
       {/* Aviso de loja fechada logo após o carrossel de frases */}
       {!storeOpen && <StoreClosedNotice />}
 
-      <div className="w-screen py-6" style={{ 
+      <div className="w-screen py-0" style={{ 
         marginLeft: 'calc(-50vw + 50%)', 
         marginRight: 'calc(-50vw + 50%)', 
         width: '100vw', 

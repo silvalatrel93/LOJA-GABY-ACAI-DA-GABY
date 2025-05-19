@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import {
@@ -36,6 +37,7 @@ import { formatCurrency } from "@/lib/utils"
 import { createSafeKey } from "@/lib/key-utils";
 
 export default function AdminPage() {
+  const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [additionals, setAdditionals] = useState<Additional[]>([])
@@ -46,6 +48,7 @@ export default function AdminPage() {
   const [isAdditionalsModalOpen, setIsAdditionalsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [deleteStatus, setDeleteStatus] = useState<{ id: number; status: "pending" | "success" | "error" } | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   // Função para carregar produtos, categorias e adicionais
   const loadData = async () => {
@@ -93,8 +96,19 @@ export default function AdminPage() {
     }
   }
 
-  // Carregar produtos na montagem do componente
+  // Verificar autenticação e carregar produtos na montagem do componente
   useEffect(() => {
+    // Verificar se o usuário está autenticado
+    const isAuthenticated = localStorage.getItem("admin_authenticated") === "true"
+    
+    if (!isAuthenticated) {
+      // Redirecionar para a página de login se não estiver autenticado
+      window.location.href = "/admin/login"
+      return
+    }
+    
+    // Se estiver autenticado, carregar os dados
+    setIsAuthenticated(true)
     loadData()
   }, [])
 
@@ -341,6 +355,17 @@ export default function AdminPage() {
               <Plus size={18} className="mr-1" />
               Novo Produto
             </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem("admin_authenticated")
+                window.location.href = "/admin/login"
+              }}
+              className="bg-red-600 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              title="Sair do painel"
+            >
+              <ArrowLeft size={18} className="mr-1" />
+              Sair
+            </button>
           </div>
         </div>
       </header>
@@ -436,6 +461,33 @@ export default function AdminPage() {
             <div>
               <h2 className="text-lg font-semibold text-purple-900">Configurações da Loja</h2>
               <p className="text-gray-600">Personalize o logo e o nome da sua loja</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/configuracoes/senha"
+            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+          >
+            <div className="bg-purple-100 p-3 rounded-full mr-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-purple-700"
+              >
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-purple-900">Configuração de Senha</h2>
+              <p className="text-gray-600">Defina ou altere a senha do painel administrativo</p>
             </div>
           </Link>
 

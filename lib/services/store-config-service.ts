@@ -13,7 +13,9 @@ interface SupabaseStoreConfig {
   operating_hours: OperatingHours
   special_dates: SpecialDate[]
   whatsapp_number: string | null
+  pix_key: string | null
   last_updated: string
+  carousel_initialized: boolean
 }
 
 // Configuração padrão para usar como fallback
@@ -23,6 +25,7 @@ const DEFAULT_STORE_CONFIG: StoreConfig = {
   logoUrl: "/acai-logo.png",
   deliveryFee: 5.0,
   isOpen: true,
+  carousel_initialized: false,
   operatingHours: {
     "segunda-feira": { open: true, hours: "10:00 - 22:00" },
     "terça-feira": { open: true, hours: "10:00 - 22:00" },
@@ -34,6 +37,7 @@ const DEFAULT_STORE_CONFIG: StoreConfig = {
   },
   specialDates: [],
   whatsappNumber: "5511999999999",
+  pixKey: "09300021990",
   lastUpdated: new Date().toISOString()
 }
 
@@ -82,9 +86,15 @@ export const StoreConfigService = {
         whatsappNumber: typeof config.whatsapp_number === 'string' 
           ? config.whatsapp_number 
           : '5511999999999',
+        pixKey: typeof config.pix_key === 'string' 
+          ? config.pix_key 
+          : '09300021990',
         lastUpdated: typeof config.last_updated === 'string' 
           ? config.last_updated 
           : new Date().toISOString(),
+        carousel_initialized: typeof config.carousel_initialized === 'boolean'
+          ? config.carousel_initialized
+          : false,
       }
     } catch (error) {
       console.error("Erro ao buscar configurações da loja:", error)
@@ -115,7 +125,9 @@ export const StoreConfigService = {
           : {},
         specialDates: Array.isArray(config.specialDates) ? config.specialDates : [],
         whatsappNumber: typeof config.whatsappNumber === 'string' ? config.whatsappNumber : '',
-        lastUpdated: new Date().toISOString()
+        pixKey: typeof config.pixKey === 'string' ? config.pixKey : '09300021990',
+        lastUpdated: new Date().toISOString(),
+        carousel_initialized: Boolean(config.carousel_initialized) ?? false,
       }
 
       console.log("Configurações validadas:", validatedConfig)
@@ -129,7 +141,9 @@ export const StoreConfigService = {
         operating_hours: validatedConfig.operatingHours,
         special_dates: validatedConfig.specialDates || [], // Garante um array vazio se for undefined
         whatsapp_number: validatedConfig.whatsappNumber || null, // Garante que seja string | null
+        pix_key: validatedConfig.pixKey || '09300021990', // Adiciona a chave PIX
         last_updated: validatedConfig.lastUpdated || new Date().toISOString(), // Garante uma data válida
+        carousel_initialized: validatedConfig.carousel_initialized ?? false, // Controle de inicialização do carrossel
       }
 
 

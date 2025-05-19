@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Clock, MapPin, CreditCard, Truck, Home, Building, MapPinned } from "lucide-react"
+import { ArrowLeft, Clock, MapPin, CreditCard, Truck, Home, Building, MapPinned, Copy, Check, Eye, EyeOff, CheckCircle } from "lucide-react"
 import { useCart, CartProvider } from "@/lib/cart-context"
 import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
 import { saveOrder } from "@/lib/services/order-service"
@@ -14,6 +14,100 @@ import { getStoreConfig } from "@/lib/services/store-config-service"
 import { getStoreStatus } from "@/lib/store-utils"
 import { generateSimplePixQRCode } from "@/lib/pix-utils"
 import type { StoreConfig } from "@/lib/types"
+
+// Componente para exibir e copiar a chave PIX
+interface PixKeyCopyComponentProps {
+  pixKey: string;
+}
+
+function PixKeyCopyComponent({ pixKey }: PixKeyCopyComponentProps) {
+  const [copied, setCopied] = useState(false);
+  const [hidden, setHidden] = useState(true); // Iniciar com a chave oculta por padrão
+  
+  // Resetar o estado de copiado após 3 segundos
+  useEffect(() => {
+    if (copied) {
+      const timer = setTimeout(() => {
+        setCopied(false);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [copied]);
+  
+  // Função para copiar a chave PIX usando uma abordagem compatível com restrições de segurança
+  const copyToClipboard = () => {
+    try {
+      // Criar um elemento de texto temporário
+      const textArea = document.createElement('textarea');
+      textArea.value = pixKey;
+      
+      // Tornar o elemento invisível
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      
+      // Selecionar e copiar o texto
+      textArea.focus();
+      textArea.select();
+      document.execCommand('copy');
+      
+      // Limpar
+      document.body.removeChild(textArea);
+      
+      // Feedback ao usuário
+      setCopied(true);
+    } catch (err) {
+      console.error('Erro ao copiar texto:', err);
+      alert('Não foi possível copiar a chave PIX. Por favor, copie manualmente.');
+    }
+  };
+  
+  // Função para alternar a visibilidade da chave PIX
+  const toggleVisibility = () => {
+    setHidden(!hidden);
+  };
+  
+  // Ocultar completamente a chave PIX quando estiver no modo oculto
+  const getMaskedKey = () => {
+    // Retornar uma string de asteriscos com o mesmo comprimento da chave original
+    return '*'.repeat(Math.min(pixKey.length, 20));
+  };
+  
+  return (
+    <div className="w-full">
+      <div className="flex items-center justify-between bg-white px-2 py-1.5 rounded border border-gray-300 mb-1">
+        <code className="text-xs font-mono flex-1 overflow-hidden text-ellipsis">
+          {hidden ? getMaskedKey() : pixKey}
+        </code>
+        <div className="flex items-center space-x-0.5">
+          <button 
+            type="button"
+            onClick={toggleVisibility}
+            className="p-0.5 text-gray-500 hover:text-purple-600 transition-colors"
+            title={hidden ? "Mostrar chave" : "Ocultar chave"}
+          >
+            {hidden ? <Eye size={14} /> : <EyeOff size={14} />}
+          </button>
+          <button 
+            type="button"
+            onClick={copyToClipboard}
+            className="p-0.5 text-gray-500 hover:text-purple-600 transition-colors"
+            title="Copiar chave PIX"
+          >
+            {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+          </button>
+        </div>
+      </div>
+      <div className="text-right">
+        <p className="text-xs text-gray-500 text-[10px]">
+          {copied ? "Chave copiada!" : "Clique para copiar"}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 // Componente para exibir um item com nome à esquerda e valor à direita
 function ItemRow({ name, value }: { name: string; value: string }) {
@@ -90,6 +184,10 @@ function CheckoutPageContent() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  // Estado para controlar a exibição da notificação de sucesso
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+  const [orderId, setOrderId] = useState<string>("");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -136,63 +234,23 @@ function CheckoutPageContent() {
         notified: false, // Adicionando a propriedade notified que estava faltando
       }
 
-      // Salvar pedido no banco de dados
-      await saveOrder(order)
-
-      // Formatar mensagem para WhatsApp com tamanhos limpos
-      let message = `*Novo Pedido de Açaí*\n\n`
-      message += `*Cliente:* ${formData.name}\n`
-      message += `*Telefone:* ${formData.phone}\n\n`
-
-      message += `*Endereço de Entrega:*\n`
-      message += `${formData.address}, ${formData.number}\n`
-      message += `Bairro: ${formData.neighborhood}\n`
-      if (formData.complement) message += `Complemento: ${formData.complement}\n`
-
-      // Adicionar o texto "Itens do Pedido:" com muitos espaços antes
-      message += `\n${" ".repeat(144)}Itens do Pedido:\n`
-
-      // Processar cada item do carrinho
-      cart.forEach((item, index) => {
-        // Adicionar o item principal
-        message += `- ${item.quantity}x ${item.name} (${cleanSizeDisplay(item.size)}) - ${formatCurrency(item.price * item.quantity)}\n`
-
-        // Verificar se tem adicionais
-        if (item.additionals && item.additionals.length > 0) {
-          message += `  Com Adicionais:\n`
-          item.additionals.forEach((additional) => {
-            const quantity = additional.quantity ?? 1
-            message += `  • ${quantity}x ${additional.name} - ${formatCurrency(additional.price * quantity)}\n`
-          })
-        } else {
-          message += `  Sem Adicionais:\n`
-        }
-      })
-
-      message += `\n*Subtotal:* ${formatCurrency(subtotal)}\n`
-      message += `*Taxa de Entrega:* ${formatCurrency(deliveryFee)}\n`
-      message += `*Total:* ${formatCurrency(total)}\n\n`
-
-      message += `*Forma de Pagamento:* ${formData.paymentMethod === "pix" ? "PIX" : "Cartão na Entrega"}`
-
-      // Codificar mensagem para URL do WhatsApp
-      const encodedMessage = encodeURIComponent(message)
-
-      // Obter configurações da loja para o número do WhatsApp
-      const storeConfig = await getStoreConfig()
-      const whatsappNumber = storeConfig?.whatsappNumber || "5511999999999"
-
-      // Criar URL do WhatsApp
-      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`
-
+      // Salvar pedido no banco de dados e obter o ID do pedido
+      const savedOrder = await saveOrder(order)
+      // Extrair o ID do pedido salvo (se existir)
+      if (savedOrder && savedOrder.id) {
+        setOrderId(String(savedOrder.id))
+      }
+      
       // Limpar carrinho
       await clearCart()
-
-      // Abrir WhatsApp
-      window.open(whatsappUrl, "_blank")
-
-      // Redirecionar para a página inicial
-      router.push("/")
+      
+      // Mostrar notificação de sucesso
+      setShowSuccessNotification(true)
+      
+      // Após 5 segundos, redirecionar para a página inicial
+      setTimeout(() => {
+        router.push("/")
+      }, 5000)
     } catch (error) {
       console.error("Erro ao finalizar pedido:", error)
       alert("Ocorreu um erro ao finalizar o pedido. Por favor, tente novamente.")
@@ -201,9 +259,47 @@ function CheckoutPageContent() {
     }
   }
 
+  // Componente de notificação de sucesso
+  const SuccessNotification = () => {
+    if (!showSuccessNotification) return null;
+    
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+        <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Pedido Enviado com Sucesso!</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Seu pedido foi registrado e está sendo preparado. Em breve entraremos em contato para confirmar os detalhes da entrega.
+            </p>
+            {orderId && (
+              <p className="text-xs font-medium text-purple-700 mb-4">
+                Número do pedido: {orderId}
+              </p>
+            )}
+            <div className="mt-4">
+              <button
+                type="button"
+                className="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:text-sm"
+                onClick={() => router.push("/")}
+              >
+                Voltar para a Página Inicial
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (cart.length === 0) {
     return (
       <div className="min-h-screen flex flex-col">
+        {/* Notificação de sucesso */}
+        <SuccessNotification />
+        
         <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
           <div className="container mx-auto flex items-center">
             <Link href="/" className="mr-4">
@@ -228,6 +324,9 @@ function CheckoutPageContent() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Notificação de sucesso */}
+      <SuccessNotification />
+      
       <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
         <div className="container mx-auto flex items-center">
           <Link href="/carrinho" className="mr-4">
@@ -394,50 +493,46 @@ function CheckoutPageContent() {
               </div>
               
               {formData.paymentMethod === "pix" && (
-                <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <h3 className="text-md font-medium text-gray-800 mb-2">QR Code PIX</h3>
+                <div className="mt-3 p-3 border border-gray-200 rounded-lg bg-gray-50 max-w-md mx-auto">
+                  <h3 className="text-md font-medium text-gray-800 mb-1">Pagamento via PIX</h3>
                   
                   {storeConfig?.pixKey ? (
                     <>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Escaneie o QR Code abaixo para pagar com PIX ou copie a chave:
+                      <p className="text-xs text-gray-600 mb-2">
+                        Copie a chave abaixo e cole no aplicativo do seu banco:
                       </p>
                       
-                      <div className="flex flex-col items-center justify-center mb-3">
-                        <div className="relative w-48 h-48 mb-2 border border-gray-300 rounded-lg overflow-hidden bg-white p-2">
-                          {/* Gera o QR Code com base no código PIX */}
-                          <Image
-                            src={generateSimplePixQRCode(storeConfig.pixKey, total)}
-                            alt="QR Code PIX"
-                            fill
-                            className="object-contain"
-                            unoptimized // Importante para garantir que a URL data: funcione corretamente
-                          />
-                        </div>
-                        
-                        <div className="text-center">
-                          <p className="text-sm font-medium text-gray-700 mb-1">Chave PIX:</p>
-                          <div className="flex items-center justify-center">
-                            <code className="bg-white px-3 py-1 rounded border border-gray-300 text-sm">
-                              {storeConfig.pixKey}
-                            </code>
-                            <button 
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(storeConfig.pixKey);
-                                alert("Chave PIX copiada!");
-                              }}
-                              className="ml-2 text-purple-600 hover:text-purple-800 text-xs"
-                            >
-                              Copiar
-                            </button>
-                          </div>
+                      <div className="flex flex-col mb-2">
+                        <div className="w-full">
+                          {/* Identificar o tipo de chave PIX */}
+                          {(() => {
+                            // Forçar a chave PIX como '09300021990'
+                            const pixKey = '09300021990';
+                            // Identificar como CPF (11 dígitos)
+                            const pixType = "CPF";
+                            
+                            return (
+                              <p className="text-xs font-medium text-gray-700 mb-1 text-left">
+                                Chave PIX <span className="text-xs text-purple-600">({pixType})</span>:
+                              </p>
+                            );
+                          })()} 
+                          
+                          {/* Componente para exibir e copiar a chave PIX */}
+                          <PixKeyCopyComponent pixKey={'09300021990'} />
                         </div>
                       </div>
                       
-                      <p className="text-xs text-gray-500 mt-2 text-center">
-                        Após o pagamento, finalize o pedido para enviar o comprovante pelo WhatsApp
-                      </p>
+                      <div className="mt-2 text-center bg-purple-50 p-2 rounded-md">
+                        <p className="text-xs font-medium text-gray-700">Valor a pagar:</p>
+                        <p className="text-base font-bold text-purple-700">{formatCurrency(total)}</p>
+                      </div>
+                      
+                      <div className="mt-3 p-2 bg-purple-100 border border-purple-200 rounded-md">
+                        <p className="text-xs font-medium text-purple-800 text-center">
+                          Após o pagamento, finalize o pedido para enviar o comprovante pelo WhatsApp
+                        </p>
+                      </div>
                     </>
                   ) : (
                     <div className="text-center py-4">
