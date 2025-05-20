@@ -166,34 +166,9 @@ export default function StoreConfigPage() {
                   </div>
                 </div>
                 
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Número do WhatsApp</label>
-                  <input
-                    type="text"
-                    value={storeConfig?.whatsappNumber || ""}
-                    onChange={(e) => setStoreConfig({ ...storeConfig!, whatsappNumber: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="Ex: 5511999999999 (apenas números)"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Formato internacional sem espaços ou caracteres especiais. Ex: 5511999999999
-                  </p>
-                </div>
+                {/* Configuração de WhatsApp removida */}
                 
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Chave PIX</label>
-                  <input
-                    type="text"
-                    value={storeConfig?.pixKey || "09300021990"}
-                    onChange={(e) => setStoreConfig({ ...storeConfig!, pixKey: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
-                    data-component-name="StoreConfigPage"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Será usada para gerar QR Code de pagamento PIX no checkout
-                  </p>
-                </div>
+                {/* Configuração de PIX removida */}
 
                 {storeConfig?.deliveryFee !== 0 && (
                   <div>
@@ -240,7 +215,7 @@ export default function StoreConfigPage() {
               </div>
               <div className="pt-4 border-t">
                 <p className="text-sm text-gray-500">
-                  Última atualização: {new Date(storeConfig.lastUpdated).toLocaleString()}
+                  Última atualização: {storeConfig.lastUpdated ? new Date(storeConfig.lastUpdated).toLocaleString() : 'Não disponível'}
                 </p>
               </div>
             </div>

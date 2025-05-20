@@ -331,188 +331,196 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
-        <div className="container mx-auto flex items-center justify-between flex-wrap gap-2">
+      <header className="bg-gradient-to-r from-purple-800 to-purple-900 text-white p-3 sm:p-4 sticky top-0 z-10 shadow-md">
+        <div className="container mx-auto flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center">
-            <Link href="/" className="mr-4">
-              <ArrowLeft size={24} />
+            <Link 
+              href="/" 
+              className="mr-3 sm:mr-4 p-2 rounded-full hover:bg-purple-700/30 transition-colors duration-200 flex items-center justify-center"
+              aria-label="Voltar para a página inicial"
+            >
+              <ArrowLeft size={22} />
             </Link>
-            <h1 className="text-xl font-bold">Painel Administrativo</h1>
+            <h1 className="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-purple-100">
+              Painel Administrativo
+            </h1>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <button
               onClick={loadData}
-              className="bg-purple-800 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              className="bg-gradient-to-r from-purple-700 to-purple-800 text-white px-3 sm:px-4 py-2 rounded-lg font-medium flex items-center shadow-sm hover:shadow-md transition-all duration-200 hover:translate-y-[-1px] active:translate-y-[1px]"
               title="Atualizar dados"
             >
-              <RefreshCw size={18} className="mr-1" />
-              Atualizar
+              <RefreshCw size={16} className="mr-1.5 transition-transform group-hover:rotate-180" />
+              <span className="hidden xs:inline">Atualizar</span>
+              <span className="xs:hidden">Atual.</span>
             </button>
             <button
               onClick={handleAddProduct}
-              className="bg-white text-purple-900 px-4 py-2 rounded-md font-medium flex items-center"
+              className="bg-white text-purple-900 px-3 sm:px-4 py-2 rounded-lg font-medium flex items-center shadow-sm hover:shadow-md transition-all duration-200 border border-purple-100 hover:bg-purple-50 hover:translate-y-[-1px] active:translate-y-[1px]"
             >
-              <Plus size={18} className="mr-1" />
-              Novo Produto
+              <Plus size={16} className="mr-1.5" />
+              <span className="hidden xs:inline">Novo Produto</span>
+              <span className="xs:hidden">Novo</span>
             </button>
             <button
               onClick={() => {
                 localStorage.removeItem("admin_authenticated")
                 window.location.href = "/admin/login"
               }}
-              className="bg-red-600 text-white px-4 py-2 rounded-md font-medium flex items-center"
+              className="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium flex items-center shadow-sm hover:shadow-md transition-all duration-200 hover:translate-y-[-1px] active:translate-y-[1px]"
               title="Sair do painel"
             >
-              <ArrowLeft size={18} className="mr-1" />
-              Sair
+              <ArrowLeft size={16} className="mr-1.5" />
+              <span>Sair</span>
             </button>
           </div>
         </div>
       </header>
 
-      <div className="flex-1 container mx-auto p-4">
+      <div className="flex-1 container mx-auto p-3 sm:p-4">
         {/* Cards de navegação */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
           <Link
             href="/admin/pedidos"
-            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-[#f0f7e6] transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-[#e8f5d3]"
           >
-            <div className="bg-purple-100 p-3 rounded-full mr-4">
-              <ShoppingBag size={24} className="text-purple-700" />
+            <div className="bg-[#e8f5d3] p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <ShoppingBag size={22} className="text-[#5a7c1e]" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-purple-900">Gerenciar Pedidos</h2>
-              <p className="text-gray-600">Visualize, atualize status e imprima etiquetas</p>
+              <h2 className="text-lg font-semibold text-[#5a7c1e] mb-0.5">Gerenciar Pedidos</h2>
+              <p className="text-sm text-gray-600">Visualize, atualize status e imprima etiquetas</p>
             </div>
           </Link>
 
           <Link
             href="/admin/carrossel"
-            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-blue-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-blue-200"
           >
-            <div className="bg-purple-100 p-3 rounded-full mr-4">
-              <ImageIcon size={24} className="text-purple-700" />
+            <div className="bg-blue-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <ImageIcon size={22} className="text-blue-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-purple-900">Gerenciar Carrossel</h2>
-              <p className="text-gray-600">Adicione e edite imagens do carrossel da página inicial</p>
+              <h2 className="text-lg font-semibold text-blue-600 mb-0.5">Gerenciar Carrossel</h2>
+              <p className="text-sm text-gray-600">Adicione e edite imagens do carrossel da página inicial</p>
             </div>
           </Link>
 
           <Link
             href="/admin/categorias"
-            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-orange-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-orange-200"
           >
-            <div className="bg-purple-100 p-3 rounded-full mr-4">
-              <Layers size={24} className="text-purple-700" />
+            <div className="bg-orange-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <Layers size={22} className="text-orange-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-purple-900">Gerenciar Categorias</h2>
-              <p className="text-gray-600">Organize seus produtos em categorias</p>
+              <h2 className="text-lg font-semibold text-orange-600 mb-0.5">Gerenciar Categorias</h2>
+              <p className="text-sm text-gray-600">Organize seus produtos em categorias</p>
             </div>
           </Link>
 
           <Link
             href="/admin/adicionais"
-            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-pink-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-pink-200"
           >
-            <div className="bg-purple-100 p-3 rounded-full mr-4">
-              <PlusCircle size={24} className="text-purple-700" />
+            <div className="bg-pink-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <PlusCircle size={22} className="text-pink-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-purple-900">Gerenciar Adicionais</h2>
-              <p className="text-gray-600">Configure adicionais para os açaís</p>
+              <h2 className="text-lg font-semibold text-pink-600 mb-0.5">Gerenciar Adicionais</h2>
+              <p className="text-sm text-gray-600">Configure adicionais para os açaís</p>
             </div>
           </Link>
 
           <Link
             href="/admin/frases"
-            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-indigo-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-indigo-200"
           >
-            <div className="bg-purple-100 p-3 rounded-full mr-4">
-              <MessageSquare size={24} className="text-purple-700" />
+            <div className="bg-indigo-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <MessageSquare size={22} className="text-indigo-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-purple-900">Gerenciar Frases</h2>
-              <p className="text-gray-600">Edite as frases promocionais do carrossel</p>
+              <h2 className="text-lg font-semibold text-indigo-600 mb-0.5">Gerenciar Frases</h2>
+              <p className="text-sm text-gray-600">Edite as frases promocionais do carrossel</p>
             </div>
           </Link>
 
           <Link
             href="/admin/notificacoes"
-            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-red-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-red-200"
           >
-            <div className="bg-purple-100 p-3 rounded-full mr-4">
-              <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-purple-700 transition-all duration-200" />
+            <div className="bg-red-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 transition-all duration-200 group-hover:animate-[wiggle_0.5s_ease-in-out]" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-purple-900">Gerenciar Notificações</h2>
-              <p className="text-gray-600">Configure avisos e notificações para os clientes</p>
+              <h2 className="text-lg font-semibold text-red-600 mb-0.5">Gerenciar Notificações</h2>
+              <p className="text-sm text-gray-600">Configure avisos e notificações para os clientes</p>
             </div>
           </Link>
 
           <Link
             href="/admin/configuracoes"
-            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-teal-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-teal-200"
           >
-            <div className="bg-purple-100 p-3 rounded-full mr-4">
-              <Settings size={24} className="text-purple-700" />
+            <div className="bg-teal-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <Settings size={22} className="text-teal-600 animate-spin-slow" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-purple-900">Configurações da Loja</h2>
-              <p className="text-gray-600">Personalize o logo e o nome da sua loja</p>
+              <h2 className="text-lg font-semibold text-teal-600 mb-0.5">Configurações da Loja</h2>
+              <p className="text-sm text-gray-600">Personalize o logo e o nome da sua loja</p>
             </div>
           </Link>
 
           <Link
             href="/admin/configuracoes/senha"
-            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-gray-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-gray-200"
           >
-            <div className="bg-purple-100 p-3 rounded-full mr-4">
+            <div className="bg-gray-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
+                width="22"
+                height="22"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-purple-700"
+                className="text-gray-600"
               >
                 <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-purple-900">Configuração de Senha</h2>
-              <p className="text-gray-600">Defina ou altere a senha do painel administrativo</p>
+              <h2 className="text-lg font-semibold text-gray-600 mb-0.5">Configuração de Senha</h2>
+              <p className="text-sm text-gray-600">Defina ou altere a senha do painel administrativo</p>
             </div>
           </Link>
 
           <Link
             href="/admin/horarios"
-            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-amber-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-amber-200"
           >
-            <div className="bg-purple-100 p-3 rounded-full mr-4">
-              <Clock size={24} className="text-purple-700" />
+            <div className="bg-amber-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <Clock size={22} className="text-amber-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-purple-900">Horários de Funcionamento</h2>
-              <p className="text-gray-600">Gerencie os dias e horários de abertura da loja</p>
+              <h2 className="text-lg font-semibold text-amber-600 mb-0.5">Horários de Funcionamento</h2>
+              <p className="text-sm text-gray-600">Configure os horários de funcionamento da loja</p>
             </div>
           </Link>
 
           <Link
             href="/admin/paginas"
-            className="bg-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-50 transition-colors"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-purple-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-purple-200"
           >
-            <div className="bg-purple-100 p-3 rounded-full mr-4">
+            <div className="bg-purple-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
+                width="22"
+                height="22"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -529,14 +537,25 @@ export default function AdminPage() {
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-purple-900">Gerenciar Páginas</h2>
-              <p className="text-gray-600">Edite o conteúdo das páginas do site</p>
+              <h2 className="text-lg font-semibold text-purple-700 mb-0.5">Gerenciar Páginas</h2>
+              <p className="text-sm text-gray-600">Edite o conteúdo das páginas do site</p>
             </div>
           </Link>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-          <h2 className="text-lg font-semibold text-purple-900 mb-4">Gerenciar Produtos</h2>
+        <div className="bg-gradient-to-br from-white via-white to-purple-50 rounded-xl shadow-sm hover:shadow-lg p-4 sm:p-5 mb-6 border border-transparent hover:border-purple-100/50 transition-all duration-500 relative overflow-hidden group/container">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 via-pink-400 to-[#92c730] rounded-t-xl group-hover/container:h-1.5 transition-all duration-500"></div>
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-purple-200/20 to-transparent rounded-full blur-2xl group-hover/container:scale-110 transition-transform duration-1000"></div>
+          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-gradient-to-tr from-[#92c730]/10 to-transparent rounded-full blur-2xl group-hover/container:scale-110 transition-transform duration-1000 group-hover/container:rotate-12"></div>
+          <div className="absolute top-1/2 right-0 w-24 h-24 bg-gradient-to-tl from-purple-100/5 to-transparent rounded-full blur-xl opacity-0 group-hover/container:opacity-100 transition-opacity duration-700 group-hover/container:translate-x-6"></div>
+          <h2 className="relative z-10 text-xl sm:text-2xl font-bold mb-5 pb-3 flex items-center">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-700 via-purple-800 to-[#5a7c1e]">Gerenciar Produtos</span>
+            <span className="ml-3 bg-gradient-to-r from-purple-100 to-[#e8f5d3] text-xs sm:text-sm text-purple-800 px-3 py-1 rounded-full font-normal flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+              {products.length} produtos
+            </span>
+            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-purple-200 via-[#e8f5d3] to-transparent"></div>
+          </h2>
 
           {products.length === 0 ? (
             <p className="text-center text-gray-500 py-8">
@@ -556,32 +575,65 @@ export default function AdminPage() {
                   
                   return (
                     <div key={category.id} className="mb-6">
-                      <h3 className="text-md font-medium text-purple-800 mb-3 pb-1 border-b border-purple-200">
-                        {category.name} <span className="text-xs text-gray-500">({categoryProducts.length} produtos)</span>
+                      <h3 className="text-lg font-medium mb-4 pb-2 flex items-center relative">
+                        <span className="bg-gradient-to-r from-purple-400 to-[#92c730] w-1.5 h-6 rounded-full mr-3"></span>
+                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-[#5a7c1e] font-semibold">
+                          {category.name}
+                        </span> 
+                        <span className="text-xs bg-gradient-to-r from-purple-50 to-[#f0f7e6] text-purple-700 px-2 py-0.5 rounded-full ml-2 font-normal border border-purple-100/30 shadow-sm">
+                          {categoryProducts.length} {categoryProducts.length === 1 ? 'produto' : 'produtos'}
+                        </span>
+                        <div className="absolute -bottom-1 left-6 right-0 h-px bg-gradient-to-r from-purple-200/50 to-transparent"></div>
                       </h3>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
                         {categoryProducts.map((product) => (
-                          <div key={product.id} className="border rounded-lg overflow-hidden flex flex-col sm:flex-row">
-                            <div className="w-full sm:w-24 h-24 relative">
-                              <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
+                          <div 
+                            key={product.id} 
+                            className="border border-gray-100 rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-sm hover:shadow-md transition-all duration-300 hover:translate-y-[-2px] group bg-white max-w-full"
+                          >
+                            <div className="w-full h-48 xs:h-40 sm:h-28 sm:w-28 md:w-32 md:h-32 lg:w-36 lg:h-36 relative overflow-hidden sm:rounded-l-xl rounded-t-xl sm:rounded-tr-none">
+                              <Image 
+                                src={product.image || "/placeholder.svg"} 
+                                alt={product.name} 
+                                fill 
+                                sizes="(max-width: 480px) 100vw, (max-width: 640px) 40vw, (max-width: 768px) 28rem, (max-width: 1024px) 32rem, 36rem"
+                                priority={true}
+                                className="object-cover transition-transform duration-500 group-hover:scale-110" 
+                                loading="eager"
+                                onError={(e) => {
+                                  // Fallback para imagem padrão em caso de erro
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = '/placeholder.svg';
+                                }}
+                              />
+                              {!product.image && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg>
+                                </div>
+                              )}
                             </div>
-                            <div className="p-3 flex-1">
+                            <div className="p-4 flex-1">
                               <div className="flex justify-between flex-wrap gap-2">
                                 <div>
-                                  <h3 className="font-semibold">{product.name}</h3>
-                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                                  <h3 className="font-semibold text-purple-900">{product.name}</h3>
+                                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full inline-block mt-1 border border-blue-100">
                                     Adicionais: {getAdditionalCount(product)}
                                   </span>
                                 </div>
-                                <div className="flex space-x-2">
-                                  <button onClick={() => handleEditProduct(product)} className="text-blue-600 p-1">
-                                    Editar
+                                <div className="flex space-x-1">
+                                  <button 
+                                    onClick={() => handleEditProduct(product)} 
+                                    className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 transition-colors"
+                                    aria-label="Editar produto"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                                   </button>
                                   <button
                                     onClick={() => handleDeleteProduct(product.id)}
-                                    className="text-red-600 p-1"
+                                    className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
                                     disabled={deleteStatus?.id === product.id && deleteStatus.status === "pending"}
+                                    aria-label="Excluir produto"
                                   >
                                     {deleteStatus?.id === product.id && deleteStatus.status === "pending" ? (
                                       <span className="animate-pulse">...</span>
@@ -591,11 +643,11 @@ export default function AdminPage() {
                                   </button>
                                 </div>
                               </div>
-                              <p className="text-sm text-gray-500 line-clamp-1 mt-1">{product.description}</p>
-                              <div className="mt-1 text-sm flex flex-wrap gap-2">
+                              <p className="text-sm text-gray-500 line-clamp-2 mt-2">{product.description}</p>
+                              <div className="mt-2 text-sm flex flex-wrap gap-2">
                                 {product.sizes.map((size) => (
-                                  <span key={size.size} className="mr-3">
-                                    {size.size}: {formatCurrency(size.price)}
+                                  <span key={size.size} className="mr-3 bg-gray-50 px-2 py-1 rounded-md text-gray-700 border border-gray-100">
+                                    {size.size}: <span className="font-medium text-purple-700">{formatCurrency(size.price)}</span>
                                   </span>
                                 ))}
                               </div>

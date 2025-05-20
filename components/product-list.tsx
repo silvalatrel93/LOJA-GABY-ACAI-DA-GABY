@@ -318,7 +318,14 @@ export default function ProductList({ products: initialProducts = [], categories
             }}
             id={`category-${category.id}`}
           >
-            <h2 className="text-xl font-bold mb-4 text-purple-800">{category.name}</h2>
+            <div className="relative mb-6">
+              <div className="flex flex-col items-center">
+                <h2 className="text-xl font-bold mb-2 text-purple-800 relative z-10 text-center">{category.name}</h2>
+                {selectedCategory === 0 && (
+                  <div className="w-3/4 h-0.5 bg-gradient-to-r from-transparent via-purple-600 to-transparent"></div>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               {categoryProducts.map((product) => (
                 <ProductCard key={createSafeKey(product.id, 'product')} product={product} />

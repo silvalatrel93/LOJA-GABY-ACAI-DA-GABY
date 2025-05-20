@@ -250,21 +250,9 @@ export default function OrdersPage() {
   }, [selectedOrder, loadOrders]);
 
   const getStatusColor = (status: OrderStatus): string => {
-    switch (status) {
-      case "new":
-        return "bg-blue-100 text-blue-800"
-      case "preparing":
-        return "bg-yellow-100 text-yellow-800"
-      case "delivering":
-        return "bg-purple-100 text-purple-800"
-      case "completed":
-        return "bg-green-100 text-green-800"
-      case "cancelled":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
+    // Usar a cor #92c730 para todos os status, com uma versão mais clara para o fundo
+    return "bg-[#e8f5d3] text-[#5a7c1e]";
+  };
 
   const getStatusText = (status: OrderStatus): string => {
     switch (status) {
@@ -283,6 +271,33 @@ export default function OrdersPage() {
     }
   }
   
+  // Função para definir a cor da borda lateral com base no status do pedido
+  const getOrderBorderColor = (status: OrderStatus): string => {
+    // Usar a cor #92c730 para todos os status
+    return "bg-[#92c730]";
+  };
+
+  // Função para gerar cores de fundo diferentes para cada pedido com base no ID
+  const getOrderBackgroundColor = (orderId: number): string => {
+    // Array de classes de cores suaves para alternar
+    const backgroundColors = [
+      'bg-white',
+      'bg-purple-50',
+      'bg-blue-50',
+      'bg-green-50',
+      'bg-yellow-50',
+      'bg-orange-50',
+      'bg-pink-50',
+      'bg-indigo-50',
+      'bg-teal-50',
+    ];
+    
+    // Usar o módulo do ID para selecionar uma cor
+    // Isso garante que o mesmo pedido sempre tenha a mesma cor
+    const colorIndex = orderId % backgroundColors.length;
+    return backgroundColors[colorIndex];
+  };
+
   // Função para formatar número de telefone no padrão brasileiro
   const formatPhoneNumber = (phone: string): string => {
     // Remover todos os caracteres não numéricos
@@ -477,10 +492,19 @@ export default function OrdersPage() {
           ) : orders.length === 0 ? (
             <p className="text-center text-gray-500 py-8">Nenhum pedido recebido ainda.</p>
           ) : (
-            <div id="new-orders-section" className="space-y-4">
+            <div id="new-orders-section" className="space-y-5">
               {orders.map((order) => (
-                <div key={order.id} className="border rounded-lg overflow-hidden">
-                  <div className="p-4">
+                <div 
+                  key={order.id} 
+                  className={`relative border rounded-lg overflow-hidden shadow-sm transition-all duration-300 hover:shadow-md hover:translate-y-[-2px] cursor-pointer ${getOrderBackgroundColor(order.id)}`}
+                  onClick={() => setSelectedOrder(order)}
+                >
+                  {/* Borda lateral colorida baseada no status do pedido */}
+                  <div 
+                    className={`absolute left-0 top-0 bottom-0 w-1.5 ${getOrderBorderColor(order.status)}`}
+                    aria-hidden="true"
+                  ></div>
+                  <div className="p-4 pl-6">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                       <div>
                         <h3 className="font-semibold text-lg">Pedido #{order.id}</h3>

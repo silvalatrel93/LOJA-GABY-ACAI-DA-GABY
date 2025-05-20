@@ -205,33 +205,49 @@ function CartPageContent() {
 
                   {/* Segunda linha: controles de quantidade e botão remover */}
                   <div className="flex items-center justify-between sm:justify-start sm:mt-2 w-full sm:w-auto">
-                    <div className="flex items-center border rounded-md h-8">
+                    <div className="flex items-center bg-gray-50 border border-purple-200 rounded-full h-10 shadow-sm transition-all duration-200 hover:shadow-md">
                       <button
                         onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                        className="px-2 py-1 text-gray-600 hover:bg-gray-100 h-full w-8 flex items-center justify-center"
+                        className="px-2 py-1 text-purple-700 hover:bg-purple-100 h-full w-10 flex items-center justify-center rounded-l-full transition-colors duration-200"
                         disabled={isUpdating[item.id]}
                         aria-label="Diminuir quantidade"
                       >
-                        <Minus size={14} />
+                        <Minus size={16} className={`${isUpdating[item.id] ? 'opacity-50' : ''}`} />
                       </button>
-                      <span className="px-2 sm:px-3 py-1 min-w-[1.5rem] sm:min-w-[2rem] text-center text-sm">{item.quantity}</span>
+                      <div className="relative px-2 sm:px-3 min-w-[2rem] sm:min-w-[2.5rem] text-center">
+                        <span className="text-sm font-medium">{item.quantity}</span>
+                        {isUpdating[item.id] && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-3 h-3 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                        )}
+                      </div>
                       <button
                         onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                        className="px-2 py-1 text-gray-600 hover:bg-gray-100 h-full w-8 flex items-center justify-center"
+                        className="px-2 py-1 text-purple-700 hover:bg-purple-100 h-full w-10 flex items-center justify-center rounded-r-full transition-colors duration-200"
                         disabled={isUpdating[item.id]}
                         aria-label="Aumentar quantidade"
                       >
-                        <Plus size={14} />
+                        <Plus size={16} className={`${isUpdating[item.id] ? 'opacity-50' : ''}`} />
                       </button>
                     </div>
                     <button
                       onClick={() => handleRemoveItem(item.id)}
-                      className="text-red-500 hover:text-red-700 text-xs sm:text-sm flex items-center ml-4"
+                      className={`
+                        group relative overflow-hidden text-red-500 font-medium text-xs sm:text-sm flex items-center ml-4 
+                        bg-white border border-red-200 px-3 py-1.5 rounded-full shadow-sm
+                        transition-all duration-300 hover:shadow-md hover:bg-red-50 hover:border-red-300
+                        active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-opacity-50
+                        ${isUpdating[item.id] ? 'opacity-70 cursor-not-allowed' : ''}
+                      `}
                       disabled={isUpdating[item.id]}
                       aria-label="Remover item"
                     >
-                      <Trash2 size={14} className="mr-1" /> 
-                      <span className="hidden xs:inline">Remover</span>
+                      <span className="relative z-10 flex items-center justify-center w-full">
+                        <Trash2 size={15} className="transition-transform duration-300 group-hover:scale-110 xs:mr-1.5" />
+                        <span className="hidden xs:inline group-hover:font-semibold">Remover</span>
+                      </span>
+                      <span className="absolute inset-0 bg-gradient-to-r from-red-50 to-red-100 transform scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100"></span>
                     </button>
                   </div>
                 </div>
@@ -256,15 +272,51 @@ function CartPageContent() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-3 sm:space-y-0">
+        <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0 mt-6 mb-8 sm:mb-6">
           <Link href="/" className="sm:flex-1 order-2 sm:order-1">
-            <button className="w-full border-2 border-purple-700 text-purple-700 py-3 rounded-lg font-semibold hover:bg-purple-50 transition-colors duration-200">
-              Continuar Comprando
+            <button 
+              className="
+                w-full relative overflow-hidden group
+                border-2 border-purple-700 text-purple-700 
+                py-3.5 sm:py-3 px-4 rounded-xl sm:rounded-lg 
+                font-semibold text-sm sm:text-base
+                shadow-sm hover:shadow-md
+                transition-all duration-300 ease-in-out
+                hover:bg-purple-50 active:scale-[0.98]
+                focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50
+                touch-manipulation
+              "
+            >
+              <span className="relative z-10 flex items-center justify-center">
+                <ArrowLeft size={18} className="mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
+                Continuar Comprando
+              </span>
+              <span className="absolute inset-0 bg-gradient-to-r from-purple-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             </button>
           </Link>
           <Link href="/checkout" className="sm:flex-1 order-1 sm:order-2">
-            <button className="w-full bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-700 hover:to-purple-900 text-white py-3 rounded-lg font-semibold shadow-md transition-all duration-200 hover:shadow-lg">
-              Finalizar Pedido
+            <button 
+              className="
+                w-full relative overflow-hidden group
+                bg-gradient-to-r from-purple-600 to-purple-800 
+                hover:from-purple-700 hover:to-purple-900 
+                text-white py-3.5 sm:py-3 px-4 rounded-xl sm:rounded-lg 
+                font-semibold text-sm sm:text-base
+                shadow-md hover:shadow-lg
+                transition-all duration-300 ease-in-out
+                active:scale-[0.98]
+                focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50
+                touch-manipulation
+              "
+            >
+              <span className="relative z-10 flex items-center justify-center">
+                Finalizar Pedido
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-2 transition-transform duration-300 group-hover:translate-x-1">
+                  <path d="M5 12h14"></path>
+                  <path d="m12 5 7 7-7 7"></path>
+                </svg>
+              </span>
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent to-purple-900 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></span>
             </button>
           </Link>
         </div>

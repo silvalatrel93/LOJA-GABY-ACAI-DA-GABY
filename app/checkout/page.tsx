@@ -492,60 +492,7 @@ function CheckoutPageContent() {
                 </label>
               </div>
               
-              {formData.paymentMethod === "pix" && (
-                <div className="mt-3 p-3 border border-gray-200 rounded-lg bg-gray-50 max-w-md mx-auto">
-                  <h3 className="text-md font-medium text-gray-800 mb-1">Pagamento via PIX</h3>
-                  
-                  {storeConfig?.pixKey ? (
-                    <>
-                      <p className="text-xs text-gray-600 mb-2">
-                        Copie a chave abaixo e cole no aplicativo do seu banco:
-                      </p>
-                      
-                      <div className="flex flex-col mb-2">
-                        <div className="w-full">
-                          {/* Identificar o tipo de chave PIX */}
-                          {(() => {
-                            // Forçar a chave PIX como '09300021990'
-                            const pixKey = '09300021990';
-                            // Identificar como CPF (11 dígitos)
-                            const pixType = "CPF";
-                            
-                            return (
-                              <p className="text-xs font-medium text-gray-700 mb-1 text-left">
-                                Chave PIX <span className="text-xs text-purple-600">({pixType})</span>:
-                              </p>
-                            );
-                          })()} 
-                          
-                          {/* Componente para exibir e copiar a chave PIX */}
-                          <PixKeyCopyComponent pixKey={'09300021990'} />
-                        </div>
-                      </div>
-                      
-                      <div className="mt-2 text-center bg-purple-50 p-2 rounded-md">
-                        <p className="text-xs font-medium text-gray-700">Valor a pagar:</p>
-                        <p className="text-base font-bold text-purple-700">{formatCurrency(total)}</p>
-                      </div>
-                      
-                      <div className="mt-3 p-2 bg-purple-100 border border-purple-200 rounded-md">
-                        <p className="text-xs font-medium text-purple-800 text-center">
-                          Após o pagamento, finalize o pedido para enviar o comprovante pelo WhatsApp
-                        </p>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-red-600 mb-2">
-                        A chave PIX não foi configurada pelo administrador.
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        Por favor, entre em contato com o estabelecimento para obter a chave PIX para pagamento.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Informações de pagamento serão enviadas após a confirmação */}
             </div>
           </div>
 
@@ -613,7 +560,7 @@ function CheckoutPageContent() {
                 Processando...
               </>
             ) : storeStatus.isOpen ? (
-              "Finalizar e Enviar pelo WhatsApp"
+              "Finalizar e Enviar Pedido"
             ) : (
               "Loja Fechada - Não é possível finalizar"
             )}

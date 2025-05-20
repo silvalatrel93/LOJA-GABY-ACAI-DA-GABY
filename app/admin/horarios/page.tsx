@@ -232,10 +232,7 @@ export default function OperatingHoursPage() {
                 })}
               </div>
 
-              <div className="mt-4 text-sm text-gray-500">
-                <p>Formato: HH:MM - HH:MM (24 horas)</p>
-                <p>Exemplo: 10:00 - 22:00</p>
-              </div>
+              {/* Informações de formato removidas */}
             </div>
 
 
