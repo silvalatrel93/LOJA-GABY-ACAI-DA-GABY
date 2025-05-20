@@ -180,19 +180,20 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
       // Adicionamos um sufixo único ao tamanho
       const uniqueSize = `${item.size}#${itemId.substring(0, 8)}`
 
+      // Inserir novo item
       const { data, error: insertError } = await supabase
         .from("cart")
         .insert({
           session_id: sessionId,
-          store_id: storeId, // Garantir que store_id esteja presente como UUID
+          store_id: storeId,
           product_id: item.productId,
           name: item.name,
           price: item.price,
           quantity: item.quantity,
-          image: item.image,
-          size: uniqueSize, // Usar o tamanho com sufixo único
-          additionals: item.additionals || [],
-          category_name: item.categoryName // Incluir o nome da categoria
+          image: item.image || null,
+          size: item.originalSize || item.size,
+          additionals: item.additionals || []
+          // Removida a tentativa de inserir category_name que não existe na tabela
         })
         .select()
         .single()

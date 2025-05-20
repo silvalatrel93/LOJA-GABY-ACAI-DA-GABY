@@ -335,7 +335,7 @@ function CheckoutPageContent() {
         {/* Notificação de sucesso */}
         <SuccessNotification />
         
-        <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
+        <header className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 sticky top-0 z-10 shadow-lg" data-component-name="CheckoutPageContent">
           <div className="container mx-auto flex items-center">
             <Link href="/" className="mr-4">
               <ArrowLeft size={24} />
@@ -362,7 +362,7 @@ function CheckoutPageContent() {
       {/* Notificação de sucesso */}
       <SuccessNotification />
       
-      <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
+      <header className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 sticky top-0 z-10 shadow-lg" data-component-name="CheckoutPageContent">
         <div className="container mx-auto flex items-center">
           <Link href="/carrinho" className="mr-4">
             <ArrowLeft size={24} />
@@ -551,7 +551,7 @@ function CheckoutPageContent() {
                       <div className="font-medium">
                         {item.quantity}x {item.name} ({cleanSizeDisplay(item.size)})
                       </div>
-                      <div className="font-medium tabular-nums">{formatCurrency(item.price * item.quantity)}</div>
+                      <div className="font-medium tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CheckoutPageContent">{formatCurrency(item.price * item.quantity)}</div>
                     </div>
                   </div>
 
@@ -581,7 +581,7 @@ function CheckoutPageContent() {
                                   <div>
                                     + {(additional.quantity ?? 1)}x {additional.name}
                                   </div>
-                                  <div className="tabular-nums">{additional.price === 0 ? "Grátis" : formatCurrency(additional.price * (additional.quantity ?? 1))}</div>
+                                  <div className="tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CheckoutPageContent">{additional.price === 0 ? "Grátis" : formatCurrency(additional.price * (additional.quantity ?? 1))}</div>
                                 </div>
                               ))}
                             </div>
@@ -589,24 +589,22 @@ function CheckoutPageContent() {
                         ));
                       })()}
                     </>
-                  ) : (
-                    <div className="text-sm text-gray-500 italic mt-1 ml-2">Sem Complementos Premium</div>
-                  )}
+                  ) : null}
                 </div>
               ))}
 
               <div className="border-t pt-3 mt-3">
                 <div className="flex justify-between items-center">
                   <div>Subtotal</div>
-                  <div className="tabular-nums">{formatCurrency(subtotal)}</div>
+                  <div className="tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CheckoutPageContent">{formatCurrency(subtotal)}</div>
                 </div>
                 <div className="flex justify-between items-center mt-1">
                   <div>Taxa de entrega</div>
-                  <div className="tabular-nums">{deliveryFee > 0 ? formatCurrency(deliveryFee) : "Grátis"}</div>
+                  <div className="tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CheckoutPageContent">{deliveryFee > 0 ? formatCurrency(deliveryFee) : "Grátis"}</div>
                 </div>
                 <div className="flex justify-between items-center mt-3 pt-2 border-t font-bold text-lg">
                   <div>Total</div>
-                  <div className="tabular-nums">{formatCurrency(total)}</div>
+                  <div className="tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CheckoutPageContent">{formatCurrency(total)}</div>
                 </div>
               </div>
             </div>
@@ -616,8 +614,9 @@ function CheckoutPageContent() {
             type="submit"
             disabled={!storeStatus.isOpen || isSubmitting}
             className={`w-full ${
-              storeStatus.isOpen && !isSubmitting ? "bg-green-600 hover:bg-green-700" : "bg-gray-400"
+              storeStatus.isOpen && !isSubmitting ? "bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800" : "bg-gray-400"
             } text-white py-3 rounded-lg font-semibold flex items-center justify-center sticky bottom-4 shadow-lg`}
+            data-component-name="CheckoutPageContent"
           >
             {isSubmitting ? (
               <>
@@ -632,7 +631,7 @@ function CheckoutPageContent() {
           </button>
         </form>
       </div>
-      <footer className="bg-purple-900 text-white p-4 mt-auto">
+      <footer className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 mt-auto shadow-lg" data-component-name="CheckoutPageContent">
         <div className="text-center">
           <p>
             © {new Date().getFullYear()} {storeConfig?.name || "Açaí Delícia"} - Todos os direitos reservados
@@ -651,3 +650,5 @@ export default function CheckoutPage() {
     </CartProvider>
   )
 }
+
+

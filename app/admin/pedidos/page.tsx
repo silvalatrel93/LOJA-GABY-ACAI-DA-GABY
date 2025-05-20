@@ -680,9 +680,7 @@ export default function OrdersPage() {
                                   ))}
                                 </ul>
                               </div>
-                            ) : (
-                              <p className="text-sm text-gray-500 italic mt-1">Sem Adicionais</p>
-                            )}
+                            ) : null}
                           </li>
                         ))}
                       </ul>

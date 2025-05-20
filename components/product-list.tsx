@@ -320,7 +320,7 @@ export default function ProductList({ products: initialProducts = [], categories
           >
             <div className="relative mb-6">
               <div className="flex flex-col items-center">
-                <h2 className="text-xl font-bold mb-2 text-purple-800 relative z-10 text-center">{category.name}</h2>
+                <h2 className="text-xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-purple-900 text-transparent bg-clip-text relative z-10 text-center" data-component-name="ProductList">{category.name}</h2>
                 {selectedCategory === 0 && (
                   <div className="w-3/4 h-0.5 bg-gradient-to-r from-transparent via-purple-600 to-transparent"></div>
                 )}
@@ -392,9 +392,10 @@ export default function ProductList({ products: initialProducts = [], categories
                 className={`category-button px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-400 scroll-snap-align-center ${
                   // Destacar o botão se for a categoria selecionada OU se for a categoria ativa durante o scroll
                   selectedCategory === category.id || (selectedCategory === 0 && activeCategory === category.id)
-                    ? "bg-purple-600 text-white shadow-sm font-medium"
-                    : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                    ? "bg-gradient-to-r from-purple-600 to-purple-900 text-white shadow-sm font-medium"
+                    : "bg-white text-gray-700 border border-gray-200 hover:bg-gradient-to-r hover:from-purple-100 hover:to-purple-200"
                 }`}
+                data-component-name="ProductList"
                 title={category.name} // Mostrar o nome completo no tooltip
               >
                 {abbreviateCategory(category.name, isMobile)}

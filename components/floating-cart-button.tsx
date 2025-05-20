@@ -63,7 +63,7 @@ export default function FloatingCartButton() {
     >
       <Link href="/carrinho">
         {/* Versão para telas maiores (md e acima) */}
-        <button className="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-700 hover:to-purple-900 text-white rounded-full shadow-lg flex items-center transition-all duration-200 group">
+        <button className="bg-gradient-to-r from-purple-800 to-purple-950 hover:from-purple-700 hover:to-purple-900 text-white rounded-full shadow-lg flex items-center transition-all duration-200 group" data-component-name="FloatingCartButton">
           {/* Ícone do carrinho sempre visível */}
           <div className="relative flex items-center justify-center p-3">
             <ShoppingCart size={20} className="transition-transform group-hover:scale-110" />

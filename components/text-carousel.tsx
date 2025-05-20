@@ -40,8 +40,9 @@ export default function TextCarousel({ phrases }: TextCarouselProps) {
 
   return (
     <div
-      className="relative overflow-hidden bg-purple-600 text-white py-1 shadow-md w-full"
+      className="relative overflow-hidden bg-gradient-to-r from-purple-800 to-purple-950 text-white py-1 shadow-md w-full"
       style={{ width: "100vw", marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)", marginBottom: "0" }}
+      data-component-name="TextCarousel"
     >
       <div className="w-full flex items-center justify-center h-full">
         <div className="w-full overflow-hidden">

@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Plus, Maximize2, ChevronDown, ChevronUp, Filter, ShoppingCart, X } from "lucide-react"
+import { Plus, Maximize2, ChevronDown, ChevronUp, Filter, ShoppingCart, X, Check } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 // Importe a função cleanSizeDisplay
 import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
@@ -31,14 +31,15 @@ export default function ProductCard({ product }: ProductCardProps) {
     [size: string]: {
       [additionalId: number]: { additional: Additional; quantity: number }
     }
-  }>({})
+  }>({})  
   
   // Complementos Premium selecionados para o tamanho atual
   const selectedAdditionals = additionalsBySize[selectedSize] || {}
-  const [isLoadingAdditionals, setIsLoadingAdditionals] = useState(false)
-  const [isAdditionalsExpanded, setIsAdditionalsExpanded] = useState(false)
+  // Adicionais sempre carregados e expandidos por padrão
+  const [isAdditionalsExpanded, setIsAdditionalsExpanded] = useState(true)
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
   const [storeStatus, setStoreStatus] = useState({ isOpen: true, statusText: "", statusClass: "" })
+  const [isDataLoaded, setIsDataLoaded] = useState(false)
   
   // Constantes para limites de complementos premium gratuitos
   const FREE_ADDITIONALS_LIMIT = 5
@@ -58,47 +59,40 @@ export default function ProductCard({ product }: ProductCardProps) {
   // Resetar estados quando o modal é fechado
   useEffect(() => {
     if (!isModalOpen) {
-      // Quando o modal é fechado, resetamos os estados relacionados aos complementos premium
-      setIsAdditionalsExpanded(false)
-      setIsLoadingAdditionals(false)
+      // Quando o modal é fechado, não precisamos fazer nada especial
+      // pois os dados já estão pré-carregados
     }
   }, [isModalOpen])
 
-  // Carregar complementos premium disponíveis
+  // Carregar complementos premium disponíveis quando o componente é montado
   useEffect(() => {
-    if (isModalOpen) {
-      const loadAdditionals = async () => {
-        try {
-          setIsLoadingAdditionals(true)
-          // Carregar complementos premium agrupados por categoria
-          const [activeAdditionals, groupedAdditionals] = await Promise.all([
-            getActiveAdditionalsByProduct(product.id),
-            getActiveAdditionalsByProductGroupedByCategory(product.id)
-          ])
-          
-          // Atualizar os estados com os dados carregados
-          setAdditionals(activeAdditionals)
-          setAdditionalsByCategory(groupedAdditionals)
-          
-          // Selecionar a primeira categoria por padrão se houver categorias
-          if (groupedAdditionals.length > 0) {
-            setSelectedCategoryId(groupedAdditionals[0].category.id)
-          } else {
-            // Se não houver categorias, não mostrar a seção expandida
-            setIsAdditionalsExpanded(false)
-          }
-        } catch (error) {
-          console.error("Erro ao carregar complementos premium:", error)
-          // Em caso de erro, não mostrar a seção expandida
-          setIsAdditionalsExpanded(false)
-        } finally {
-          setIsLoadingAdditionals(false)
+    const loadAdditionals = async () => {
+      try {
+        // Carregar complementos premium agrupados por categoria
+        const [activeAdditionals, groupedAdditionals] = await Promise.all([
+          getActiveAdditionalsByProduct(product.id),
+          getActiveAdditionalsByProductGroupedByCategory(product.id)
+        ])
+        
+        // Atualizar os estados com os dados carregados
+        setAdditionals(activeAdditionals)
+        setAdditionalsByCategory(groupedAdditionals)
+        
+        // Selecionar a primeira categoria por padrão se houver categorias
+        if (groupedAdditionals.length > 0) {
+          setSelectedCategoryId(groupedAdditionals[0].category.id)
         }
+        
+        // Marcar os dados como carregados
+        setIsDataLoaded(true)
+      } catch (error) {
+        console.error("Erro ao carregar complementos premium:", error)
       }
-
-      loadAdditionals()
     }
-  }, [isModalOpen, product.id])
+    
+    // Carregar adicionais imediatamente quando o componente é montado
+    loadAdditionals()
+  }, [product.id])
 
   useEffect(() => {
     const loadStoreStatus = async () => {
@@ -109,373 +103,355 @@ export default function ProductCard({ product }: ProductCardProps) {
     loadStoreStatus()
   }, [])
 
-  const handleAddToCart = async () => {
-    if (!selectedSizeInfo) return
-    
-    // Verificar quais tamanhos têm complementos premium selecionados
-    const sizesWithAdditionals = Object.keys(additionalsBySize).filter(size => 
-      Object.keys(additionalsBySize[size] || {}).length > 0
-    );
-    
-    // Se não houver nenhum tamanho com complementos premium, adicionar apenas o tamanho atual
-    if (sizesWithAdditionals.length === 0) {
-      sizesWithAdditionals.push(selectedSize);
+  const handleAddToCart = () => {
+    if (!selectedSize || !selectedSizeInfo) {
+      return
     }
-    
-    // Adicionar cada tamanho selecionado ao carrinho
-    for (const size of sizesWithAdditionals) {
-      // Obter informações do tamanho
-      const sizeInfo = product.sizes.find(s => s.size === size);
-      if (!sizeInfo) continue; // Pular se o tamanho não for encontrado
-      
-      // Obter complementos premium para este tamanho
-      const sizeAdditionals = additionalsBySize[size] || {};
-      
-      // Converter os complementos premium selecionados para o formato do carrinho
-      const cartAdditionals = Object.values(sizeAdditionals).map(({ additional, quantity }) => ({
-        ...additional,
-        quantity,
-      }));
-      
+
+    // Preparar os complementos premium selecionados para o formato do carrinho
+    const cartAdditionals: { id: number; name: string; price: number; categoryName?: string; quantity: number }[] = []
+
+    // Para cada tamanho com complementos premium selecionados
+    Object.entries(additionalsBySize).forEach(([size, sizeAdditionals]) => {
+      // Encontrar o tamanho correspondente nos tamanhos do produto
+      const sizeInfo = product.sizes.find(s => s.size === size)
+      if (!sizeInfo) return // Se o tamanho não for encontrado, pular
+
       // Calcular o preço total dos complementos premium
-      const additionalsTotal = Object.values(sizeAdditionals).reduce(
+      const additionalsPriceForSize = Object.values(sizeAdditionals).reduce(
         (sum, { additional, quantity }) => sum + additional.price * quantity,
-        0,
-      );
-      
-      // Preço base do produto para este tamanho
-      const basePrice = sizeInfo.price;
-      
+        0
+      )
+
+      // Calcular o preço base para este tamanho
+      const basePrice = sizeInfo.price
+
+      // Converter os complementos premium selecionados para o formato do carrinho
+      const additionals = Object.values(sizeAdditionals).map(({ additional, quantity }) => ({
+        id: additional.id,
+        name: additional.name,
+        price: additional.price,
+        categoryName: additional.categoryName,
+        quantity
+      }))
+
       // Adicionar ao carrinho
-      await addToCart({
+      addToCart({
         productId: product.id,
         name: product.name,
         price: basePrice,
         size: size,
         image: product.image || "",
         quantity: 1,
-        additionals: cartAdditionals.length > 0 ? cartAdditionals : undefined,
-        originalPrice: basePrice + additionalsTotal,
-      });
+        additionals,
+        additionalsTotalPrice: additionalsPriceForSize,
+        categoryName: product.categoryName
+      })
+    })
+
+    // Se não houver complementos premium selecionados, adicionar apenas o produto com o tamanho selecionado
+    if (Object.keys(additionalsBySize).length === 0) {
+      addToCart({
+        productId: product.id,
+        name: product.name,
+        price: selectedSizeInfo.price,
+        size: selectedSize,
+        image: product.image || "",
+        quantity: 1,
+        additionals: [],
+        additionalsTotalPrice: 0,
+        categoryName: product.categoryName
+      })
     }
-    
-    setIsModalOpen(false);
-    
-    // Limpar todos os complementos premium selecionados após adicionar ao carrinho
-    setAdditionalsBySize({});
+
+    // Fechar o modal após adicionar ao carrinho
+    setIsModalOpen(false)
   }
 
   // Função para abrir o visualizador de imagem
   const handleOpenImageViewer = (e: React.MouseEvent) => {
-    e.stopPropagation() // Impedir que o evento se propague para outros elementos
+    e.stopPropagation()
     setIsImageViewerOpen(true)
   }
 
   // Função para alternar a seleção de um adicional (selecionar ou remover)
   const toggleAdditional = (additional: Additional) => {
-    setAdditionalsBySize((prev) => {
-      // Criar um novo objeto para não modificar o estado diretamente
-      const newState = { ...prev };
-      
-      // Garantir que existe um objeto para o tamanho selecionado
-      if (!newState[selectedSize]) {
-        newState[selectedSize] = {};
-      }
-      
-      // Criar uma cópia dos complementos premium do tamanho atual
-      const newSelected = { ...newState[selectedSize] };
-      
-      // Se já está selecionado, remove o adicional
-      if (newSelected[additional.id]) {
-        delete newSelected[additional.id];
-        newState[selectedSize] = newSelected;
-        return newState;
-      } 
-      
-      // Se não está selecionado, verifica se pode adicionar
-      if (hasFreeAdditionals && selectedAdditionalsCount >= FREE_ADDITIONALS_LIMIT) {
-        // Exibir mensagem informando o limite
-        alert(`Você já selecionou o limite de ${FREE_ADDITIONALS_LIMIT} complementos premium grátis para o tamanho ${selectedSize}!`);
-        return prev; // Retorna o estado anterior sem mudanças
-      }
-      
-      // Adiciona o adicional com quantidade 1
-      newSelected[additional.id] = {
-        additional,
-        quantity: 1,
-      }
-      
-      // Atualiza os complementos premium para o tamanho atual
-      newState[selectedSize] = newSelected;
-      
-      return newState;
-    })
+    // Verificar se este adicional já está selecionado para o tamanho atual
+    const isSelected = !!selectedAdditionals[additional.id]
+    
+    // Se estiver selecionado, remover
+    if (isSelected) {
+      setAdditionalsBySize(prev => {
+        const newState = { ...prev }
+        const newSizeAdditionals = { ...newState[selectedSize] }
+        delete newSizeAdditionals[additional.id]
+        
+        // Se não houver mais complementos premium para este tamanho, remover o tamanho
+        if (Object.keys(newSizeAdditionals).length === 0) {
+          delete newState[selectedSize]
+        } else {
+          newState[selectedSize] = newSizeAdditionals
+        }
+        
+        return newState
+      })
+    } 
+    // Se não estiver selecionado e não atingiu o limite, adicionar
+    else if (!hasFreeAdditionals || !reachedFreeAdditionalsLimit || additional.price > 0) {
+      setAdditionalsBySize(prev => {
+        const newState = { ...prev }
+        if (!newState[selectedSize]) {
+          newState[selectedSize] = {}
+        }
+        
+        newState[selectedSize][additional.id] = { 
+          additional, 
+          quantity: 1 
+        }
+        
+        return newState
+      })
+    }
   }
 
   // Função para remover um adicional
   const removeAdditional = (additionalId: number) => {
-    setAdditionalsBySize((prev) => {
-      // Se não há complementos premium para este tamanho, não faz nada
-      if (!prev[selectedSize]) return prev;
+    setAdditionalsBySize(prev => {
+      const newState = { ...prev }
+      const newSizeAdditionals = { ...newState[selectedSize] }
+      delete newSizeAdditionals[additionalId]
       
-      // Criar um novo objeto para não modificar o estado diretamente
-      const newState = { ...prev };
-      const newSelected = { ...newState[selectedSize] };
+      // Se não houver mais complementos premium para este tamanho, remover o tamanho
+      if (Object.keys(newSizeAdditionals).length === 0) {
+        delete newState[selectedSize]
+      } else {
+        newState[selectedSize] = newSizeAdditionals
+      }
       
-      // Remove o adicional
-      delete newSelected[additionalId];
-      
-      // Atualiza os complementos premium para o tamanho atual
-      newState[selectedSize] = newSelected;
-      
-      return newState;
+      return newState
     })
   }
 
   // Calcular o preço total incluindo complementos premium para todos os tamanhos selecionados
   const calculateTotal = () => {
-    // Se não houver tamanhos com complementos premium, retornar apenas o preço do tamanho atual
-    const sizesWithAdditionals = Object.keys(additionalsBySize).filter(size => 
-      Object.keys(additionalsBySize[size] || {}).length > 0
-    );
+    let total = 0
     
-    // Se não houver tamanhos com complementos premium, usar apenas o tamanho atual
-    if (sizesWithAdditionals.length === 0) {
-      return selectedSizeInfo ? selectedSizeInfo.price : 0;
+    // Se não houver complementos premium, retornar apenas o preço do tamanho atual
+    if (Object.keys(additionalsBySize).length === 0 && selectedSizeInfo) {
+      return selectedSizeInfo.price
     }
     
-    // Calcular o total para todos os tamanhos com complementos premium
-    let total = 0;
-    
-    // Adicionar o preço do tamanho atual se não tiver complementos premium selecionados
-    if (!sizesWithAdditionals.includes(selectedSize) && selectedSizeInfo) {
-      total += selectedSizeInfo.price;
-    }
-    
-    // Somar o preço de cada tamanho com seus complementos premium
-    for (const size of sizesWithAdditionals) {
-      // Obter informações do tamanho
-      const sizeInfo = product.sizes.find(s => s.size === size);
-      if (!sizeInfo) continue; // Pular se o tamanho não for encontrado
+    // Para cada tamanho com complementos premium selecionados
+    Object.entries(additionalsBySize).forEach(([size, sizeAdditionals]) => {
+      // Encontrar o tamanho correspondente nos tamanhos do produto
+      const sizeInfo = product.sizes.find(s => s.size === size)
+      if (!sizeInfo) return // Se o tamanho não for encontrado, pular
       
-      // Preço base do tamanho
-      total += sizeInfo.price;
-      
-      // Somar o preço dos complementos premium para este tamanho
-      const sizeAdditionals = additionalsBySize[size] || {};
+      // Calcular o preço total dos complementos premium
       const additionalsPriceForSize = Object.values(sizeAdditionals).reduce(
         (sum, { additional, quantity }) => sum + additional.price * quantity,
         0
-      );
+      )
       
-      total += additionalsPriceForSize;
-    }
+      // Adicionar o preço base para este tamanho
+      const basePrice = sizeInfo.price
+      
+      // Adicionar ao total
+      total += basePrice + additionalsPriceForSize
+    })
     
-    return total;
+    return total
   }
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        {/* Card com tamanho reduzido */}
+      <div 
+        className="bg-white rounded-lg shadow-md overflow-hidden"
+        onClick={() => setIsModalOpen(true)}
+        data-component-name="ProductCard"
+      >
+        {/* Imagem do produto em tamanho reduzido */}
         <div className="relative h-36 group">
           <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
-
-          {/* Botão de ampliar imagem */}
-          <button
-            onClick={handleOpenImageViewer}
-            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white bg-opacity-70 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-            aria-label="Ampliar imagem"
+          <button 
+            onClick={handleOpenImageViewer} 
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white bg-opacity-70 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            <Maximize2 size={20} className="text-purple-900" />
+            <Maximize2 size={18} />
           </button>
-
-          {/* Overlay com gradiente na parte inferior */}
-          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black to-transparent opacity-60"></div>
         </div>
-
+        
+        {/* Informações do produto */}
         <div className="p-3">
-          <h3 className="font-semibold text-purple-900 text-sm">{product.name}</h3>
-          <p className="text-gray-600 text-xs mt-1 line-clamp-2">{product.description}</p>
+          {product.categoryName && (
+            <p className="text-xs bg-gradient-to-r from-purple-400 to-purple-700 text-transparent bg-clip-text font-medium mb-1" data-component-name="ProductCard">{product.categoryName}</p>
+          )}
+          <h3 className="font-bold text-lg bg-gradient-to-r from-purple-600 to-purple-900 text-transparent bg-clip-text" data-component-name="ProductCard">{product.name}</h3>
+          <p className="text-sm bg-gradient-to-r from-gray-800 to-black text-transparent bg-clip-text font-medium mt-1 line-clamp-2 md:line-clamp-3 hover:line-clamp-none transition-all duration-300" data-component-name="ProductCard">{product.description}</p>
           <div className="mt-2 flex justify-between items-center">
-            <span className="font-bold text-purple-900 text-sm">
-              A partir de {formatCurrency(product.sizes[0]?.price || 0)}
-            </span>
-            <button
-              onClick={() => (storeStatus.isOpen ? setIsModalOpen(true) : null)}
-              className={`${
-                storeStatus.isOpen 
-                  ? "bg-gradient-to-r from-purple-500 to-purple-800 hover:from-purple-600 hover:to-purple-900" 
-                  : "bg-gray-400 cursor-not-allowed"
-              } text-white p-1.5 rounded-full shadow-sm transition-all duration-200`}
-              disabled={!storeStatus.isOpen}
-              title={storeStatus.isOpen ? "Adicionar ao carrinho" : "Loja fechada"}
-            >
-              <ShoppingCart size={16} />
+            <div className="font-medium" data-component-name="ProductCard">
+              <span className="text-xs bg-gradient-to-r from-purple-600 to-purple-900 text-transparent bg-clip-text font-bold block">A PARTIR DE</span>
+              <span className="bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold">
+                {formatCurrency(product.sizes[0]?.price || 0)}
+              </span>
+            </div>
+            <button className="text-white bg-gradient-to-r from-purple-800 to-purple-950 hover:from-purple-700 hover:to-purple-900 flex items-center p-1.5 rounded-full shadow-md" data-component-name="ProductCard">
+              <ShoppingCart size={18} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Modal de seleção de tamanho e adição ao carrinho */}
+      {/* Modal de detalhes do produto */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-auto">
-            <div className="relative p-4 flex justify-between items-center border-b sticky top-0 bg-white z-10">
-              <h3 className="font-bold text-xl text-purple-900">{product.name}</h3>
-              <button
-                onClick={() => {
-                  setIsModalOpen(false)
-                  // Não limpar os complementos premium ao fechar o modal
-                }}
-                className="bg-gradient-to-r from-purple-500 to-purple-800 hover:from-purple-600 hover:to-purple-900 text-white p-1.5 rounded-full shadow-sm transition-all duration-200"
-              >
-                <X size={18} />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setIsModalOpen(false)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()} data-component-name="ProductCard">
+            <div className="flex justify-between items-center border-b sticky top-0 bg-white z-10">
+              <h2 className="font-semibold text-xl p-4">{product.name}</h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700 p-4">
+                <X size={20} />
               </button>
             </div>
-
+            
             <div className="p-4">
-              <p className="text-gray-600 mt-2">{product.description}</p>
-
+              {/* Imagem do produto */}
+              <div className="relative h-48 rounded-lg overflow-hidden mb-4">
+                <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
+                <button 
+                  onClick={handleOpenImageViewer} 
+                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white bg-opacity-60 p-2 rounded-full shadow-md hover:bg-opacity-80 transition-all"
+                  data-component-name="ProductCard"
+                >
+                  <Maximize2 size={18} className="text-purple-700" />
+                </button>
+              </div>
+              
+              {/* Categoria e descrição */}
+              {product.categoryName && (
+                <p className="text-sm text-purple-700 mb-1">{product.categoryName}</p>
+              )}
+              <p className={`text-gray-700 mb-4 ${product.description ? 'border-b pb-4' : ''}`}>{product.description}</p>
+              
+              {/* Seleção de tamanho */}
               <div className="mt-4">
                 <h4 className="font-semibold text-gray-700 mb-2">Escolha o tamanho:</h4>
-                <div className={`grid ${product.sizes.length === 2 ? 'grid-cols-2' : product.sizes.length === 1 ? 'grid-cols-1' : 'grid-cols-3'} gap-2`}>
+                <div className="grid grid-cols-2 gap-2">
                   {product.sizes.map((sizeOption) => (
                     <button
                       key={sizeOption.size}
-                      onClick={() => {
-                        // Ao mudar de tamanho, mantém os complementos premium específicos de cada tamanho
-                        setSelectedSize(sizeOption.size);
-                        // Resetar a categoria selecionada ao mudar de tamanho
-                        setSelectedCategoryId(null);
-                      }}
-                      className={`border rounded-md py-2 px-3 text-center ${selectedSize === sizeOption.size
-                        ? 'bg-purple-100 border-purple-500 text-purple-900'
-                        : 'border-gray-300 text-gray-700'}`}
+                      onClick={() => setSelectedSize(sizeOption.size)}
+                      className={`border rounded-md flex flex-col items-center justify-center p-3 ${
+                        selectedSize === sizeOption.size
+                          ? 'border-purple-500 bg-purple-50'
+                          : 'border-gray-300 text-gray-700'
+                      }`}
                     >
                       <div className="font-medium">{cleanSizeDisplay(sizeOption.size)}</div>
-                      <div className="text-sm">{formatCurrency(sizeOption.price)}</div>
+                      <div className="text-sm bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="ProductCard">{formatCurrency(sizeOption.price)}</div>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Seção de complementos premium - só exibida se houver complementos premium confirmados */}
-              {additionalsByCategory.length > 0 && (
+              {/* Seção de complementos premium - sempre exibida se houver complementos premium confirmados */}
+              {additionalsByCategory.length > 0 && isDataLoaded && (
                 <div className="mt-6">
-                  <button
-                    onClick={() => setIsAdditionalsExpanded(!isAdditionalsExpanded)}
-                    className="flex items-center justify-between w-full text-left"
-                  >
+                  <div className="flex items-center justify-between w-full text-left mb-3">
                     <h4 className="font-semibold text-gray-700">Complementos Premium (opcional):</h4>
-                    <div className="bg-gradient-to-r from-purple-500 to-purple-800 p-1.5 rounded-full shadow-sm">
-                      {isAdditionalsExpanded ? (
-                        <ChevronUp size={18} className="text-white" />
-                      ) : (
-                        <ChevronDown size={18} className="text-white" />
-                      )}
-                    </div>
-                  </button>
-
-                  {isAdditionalsExpanded && (
-                    <div className="mt-2">
-                      {isLoadingAdditionals ? (
-                        <div className="flex justify-center py-4">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-700"></div>
-                        </div>
-                      ) : additionalsByCategory.length === 0 ? (
-                        <p className="text-gray-500 text-sm py-2">Nenhum complemento premium disponível</p>
-                      ) : (
-                        <div className="space-y-4">
-                          {/* Abas de categorias */}
-                          <div className="flex flex-wrap gap-2">
+                  </div>
+                  <div className="mt-2">
+                      <div className="space-y-4">
+                        {/* Abas de categorias */}
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => setSelectedCategoryId(null)}
+                            className={`px-3 py-1 text-xs rounded-full ${selectedCategoryId === null
+                              ? 'bg-purple-700 text-white'
+                              : 'bg-gray-100 text-gray-700'}`}
+                            data-component-name="ProductCard"
+                          >
+                            TODOS
+                          </button>
+                          {additionalsByCategory.map((group) => (
                             <button
-                              onClick={() => setSelectedCategoryId(null)}
-                              className={`px-3 py-1 text-xs rounded-full ${selectedCategoryId === null
+                              key={group.category.id}
+                              onClick={() => setSelectedCategoryId(group.category.id)}
+                              className={`px-3 py-1 text-xs rounded-full ${selectedCategoryId === group.category.id
                                 ? 'bg-purple-700 text-white'
                                 : 'bg-gray-100 text-gray-700'}`}
+                              data-component-name="ProductCard"
                             >
-                              TODOS
+                              {group.category.name}
                             </button>
-                            {additionalsByCategory.map((group) => (
-                              <button
-                                key={group.category.id}
-                                onClick={() => setSelectedCategoryId(group.category.id)}
-                                className={`px-3 py-1 text-xs rounded-full ${selectedCategoryId === group.category.id
-                                  ? 'bg-purple-700 text-white'
-                                  : 'bg-gray-100 text-gray-700'}`}
-                              >
-                                {group.category.name}
-                              </button>
-                            ))}
-                          </div>
-                          
-                          {/* Lista de complementos premium filtrada por categoria */}
-                          <div className="space-y-2">
-                            {(selectedCategoryId === null 
-                              ? additionals // Mostrar todos os complementos premium
-                              : (additionalsByCategory
-                                  .find(group => group.category.id === selectedCategoryId)?.additionals || [])
-                            ).map((additional) => {
-                              // Verificar se este adicional já foi selecionado
-                              const isSelected = !!selectedAdditionals[additional.id];
-                              // Botão de adicionar deve ser desabilitado se já atingiu o limite e este adicional não está selecionado
-                              const isDisabled = hasFreeAdditionals && reachedFreeAdditionalsLimit && !isSelected;
-                              
-                              return (
-                                <div key={additional.id} className="flex items-center justify-between p-3 border rounded-md hover:bg-gray-50">
-                                  <div className="flex items-center">
-                                    <div className="w-10 h-10 relative mr-3 bg-purple-100 rounded-md overflow-hidden">
-                                      {additional.image ? (
-                                        <Image
-                                          src={additional.image || "/placeholder.svg"}
-                                          alt={additional.name}
-                                          fill
-                                          className="object-cover"
-                                        />
-                                      ) : (
-                                        <div className="flex items-center justify-center h-full text-purple-300">
-                                          <Plus size={16} />
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div>
-                                      <p className="font-medium">{additional.name}</p>
-                                      <p className="text-sm text-purple-700">
-                                        {additional.price > 0 ? formatCurrency(additional.price) : "Gratuito"}
-                                      </p>
-                                    </div>
+                          ))}
+                        </div>
+                        
+                        {/* Lista de complementos premium filtrada por categoria */}
+                        {/* Grid de 2 colunas para adicionais */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" data-component-name="ProductCard">
+                          {(selectedCategoryId === null 
+                            ? additionals // Mostrar todos os complementos premium
+                            : (additionalsByCategory
+                                .find(group => group.category.id === selectedCategoryId)?.additionals || [])
+                          ).map((additional) => {
+                            // Verificar se este adicional já foi selecionado
+                            const isSelected = !!selectedAdditionals[additional.id];
+                            // Botão de adicionar deve ser desabilitado se já atingiu o limite e este adicional não está selecionado
+                            const isDisabled = hasFreeAdditionals && reachedFreeAdditionalsLimit && !isSelected;
+                            
+                            return (
+                              <div key={additional.id} className="flex items-center justify-between p-2 border rounded-md hover:bg-gray-50" data-component-name="ProductCard">
+                                <div className="flex items-center flex-1 pr-2">
+                                  <div className="w-8 h-8 relative mr-2 bg-purple-100 rounded-md overflow-hidden flex-shrink-0">
+                                    {additional.image ? (
+                                      <Image
+                                        src={additional.image || "/placeholder.svg"}
+                                        alt={additional.name}
+                                        fill
+                                        className="object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex items-center justify-center h-full text-purple-300">
+                                        <Plus size={14} />
+                                      </div>
+                                    )}
                                   </div>
-                                  
-                                  <button
-                                    onClick={() => toggleAdditional(additional)}
-                                    disabled={!isSelected && isDisabled}
-                                    className={`px-3 py-1.5 rounded-md flex items-center justify-center transition-colors ${isSelected 
-                                      ? 'bg-purple-500 text-white hover:bg-purple-600' 
+                                  <div className="flex-1">
+                                    <p className="font-medium text-sm bg-gradient-to-r from-gray-700 to-black text-transparent bg-clip-text" data-component-name="ProductCard">{additional.name}</p>
+                                    <p className="text-xs bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="ProductCard">
+                                      {additional.price > 0 ? formatCurrency(additional.price) : "Gratuito"}
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <button
+                                  onClick={() => toggleAdditional(additional)}
+                                  disabled={!isSelected && isDisabled}
+                                  className={`p-2 rounded-md flex items-center justify-center transition-colors shadow-sm ${
+                                    isSelected 
+                                      ? 'bg-gradient-to-r from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700' 
                                       : isDisabled 
                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                                        : 'bg-purple-100 text-purple-900 hover:bg-purple-200'}`}
-                                    title={isDisabled && !isSelected ? `Limite de ${FREE_ADDITIONALS_LIMIT} complementos premium grátis atingido` : isSelected ? "Remover" : "Adicionar"}
-                                  >
-                                    {isSelected ? (
-                                      <>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                        Selecionado
-                                      </>
-                                    ) : (
-                                      <>Adicionar</>
-                                    )}
-                                  </button>
-                                </div>
-                              );
-                            })}
-                          </div>
+                                        : 'bg-gradient-to-r from-purple-400 to-purple-700 text-white hover:from-purple-500 hover:to-purple-800'
+                                  }`}
+                                  title={isDisabled && !isSelected ? `Limite de ${FREE_ADDITIONALS_LIMIT} complementos premium grátis atingido` : isSelected ? "Remover" : "Adicionar"}
+                                  data-component-name="ProductCard"
+                                >
+                                  {isSelected ? (
+                                    <Check size={18} className="text-green-700" />
+                                  ) : (
+                                    <ShoppingCart size={18} />
+                                  )}
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                  </div>
                 </div>
               )}
+              
               {/* Resumo dos complementos premium selecionados */}
               {Object.keys(additionalsBySize).length > 0 && (
                 <div className="mt-4 p-3 bg-purple-50 rounded-md">

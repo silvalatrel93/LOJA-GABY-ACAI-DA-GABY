@@ -71,8 +71,8 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
         <header
           className={`text-white fixed top-0 left-0 right-0 w-full z-30 transition-all duration-300 ease-in-out header-animation py-3 ${
             scrolled 
-              ? 'bg-purple-600/90 backdrop-blur-md shadow-lg shadow-purple-900/30' 
-              : 'bg-purple-600'
+              ? 'bg-gradient-to-r from-purple-800 to-purple-950 backdrop-blur-md shadow-lg shadow-purple-900/30' 
+              : 'bg-gradient-to-r from-purple-800 to-purple-950'
           }`}
           style={{ 
             width: "100vw", 
@@ -80,6 +80,7 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
             marginRight: "calc(-50vw + 50%)",
             height: "56px",
           }}
+          data-component-name="MainLayout"
         >
           <div className="w-full max-w-screen-xl mx-auto px-4 flex justify-between items-center">
             <div className="flex items-center">
@@ -150,8 +151,9 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
 
         {/* Rodapé */}
         <footer
-          className="bg-purple-600 text-white p-4"
+          className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 shadow-lg"
           style={{ width: "100vw", marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)" }}
+          data-component-name="MainLayout"
         >
           <div className="w-full max-w-screen-xl mx-auto px-4 text-center">
             <p>

@@ -16,7 +16,7 @@ function ItemRow({ name, value, className }: { name: string; value: string; clas
   return (
     <div className={`flex items-center w-full ${className || ''}`}>
       <div className="flex-grow">{name}</div>
-      <div className="flex-shrink-0 w-20 text-right tabular-nums">{value}</div>
+      <div className="flex-shrink-0 w-20 text-right tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="ItemRow">{value}</div>
     </div>
   )
 }
@@ -116,7 +116,7 @@ function CartPageContent() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
+        <header className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 sticky top-0 z-10 shadow-lg" data-component-name="CartPageContent">
           <div className="container mx-auto flex items-center">
             <Link href="/" className="mr-4">
               <ArrowLeft size={24} />
@@ -134,7 +134,7 @@ function CartPageContent() {
   if (cart.length === 0) {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
+        <header className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 sticky top-0 z-10 shadow-lg" data-component-name="CartPageContent">
           <div className="container mx-auto flex items-center">
             <Link href="/" className="mr-4">
               <ArrowLeft size={24} />
@@ -158,7 +158,7 @@ function CartPageContent() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
+      <header className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 sticky top-0 z-10 shadow-lg" data-component-name="CartPageContent">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center">
             <Link href="/" className="mr-4">
@@ -213,7 +213,7 @@ function CartPageContent() {
                             <span className="font-medium text-sm sm:text-base truncate pr-2 leading-tight">
                               {item.quantity}x {item.name} <span className="text-xs text-gray-500 block sm:inline mt-0.5 sm:mt-0">({item.size})</span>
                             </span>
-                            <span className="text-sm sm:text-base whitespace-nowrap ml-2 mt-0.5">{formatCurrency(item.price)}</span>
+                            <span className="text-sm sm:text-base whitespace-nowrap ml-2 mt-0.5 bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CartPageContent">{formatCurrency(item.price)}</span>
                           </div>
                         </div>
                         
@@ -311,7 +311,7 @@ function CartPageContent() {
                       <span className="relative z-10 flex items-center justify-center">
                         <Trash2 size={15} />
                       </span>
-                      <span className="absolute inset-0 bg-gradient-to-r from-red-50 to-red-100 transform scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100" data-component-name="CartPageContent"></span>
+                      <span className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-700 transform scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100 group-hover:opacity-20" data-component-name="CartPageContent"></span>
                     </button>
                   </div>
                 </div>
@@ -380,7 +380,7 @@ function CartPageContent() {
                   <path d="m12 5 7 7-7 7"></path>
                 </svg>
               </span>
-              <span className="absolute inset-0 bg-gradient-to-r from-transparent to-purple-900 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></span>
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent to-purple-950 opacity-0 group-hover:opacity-30 transition-opacity duration-300" data-component-name="CartPageContent"></span>
             </button>
           </Link>
         </div>
@@ -397,3 +397,5 @@ export default function CartPage() {
     </CartProvider>
   )
 }
+
+

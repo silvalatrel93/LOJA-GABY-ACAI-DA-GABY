@@ -6,7 +6,7 @@ import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { jsPDF } from "jspdf"
-import type { Order, CartAdditional } from "@/lib/db"
+import type { Order, Additional } from "@/lib/db"
 import { getStoreConfig } from "@/lib/db"
 import { getSalmoAleatorio } from "@/lib/salmos"
 
@@ -328,18 +328,13 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
           // Adicionar adicionais do item
           item.additionals.forEach((additional) => {
-            const additionalText = `• ${additional.quantity}x ${additional.name}`
-            const additionalPriceText = formatCurrency(additional.price * additional.quantity)
+            const additionalText = `• ${additional.quantity ?? 1}x ${additional.name}`
+            const additionalPriceText = formatCurrency(additional.price * (additional.quantity ?? 1))
 
             doc.text(additionalText, margin + 5, yPos)
             doc.text(additionalPriceText, 80 - margin, yPos, { align: "right" })
             yPos += 4
           })
-        } else {
-          doc.setFont("courier", "italic")
-          doc.text("Sem Adicionais:", margin + 3, yPos)
-          yPos += 5
-          doc.setFont("courier", "normal")
         }
 
         yPos += 3 // Espaço extra após cada item
@@ -475,7 +470,8 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                       const groupedByCategory: Record<string, typeof item.additionals> = {};
                       
                       item.additionals.forEach((additional) => {
-                        const categoryName = additional.categoryName || "Outros";
+                        // @ts-ignore - Alguns adicionais podem ter categoryName, outros não
+                        const categoryName = additional.categoryName || "Complementos Premium";
                         if (!groupedByCategory[categoryName]) {
                           groupedByCategory[categoryName] = [];
                         }
@@ -489,18 +485,16 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                           {additionals.map((additional, idx) => (
                             <div key={idx} className="item additional">
                               <div>
-                                • {additional.quantity}x {additional.name}
+                                • {additional.quantity ?? 1}x {additional.name}
                               </div>
-                              <div>{formatCurrency(additional.price * additional.quantity)}</div>
+                              <div>{formatCurrency(additional.price * (additional.quantity ?? 1))}</div>
                             </div>
                           ))}
                         </div>
                       ));
                     })()}
                   </>
-                ) : (
-                  <div className="additional-status">Sem Complementos Premium</div>
-                )}
+                ) : null}
               </div>
             ))}
           </div>
