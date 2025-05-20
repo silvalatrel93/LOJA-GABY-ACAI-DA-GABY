@@ -192,6 +192,7 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
           image: item.image,
           size: uniqueSize, // Usar o tamanho com sufixo único
           additionals: item.additionals || [],
+          category_name: item.categoryName // Incluir o nome da categoria
         })
         .select()
         .single()

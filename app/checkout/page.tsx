@@ -9,9 +9,10 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft, Clock, MapPin, CreditCard, Truck, Home, Building, MapPinned, Copy, Check, Eye, EyeOff, CheckCircle } from "lucide-react"
 import { useCart, CartProvider } from "@/lib/cart-context"
 import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
-import { saveOrder } from "@/lib/services/order-service"
 import { getStoreConfig } from "@/lib/services/store-config-service"
 import { getStoreStatus } from "@/lib/store-utils"
+import { saveOrder } from "@/lib/services/order-service"
+import { getProductById } from "@/lib/services/product-service"
 import { generateSimplePixQRCode } from "@/lib/pix-utils"
 import type { StoreConfig } from "@/lib/types"
 
@@ -132,10 +133,12 @@ function CheckoutPageContent() {
     complement: "",
     paymentMethod: "pix",
   })
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [deliveryFee, setDeliveryFee] = useState(5.0)
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null)
   const [storeStatus, setStoreStatus] = useState({ isOpen: true, statusText: "", statusClass: "" })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [productCategories, setProductCategories] = useState<Record<number, string>>({})
 
   // Carregar configurações da loja e status
   useEffect(() => {
@@ -159,6 +162,38 @@ function CheckoutPageContent() {
     loadStoreConfig()
     loadStoreStatus()
   }, [])
+  
+  // Carregar categorias dos produtos no carrinho
+  useEffect(() => {
+    const loadProductCategories = async () => {
+      const categories: Record<number, string> = {}
+      
+      // Processar apenas produtos que não têm categoria definida
+      const productsToLoad = cart.filter(item => !item.categoryName && item.productId)
+      
+      if (productsToLoad.length === 0) return
+      
+      try {
+        // Buscar informações de categoria para cada produto
+        for (const item of productsToLoad) {
+          if (item.productId) {
+            const product = await getProductById(item.productId)
+            if (product && product.categoryName) {
+              categories[item.id] = product.categoryName
+            }
+          }
+        }
+        
+        setProductCategories(categories)
+      } catch (error) {
+        console.error("Erro ao carregar categorias dos produtos:", error)
+      }
+    }
+    
+    if (cart.length > 0) {
+      loadProductCategories()
+    }
+  }, [cart])
 
   // Calcular subtotal e total
   const subtotal = cart.reduce((sum, item) => {
@@ -359,7 +394,7 @@ function CheckoutPageContent() {
             <div className="space-y-3">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                  Nome Completo
+                  Nome
                 </label>
                 <input
                   type="text"
@@ -444,7 +479,7 @@ function CheckoutPageContent() {
 
               <div>
                 <label htmlFor="complement" className="block text-sm font-medium text-gray-700 mb-1">
-                  Complemento (opcional)
+                  Complemento
                 </label>
                 <input
                   type="text"
@@ -452,6 +487,7 @@ function CheckoutPageContent() {
                   name="complement"
                   value={formData.complement}
                   onChange={handleChange}
+                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
@@ -502,30 +538,59 @@ function CheckoutPageContent() {
             <div className="space-y-4">
               {cart.map((item, index) => (
                 <div key={`${item.id}-${item.size}`} className={`${index > 0 ? "pt-3 border-t" : ""}`}>
-                  <div className="flex justify-between items-center">
-                    <div className="font-medium">
-                      {item.quantity}x {item.name} ({cleanSizeDisplay(item.size)})
+                  <div className="flex flex-col">
+                    {/* Categoria do produto */}
+                    {(item.categoryName || productCategories[item.id]) && (
+                      <span className="text-xs text-purple-600 font-medium mb-0.5">
+                        {item.categoryName || productCategories[item.id]}
+                      </span>
+                    )}
+                    
+                    {/* Nome e preço do produto */}
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium">
+                        {item.quantity}x {item.name} ({cleanSizeDisplay(item.size)})
+                      </div>
+                      <div className="font-medium tabular-nums">{formatCurrency(item.price * item.quantity)}</div>
                     </div>
-                    <div className="font-medium tabular-nums">{formatCurrency(item.price * item.quantity)}</div>
                   </div>
 
                   {/* Mostrar status de adicionais */}
                   {item.additionals && item.additionals.length > 0 ? (
                     <>
-                      <div className="text-sm text-purple-600 italic mt-1 ml-2">Com Adicionais:</div>
-                      <div className="ml-4 text-sm text-gray-600">
-                        {item.additionals.map((additional, idx) => (
-                          <div key={idx} className="flex justify-between items-center mt-1">
-                            <div>
-                              + {(additional.quantity ?? 1)}x {additional.name}
+                      {/* Agrupamento de adicionais por categoria */}
+                      {(() => {
+                        // Agrupar adicionais por categoria
+                        const groupedByCategory: Record<string, typeof item.additionals> = {};
+                        
+                        item.additionals.forEach((additional) => {
+                          const categoryName = additional.categoryName || "Outros";
+                          if (!groupedByCategory[categoryName]) {
+                            groupedByCategory[categoryName] = [];
+                          }
+                          groupedByCategory[categoryName].push(additional);
+                        });
+                        
+                        // Renderizar os grupos de categorias
+                        return Object.entries(groupedByCategory).map(([categoryName, additionals]) => (
+                          <div key={`${item.id}-${categoryName}`} className="mb-3">
+                            <div className="text-sm text-purple-600 font-medium mt-1 ml-2" data-component-name="CheckoutPageContent">{categoryName}</div>
+                            <div className="ml-4 text-sm text-gray-600">
+                              {additionals.map((additional, idx) => (
+                                <div key={idx} className="flex justify-between items-center mt-1">
+                                  <div>
+                                    + {(additional.quantity ?? 1)}x {additional.name}
+                                  </div>
+                                  <div className="tabular-nums">{additional.price === 0 ? "Grátis" : formatCurrency(additional.price * (additional.quantity ?? 1))}</div>
+                                </div>
+                              ))}
                             </div>
-                            <div className="tabular-nums">{additional.price === 0 ? "Grátis" : formatCurrency(additional.price * (additional.quantity ?? 1))}</div>
                           </div>
-                        ))}
-                      </div>
+                        ));
+                      })()}
                     </>
                   ) : (
-                    <div className="text-sm text-gray-500 italic mt-1 ml-2">Sem Adicionais:</div>
+                    <div className="text-sm text-gray-500 italic mt-1 ml-2">Sem Complementos Premium</div>
                   )}
                 </div>
               ))}

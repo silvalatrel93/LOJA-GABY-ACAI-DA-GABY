@@ -8,6 +8,8 @@ import { ArrowLeft, Trash2, Plus, Minus } from "lucide-react"
 import { useCart, CartProvider } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
 import { getStoreConfig } from "@/lib/services/store-config-service"
+import { getProductById } from "@/lib/services/product-service"
+import type { Additional } from "@/lib/types"
 
 // Componente para exibir um item com nome à esquerda e valor à direita
 function ItemRow({ name, value, className }: { name: string; value: string; className?: string }) {
@@ -25,6 +27,7 @@ function CartPageContent() {
   const router = useRouter()
   const [deliveryFee, setDeliveryFee] = useState(5.0)
   const [isUpdating, setIsUpdating] = useState<Record<number, boolean>>({})
+  const [productCategories, setProductCategories] = useState<Record<number, string>>({})
 
   // Calcular subtotal e total
   const subtotal = cart.reduce((sum, item) => {
@@ -59,6 +62,38 @@ function CartPageContent() {
 
     loadDeliveryFee()
   }, [])
+  
+  // Carregar categorias dos produtos no carrinho
+  useEffect(() => {
+    const loadProductCategories = async () => {
+      const categories: Record<number, string> = {}
+      
+      // Processar apenas produtos que não têm categoria definida
+      const productsToLoad = cart.filter(item => !item.categoryName && item.productId)
+      
+      if (productsToLoad.length === 0) return
+      
+      try {
+        // Buscar informações de categoria para cada produto
+        for (const item of productsToLoad) {
+          if (item.productId) {
+            const product = await getProductById(item.productId)
+            if (product && product.categoryName) {
+              categories[item.id] = product.categoryName
+            }
+          }
+        }
+        
+        setProductCategories(categories)
+      } catch (error) {
+        console.error("Erro ao carregar categorias dos produtos:", error)
+      }
+    }
+    
+    if (cart.length > 0) {
+      loadProductCategories()
+    }
+  }, [cart])
 
   const handleQuantityChange = async (id: number, newQuantity: number) => {
     if (newQuantity < 1) return
@@ -139,7 +174,7 @@ function CartPageContent() {
         </div>
       </header>
 
-      <div className="flex-1 container mx-auto p-2 sm:p-4">
+      <div className="flex-1 container mx-auto p-3 sm:p-4 max-w-4xl">
         <div className="bg-white rounded-lg shadow-md overflow-hidden mb-4">
           <div className="p-3 sm:p-4 border-b">
             <h2 className="text-base sm:text-lg font-semibold text-purple-900">Itens do Carrinho</h2>
@@ -152,7 +187,7 @@ function CartPageContent() {
                   {/* Primeira linha: imagem e informações principais */}
                   <div className="flex w-full mb-3 sm:mb-0">
                     {item.image && (
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 relative flex-shrink-0 mr-3 sm:mr-4">
+                      <div className="w-16 h-16 sm:w-18 sm:h-18 relative flex-shrink-0 mr-3 sm:mr-4 rounded-md overflow-hidden">
                         <Image
                           src={item.image || "/placeholder.svg"}
                           alt={item.name}
@@ -165,89 +200,118 @@ function CartPageContent() {
                     <div className="flex-1 min-w-0">
                       <div className="space-y-1">
                         {/* Nome do produto e preço base */}
-                        <div className="flex justify-between">
-                          <span className="font-medium text-sm sm:text-base truncate pr-2">
-                            {item.quantity}x {item.name} <span className="text-xs text-gray-500">({item.size})</span>
-                          </span>
-                          <span className="text-sm sm:text-base whitespace-nowrap">{formatCurrency(item.price)}</span>
+                        <div className="flex flex-col">
+                          {/* Categoria do produto */}
+                          {(item.categoryName || productCategories[item.id]) && (
+                            <span className="text-xs text-purple-600 font-medium mb-0.5">
+                              {item.categoryName || productCategories[item.id]}
+                            </span>
+                          )}
+                          
+                          {/* Nome e preço do produto */}
+                          <div className="flex justify-between items-start">
+                            <span className="font-medium text-sm sm:text-base truncate pr-2 leading-tight">
+                              {item.quantity}x {item.name} <span className="text-xs text-gray-500 block sm:inline mt-0.5 sm:mt-0">({item.size})</span>
+                            </span>
+                            <span className="text-sm sm:text-base whitespace-nowrap ml-2 mt-0.5">{formatCurrency(item.price)}</span>
+                          </div>
                         </div>
                         
                         {/* Lista de adicionais */}
                         {item.additionals && item.additionals.length > 0 && (
-                          <div className="ml-2 sm:ml-4">
-                            <ul className="text-xs text-gray-600 space-y-1">
-                              {item.additionals.map((additional, index) => (
-                                <li key={index} className="flex justify-between">
-                                  <span className="truncate pr-2">+ {additional.quantity}x {additional.name}</span>
-                                  <span className="whitespace-nowrap">{additional.price === 0 ? "Grátis" : `+ ${formatCurrency(additional.price * (additional.quantity || 1))}`}</span>
-                                </li>
-                              ))}
-                            </ul>
+                          <div className="ml-2 sm:ml-4 mt-2">
+                            {/* Agrupamento de adicionais por categoria */}
+                            {(() => {
+                              // Agrupar adicionais por categoria
+                              const groupedByCategory: Record<string, Additional[]> = {};
+                              
+                              item.additionals.forEach((additional) => {
+                                const categoryName = additional.categoryName || "Outros";
+                                if (!groupedByCategory[categoryName]) {
+                                  groupedByCategory[categoryName] = [];
+                                }
+                                groupedByCategory[categoryName].push(additional);
+                              });
+                              
+                              // Renderizar os grupos de categorias
+                              return Object.entries(groupedByCategory).map(([categoryName, additionals]) => (
+                                <div key={`${item.id}-${categoryName}`} className="mb-3">
+                                  <div className="text-sm text-purple-600 font-medium mb-1">{categoryName}</div>
+                                  <ul className="text-xs text-gray-600 space-y-1.5" data-component-name="CartPageContent">
+                                    {additionals.map((additional, index) => (
+                                      <li key={index} className="flex justify-between items-baseline" data-component-name="CartPageContent">
+                                        <span className="truncate pr-2 leading-tight" data-component-name="CartPageContent">
+                                          + {additional.quantity}x {additional.name}
+                                        </span>
+                                        <span className="whitespace-nowrap ml-1">{additional.price === 0 ? "Grátis" : `+ ${formatCurrency(additional.price * (additional.quantity || 1))}`}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ));
+                            })()}
                           </div>
                         )}
                         
-                        {/* Subtotal do item */}
-                        <div className="pt-2 border-t border-gray-100 mt-2">
-                          <div className="flex justify-between font-medium text-sm">
-                            <span>Subtotal:</span>
-                            <span>
-                              {formatCurrency(
-                                item.originalPrice 
-                                  ? item.originalPrice * item.quantity 
-                                  : (item.price + (item.additionals?.reduce((sum, a) => sum + (a.price * (a.quantity || 1)), 0) || 0)) * item.quantity
-                              )}
-                            </span>
-                          </div>
-                        </div>
+                        {/* Espaço para separação visual */}
+                        <div className="mt-1"></div>
                       </div>
                     </div>
                   </div>
 
                   {/* Segunda linha: controles de quantidade e botão remover */}
-                  <div className="flex items-center justify-between sm:justify-start sm:mt-2 w-full sm:w-auto">
-                    <div className="flex items-center bg-gray-50 border border-purple-200 rounded-full h-10 shadow-sm transition-all duration-200 hover:shadow-md">
-                      <button
-                        onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                        className="px-2 py-1 text-purple-700 hover:bg-purple-100 h-full w-10 flex items-center justify-center rounded-l-full transition-colors duration-200"
-                        disabled={isUpdating[item.id]}
-                        aria-label="Diminuir quantidade"
-                      >
-                        <Minus size={16} className={`${isUpdating[item.id] ? 'opacity-50' : ''}`} />
-                      </button>
-                      <div className="relative px-2 sm:px-3 min-w-[2rem] sm:min-w-[2.5rem] text-center">
-                        <span className="text-sm font-medium">{item.quantity}</span>
-                        {isUpdating[item.id] && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-3 h-3 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-                          </div>
-                        )}
+                  <div className="flex justify-end items-center gap-2 mt-3 w-full">
+                    {/* Controles de quantidade */}
+                    <div className="flex" data-component-name="CartPageContent">
+                      <div className="flex items-center bg-gray-50 border border-purple-200 rounded-full h-8 shadow-sm transition-all duration-200 hover:shadow-md touch-manipulation scale-90 origin-right" data-component-name="CartPageContent">
+                        <button
+                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                          className="px-1.5 py-0.5 text-purple-700 hover:bg-purple-100 h-full w-9 sm:w-8 flex items-center justify-center rounded-l-full transition-colors duration-200 active:bg-purple-200 touch-manipulation"
+                          disabled={isUpdating[item.id]}
+                          aria-label="Diminuir quantidade"
+                          data-component-name="CartPageContent"
+                        >
+                          <Minus size={14} className={`${isUpdating[item.id] ? 'opacity-50' : ''}`} />
+                        </button>
+                        <div className="relative px-2 min-w-[2rem] text-center">
+                          <span className="text-xs font-medium">{item.quantity}</span>
+                          {isUpdating[item.id] && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-2.5 h-2.5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                          className="px-1.5 py-0.5 text-purple-700 hover:bg-purple-100 h-full w-9 sm:w-8 flex items-center justify-center rounded-r-full transition-colors duration-200 active:bg-purple-200 touch-manipulation"
+                          disabled={isUpdating[item.id]}
+                          aria-label="Aumentar quantidade"
+                        >
+                          <Plus size={14} className={`${isUpdating[item.id] ? 'opacity-50' : ''}`} />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                        className="px-2 py-1 text-purple-700 hover:bg-purple-100 h-full w-10 flex items-center justify-center rounded-r-full transition-colors duration-200"
-                        disabled={isUpdating[item.id]}
-                        aria-label="Aumentar quantidade"
-                      >
-                        <Plus size={16} className={`${isUpdating[item.id] ? 'opacity-50' : ''}`} />
-                      </button>
                     </div>
+                    
+                    {/* Botão remover */}
                     <button
                       onClick={() => handleRemoveItem(item.id)}
                       className={`
-                        group relative overflow-hidden text-red-500 font-medium text-xs sm:text-sm flex items-center ml-4 
-                        bg-white border border-red-200 px-3 py-1.5 rounded-full shadow-sm
+                        group relative overflow-hidden text-red-500 flex items-center justify-center
+                        bg-white border border-red-200 p-1.5 rounded-full shadow-sm
                         transition-all duration-300 hover:shadow-md hover:bg-red-50 hover:border-red-300
                         active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-opacity-50
+                        touch-manipulation w-8 h-8 scale-90 origin-right
                         ${isUpdating[item.id] ? 'opacity-70 cursor-not-allowed' : ''}
                       `}
                       disabled={isUpdating[item.id]}
                       aria-label="Remover item"
+                      data-component-name="CartPageContent"
+                      title="Remover do carrinho"
                     >
-                      <span className="relative z-10 flex items-center justify-center w-full">
-                        <Trash2 size={15} className="transition-transform duration-300 group-hover:scale-110 xs:mr-1.5" />
-                        <span className="hidden xs:inline group-hover:font-semibold">Remover</span>
+                      <span className="relative z-10 flex items-center justify-center">
+                        <Trash2 size={15} />
                       </span>
-                      <span className="absolute inset-0 bg-gradient-to-r from-red-50 to-red-100 transform scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100"></span>
+                      <span className="absolute inset-0 bg-gradient-to-r from-red-50 to-red-100 transform scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100" data-component-name="CartPageContent"></span>
                     </button>
                   </div>
                 </div>
@@ -256,13 +320,13 @@ function CartPageContent() {
           </ul>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 mb-4">
+        <div className="bg-white rounded-lg shadow-md p-4 mb-4">
           <h2 className="text-base sm:text-lg font-semibold text-purple-900 mb-3 sm:mb-4">Resumo do Pedido</h2>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <ItemRow name="Subtotal" value={formatCurrency(subtotal)} />
             <ItemRow name="Taxa de entrega" value={formatCurrency(deliveryFee)} />
-            <div className="pt-2 mt-2 border-t">
+            <div className="pt-3 mt-1 border-t">
               <ItemRow 
                 name="Total" 
                 value={formatCurrency(total)} 
@@ -278,7 +342,7 @@ function CartPageContent() {
               className="
                 w-full relative overflow-hidden group
                 border-2 border-purple-700 text-purple-700 
-                py-3.5 sm:py-3 px-4 rounded-xl sm:rounded-lg 
+                py-4 sm:py-3 px-4 rounded-xl sm:rounded-lg 
                 font-semibold text-sm sm:text-base
                 shadow-sm hover:shadow-md
                 transition-all duration-300 ease-in-out
@@ -300,7 +364,7 @@ function CartPageContent() {
                 w-full relative overflow-hidden group
                 bg-gradient-to-r from-purple-600 to-purple-800 
                 hover:from-purple-700 hover:to-purple-900 
-                text-white py-3.5 sm:py-3 px-4 rounded-xl sm:rounded-lg 
+                text-white py-4 sm:py-3 px-4 rounded-xl sm:rounded-lg 
                 font-semibold text-sm sm:text-base
                 shadow-md hover:shadow-lg
                 transition-all duration-300 ease-in-out

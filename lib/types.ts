@@ -52,6 +52,7 @@ export interface CartItem {
   originalSize?: string // Campo opcional para armazenar o tamanho original com identificador
   originalPrice?: number // Preço total incluindo adicionais (se houver)
   additionals?: Additional[]
+  categoryName?: string // Nome da categoria do produto
 }
 
 // Adicional no carrinho

@@ -26,51 +26,51 @@ export default function ProductCard({ product }: ProductCardProps) {
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false)
   const [additionals, setAdditionals] = useState<Additional[]>([])
   const [additionalsByCategory, setAdditionalsByCategory] = useState<{category: AdditionalCategory, additionals: Additional[]}[]>([])
-  // Armazenar adicionais selecionados para cada tamanho
+  // Armazenar complementos premium selecionados para cada tamanho
   const [additionalsBySize, setAdditionalsBySize] = useState<{
     [size: string]: {
       [additionalId: number]: { additional: Additional; quantity: number }
     }
   }>({})
   
-  // Adicionais selecionados para o tamanho atual
+  // Complementos Premium selecionados para o tamanho atual
   const selectedAdditionals = additionalsBySize[selectedSize] || {}
   const [isLoadingAdditionals, setIsLoadingAdditionals] = useState(false)
   const [isAdditionalsExpanded, setIsAdditionalsExpanded] = useState(false)
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
   const [storeStatus, setStoreStatus] = useState({ isOpen: true, statusText: "", statusClass: "" })
   
-  // Constantes para limites de adicionais gratuitos
+  // Constantes para limites de complementos premium gratuitos
   const FREE_ADDITIONALS_LIMIT = 5
   const SIZES_WITH_FREE_ADDITIONALS = ["1 Litro", "2 Litros", "2 Litro"]
 
   const selectedSizeInfo = product.sizes.find((s) => s.size === selectedSize)
   
-  // Verificar se o tamanho selecionado tem direito a adicionais gratuitos
+  // Verificar se o tamanho selecionado tem direito a complementos premium gratuitos
   const hasFreeAdditionals = SIZES_WITH_FREE_ADDITIONALS.includes(selectedSize)
   
-  // Contar quantos adicionais foram selecionados para o tamanho atual
+  // Contar quantos complementos premium foram selecionados para o tamanho atual
   const selectedAdditionalsCount = Object.keys(selectedAdditionals).length
   
-  // Verificar se atingiu o limite de adicionais gratuitos para o tamanho atual
+  // Verificar se atingiu o limite de complementos premium gratuitos para o tamanho atual
   const reachedFreeAdditionalsLimit = hasFreeAdditionals && selectedAdditionalsCount >= FREE_ADDITIONALS_LIMIT
 
   // Resetar estados quando o modal é fechado
   useEffect(() => {
     if (!isModalOpen) {
-      // Quando o modal é fechado, resetamos os estados relacionados aos adicionais
+      // Quando o modal é fechado, resetamos os estados relacionados aos complementos premium
       setIsAdditionalsExpanded(false)
       setIsLoadingAdditionals(false)
     }
   }, [isModalOpen])
 
-  // Carregar adicionais disponíveis
+  // Carregar complementos premium disponíveis
   useEffect(() => {
     if (isModalOpen) {
       const loadAdditionals = async () => {
         try {
           setIsLoadingAdditionals(true)
-          // Carregar adicionais agrupados por categoria
+          // Carregar complementos premium agrupados por categoria
           const [activeAdditionals, groupedAdditionals] = await Promise.all([
             getActiveAdditionalsByProduct(product.id),
             getActiveAdditionalsByProductGroupedByCategory(product.id)
@@ -88,7 +88,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             setIsAdditionalsExpanded(false)
           }
         } catch (error) {
-          console.error("Erro ao carregar adicionais:", error)
+          console.error("Erro ao carregar complementos premium:", error)
           // Em caso de erro, não mostrar a seção expandida
           setIsAdditionalsExpanded(false)
         } finally {
@@ -112,12 +112,12 @@ export default function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = async () => {
     if (!selectedSizeInfo) return
     
-    // Verificar quais tamanhos têm adicionais selecionados
+    // Verificar quais tamanhos têm complementos premium selecionados
     const sizesWithAdditionals = Object.keys(additionalsBySize).filter(size => 
       Object.keys(additionalsBySize[size] || {}).length > 0
     );
     
-    // Se não houver nenhum tamanho com adicionais, adicionar apenas o tamanho atual
+    // Se não houver nenhum tamanho com complementos premium, adicionar apenas o tamanho atual
     if (sizesWithAdditionals.length === 0) {
       sizesWithAdditionals.push(selectedSize);
     }
@@ -128,16 +128,16 @@ export default function ProductCard({ product }: ProductCardProps) {
       const sizeInfo = product.sizes.find(s => s.size === size);
       if (!sizeInfo) continue; // Pular se o tamanho não for encontrado
       
-      // Obter adicionais para este tamanho
+      // Obter complementos premium para este tamanho
       const sizeAdditionals = additionalsBySize[size] || {};
       
-      // Converter os adicionais selecionados para o formato do carrinho
+      // Converter os complementos premium selecionados para o formato do carrinho
       const cartAdditionals = Object.values(sizeAdditionals).map(({ additional, quantity }) => ({
         ...additional,
         quantity,
       }));
       
-      // Calcular o preço total dos adicionais
+      // Calcular o preço total dos complementos premium
       const additionalsTotal = Object.values(sizeAdditionals).reduce(
         (sum, { additional, quantity }) => sum + additional.price * quantity,
         0,
@@ -161,7 +161,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     
     setIsModalOpen(false);
     
-    // Limpar todos os adicionais selecionados após adicionar ao carrinho
+    // Limpar todos os complementos premium selecionados após adicionar ao carrinho
     setAdditionalsBySize({});
   }
 
@@ -182,7 +182,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         newState[selectedSize] = {};
       }
       
-      // Criar uma cópia dos adicionais do tamanho atual
+      // Criar uma cópia dos complementos premium do tamanho atual
       const newSelected = { ...newState[selectedSize] };
       
       // Se já está selecionado, remove o adicional
@@ -195,7 +195,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       // Se não está selecionado, verifica se pode adicionar
       if (hasFreeAdditionals && selectedAdditionalsCount >= FREE_ADDITIONALS_LIMIT) {
         // Exibir mensagem informando o limite
-        alert(`Você já selecionou o limite de ${FREE_ADDITIONALS_LIMIT} adicionais grátis para o tamanho ${selectedSize}!`);
+        alert(`Você já selecionou o limite de ${FREE_ADDITIONALS_LIMIT} complementos premium grátis para o tamanho ${selectedSize}!`);
         return prev; // Retorna o estado anterior sem mudanças
       }
       
@@ -205,7 +205,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         quantity: 1,
       }
       
-      // Atualiza os adicionais para o tamanho atual
+      // Atualiza os complementos premium para o tamanho atual
       newState[selectedSize] = newSelected;
       
       return newState;
@@ -215,7 +215,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   // Função para remover um adicional
   const removeAdditional = (additionalId: number) => {
     setAdditionalsBySize((prev) => {
-      // Se não há adicionais para este tamanho, não faz nada
+      // Se não há complementos premium para este tamanho, não faz nada
       if (!prev[selectedSize]) return prev;
       
       // Criar um novo objeto para não modificar o estado diretamente
@@ -225,34 +225,34 @@ export default function ProductCard({ product }: ProductCardProps) {
       // Remove o adicional
       delete newSelected[additionalId];
       
-      // Atualiza os adicionais para o tamanho atual
+      // Atualiza os complementos premium para o tamanho atual
       newState[selectedSize] = newSelected;
       
       return newState;
     })
   }
 
-  // Calcular o preço total incluindo adicionais para todos os tamanhos selecionados
+  // Calcular o preço total incluindo complementos premium para todos os tamanhos selecionados
   const calculateTotal = () => {
-    // Se não houver tamanhos com adicionais, retornar apenas o preço do tamanho atual
+    // Se não houver tamanhos com complementos premium, retornar apenas o preço do tamanho atual
     const sizesWithAdditionals = Object.keys(additionalsBySize).filter(size => 
       Object.keys(additionalsBySize[size] || {}).length > 0
     );
     
-    // Se não houver tamanhos com adicionais, usar apenas o tamanho atual
+    // Se não houver tamanhos com complementos premium, usar apenas o tamanho atual
     if (sizesWithAdditionals.length === 0) {
       return selectedSizeInfo ? selectedSizeInfo.price : 0;
     }
     
-    // Calcular o total para todos os tamanhos com adicionais
+    // Calcular o total para todos os tamanhos com complementos premium
     let total = 0;
     
-    // Adicionar o preço do tamanho atual se não tiver adicionais selecionados
+    // Adicionar o preço do tamanho atual se não tiver complementos premium selecionados
     if (!sizesWithAdditionals.includes(selectedSize) && selectedSizeInfo) {
       total += selectedSizeInfo.price;
     }
     
-    // Somar o preço de cada tamanho com seus adicionais
+    // Somar o preço de cada tamanho com seus complementos premium
     for (const size of sizesWithAdditionals) {
       // Obter informações do tamanho
       const sizeInfo = product.sizes.find(s => s.size === size);
@@ -261,7 +261,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       // Preço base do tamanho
       total += sizeInfo.price;
       
-      // Somar o preço dos adicionais para este tamanho
+      // Somar o preço dos complementos premium para este tamanho
       const sizeAdditionals = additionalsBySize[size] || {};
       const additionalsPriceForSize = Object.values(sizeAdditionals).reduce(
         (sum, { additional, quantity }) => sum + additional.price * quantity,
@@ -326,7 +326,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               <button
                 onClick={() => {
                   setIsModalOpen(false)
-                  // Não limpar os adicionais ao fechar o modal
+                  // Não limpar os complementos premium ao fechar o modal
                 }}
                 className="bg-gradient-to-r from-purple-500 to-purple-800 hover:from-purple-600 hover:to-purple-900 text-white p-1.5 rounded-full shadow-sm transition-all duration-200"
               >
@@ -344,7 +344,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                     <button
                       key={sizeOption.size}
                       onClick={() => {
-                        // Ao mudar de tamanho, mantém os adicionais específicos de cada tamanho
+                        // Ao mudar de tamanho, mantém os complementos premium específicos de cada tamanho
                         setSelectedSize(sizeOption.size);
                         // Resetar a categoria selecionada ao mudar de tamanho
                         setSelectedCategoryId(null);
@@ -360,14 +360,14 @@ export default function ProductCard({ product }: ProductCardProps) {
                 </div>
               </div>
 
-              {/* Seção de adicionais - só exibida se houver adicionais confirmados */}
+              {/* Seção de complementos premium - só exibida se houver complementos premium confirmados */}
               {additionalsByCategory.length > 0 && (
                 <div className="mt-6">
                   <button
                     onClick={() => setIsAdditionalsExpanded(!isAdditionalsExpanded)}
                     className="flex items-center justify-between w-full text-left"
                   >
-                    <h4 className="font-semibold text-gray-700">Adicionais (opcional):</h4>
+                    <h4 className="font-semibold text-gray-700">Complementos Premium (opcional):</h4>
                     <div className="bg-gradient-to-r from-purple-500 to-purple-800 p-1.5 rounded-full shadow-sm">
                       {isAdditionalsExpanded ? (
                         <ChevronUp size={18} className="text-white" />
@@ -384,7 +384,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-700"></div>
                         </div>
                       ) : additionalsByCategory.length === 0 ? (
-                        <p className="text-gray-500 text-sm py-2">Nenhum adicional disponível</p>
+                        <p className="text-gray-500 text-sm py-2">Nenhum complemento premium disponível</p>
                       ) : (
                         <div className="space-y-4">
                           {/* Abas de categorias */}
@@ -410,10 +410,10 @@ export default function ProductCard({ product }: ProductCardProps) {
                             ))}
                           </div>
                           
-                          {/* Lista de adicionais filtrada por categoria */}
+                          {/* Lista de complementos premium filtrada por categoria */}
                           <div className="space-y-2">
                             {(selectedCategoryId === null 
-                              ? additionals // Mostrar todos os adicionais
+                              ? additionals // Mostrar todos os complementos premium
                               : (additionalsByCategory
                                   .find(group => group.category.id === selectedCategoryId)?.additionals || [])
                             ).map((additional) => {
@@ -455,7 +455,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                                       : isDisabled 
                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                                         : 'bg-purple-100 text-purple-900 hover:bg-purple-200'}`}
-                                    title={isDisabled && !isSelected ? `Limite de ${FREE_ADDITIONALS_LIMIT} adicionais grátis atingido` : isSelected ? "Remover" : "Adicionar"}
+                                    title={isDisabled && !isSelected ? `Limite de ${FREE_ADDITIONALS_LIMIT} complementos premium grátis atingido` : isSelected ? "Remover" : "Adicionar"}
                                   >
                                     {isSelected ? (
                                       <>
@@ -476,18 +476,18 @@ export default function ProductCard({ product }: ProductCardProps) {
                   )}
                 </div>
               )}
-              {/* Resumo dos adicionais selecionados */}
+              {/* Resumo dos complementos premium selecionados */}
               {Object.keys(additionalsBySize).length > 0 && (
                 <div className="mt-4 p-3 bg-purple-50 rounded-md">
                   <h5 className="font-medium text-lg text-purple-900 mb-3">
-                    Resumo dos adicionais selecionados
+                    Resumo dos complementos premium selecionados
                   </h5>
                   
                   {Object.keys(additionalsBySize).map(size => {
                     const sizeAdditionals = additionalsBySize[size] || {};
                     const additionalCount = Object.keys(sizeAdditionals).length;
                     
-                    // Pular tamanhos sem adicionais
+                    // Pular tamanhos sem complementos premium
                     if (additionalCount === 0) return null;
                     
                     const isFreeSize = SIZES_WITH_FREE_ADDITIONALS.includes(size);
@@ -504,20 +504,40 @@ export default function ProductCard({ product }: ProductCardProps) {
                           )}
                         </h6>
                         
-                        <ul className="space-y-1">
-                          {Object.values(sizeAdditionals).map(({ additional, quantity }) => (
-                            <li key={`${size}-${additional.id}`} className="flex justify-between text-sm">
-                              <span>
-                                {quantity}x {additional.name}
-                              </span>
-                              <span>{additional.price === 0 ? "Grátis" : formatCurrency(additional.price * quantity)}</span>
-                            </li>
-                          ))}
+                        <ul className="space-y-1" data-component-name="ProductCard">
+                          {/* Agrupar complementos premium por categoria */}
+                          {(() => {
+                            // Agrupar complementos premium por categoria
+                            const groupedByCategory: Record<string, { additional: Additional; quantity: number }[]> = {};
+                            
+                            Object.values(sizeAdditionals).forEach(({ additional, quantity }) => {
+                              const categoryName = additional.categoryName || "Outros";
+                              if (!groupedByCategory[categoryName]) {
+                                groupedByCategory[categoryName] = [];
+                              }
+                              groupedByCategory[categoryName].push({ additional, quantity });
+                            });
+                            
+                            // Renderizar os grupos de categorias
+                            return Object.entries(groupedByCategory).map(([categoryName, items]) => (
+                              <div key={`${size}-${categoryName}`} className="mb-2">
+                                <div className="text-xs font-medium text-purple-700 mb-1">{categoryName}</div>
+                                {items.map(({ additional, quantity }) => (
+                                  <li key={`${size}-${additional.id}`} className="flex justify-between text-sm">
+                                    <span>
+                                      {quantity}x {additional.name}
+                                    </span>
+                                    <span>{additional.price === 0 ? "Grátis" : formatCurrency(additional.price * quantity)}</span>
+                                  </li>
+                                ))}
+                              </div>
+                            ));
+                          })()}
                         </ul>
                         
                         {isFreeSize && reachedLimit && (
                           <p className="text-xs text-purple-700 mt-1 font-medium">
-                            Você atingiu o limite de {FREE_ADDITIONALS_LIMIT} adicionais grátis para este tamanho.
+                            Você atingiu o limite de {FREE_ADDITIONALS_LIMIT} complementos premium grátis para este tamanho.
                           </p>
                         )}
                       </div>
@@ -540,7 +560,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                       <div className="text-xs mt-1 font-normal">
                         (Total de {Object.keys(additionalsBySize).filter(size => 
                           Object.keys(additionalsBySize[size] || {}).length > 0
-                        ).length} tamanhos com adicionais)
+                        ).length} tamanhos com complementos premium)
                       </div>
                     )}
                   </>

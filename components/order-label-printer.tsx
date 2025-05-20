@@ -6,7 +6,7 @@ import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { jsPDF } from "jspdf"
-import type { Order } from "@/lib/db"
+import type { Order, CartAdditional } from "@/lib/db"
 import { getStoreConfig } from "@/lib/db"
 import { getSalmoAleatorio } from "@/lib/salmos"
 
@@ -469,18 +469,37 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                 {/* Indicar se tem ou não adicionais */}
                 {item.additionals && item.additionals.length > 0 ? (
                   <>
-                    <div className="additional-status">Com Adicionais:</div>
-                    {item.additionals.map((additional, idx) => (
-                      <div key={idx} className="item additional">
-                        <div>
-                          • {additional.quantity}x {additional.name}
+                    {/* Agrupamento de adicionais por categoria */}
+                    {(() => {
+                      // Agrupar adicionais por categoria
+                      const groupedByCategory: Record<string, typeof item.additionals> = {};
+                      
+                      item.additionals.forEach((additional) => {
+                        const categoryName = additional.categoryName || "Outros";
+                        if (!groupedByCategory[categoryName]) {
+                          groupedByCategory[categoryName] = [];
+                        }
+                        groupedByCategory[categoryName].push(additional);
+                      });
+                      
+                      // Renderizar os grupos de categorias
+                      return Object.entries(groupedByCategory).map(([categoryName, additionals]) => (
+                        <div key={`${item.name}-${categoryName}`} className="mb-2">
+                          <div className="additional-status">{categoryName}</div>
+                          {additionals.map((additional, idx) => (
+                            <div key={idx} className="item additional">
+                              <div>
+                                • {additional.quantity}x {additional.name}
+                              </div>
+                              <div>{formatCurrency(additional.price * additional.quantity)}</div>
+                            </div>
+                          ))}
                         </div>
-                        <div>{formatCurrency(additional.price * additional.quantity)}</div>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                   </>
                 ) : (
-                  <div className="additional-status">Sem Adicionais:</div>
+                  <div className="additional-status">Sem Complementos Premium</div>
                 )}
               </div>
             ))}
