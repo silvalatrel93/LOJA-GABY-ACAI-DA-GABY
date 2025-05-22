@@ -1,5 +1,9 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Product } from "../types"
+
+interface Category {
+  name: string
+}
 import { DEFAULT_STORE_ID } from "../constants"
 import { safelyGetRecordById } from "../supabase-utils"
 
@@ -20,17 +24,21 @@ export const ProductService = {
       return []
     }
 
-    return data.map((item: any) => ({
-      id: Number(item.id),
-      name: String(item.name || ""),
-      description: String(item.description || ""),
-      image: String(item.image || ""),
-      sizes: Array.isArray(item.sizes) ? item.sizes : [],
-      categoryId: Number(item.category_id),
-      categoryName: item.category?.name ? String(item.category.name) : "",
-      active: Boolean(item.active),
-      allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
-    }))
+    return data.map((item: any) => {
+      const allowedAdditionals = Array.isArray(item.allowed_additionals) ? item.allowed_additionals : []
+      return {
+        id: Number(item.id),
+        name: String(item.name || ""),
+        description: String(item.description || ""),
+        image: String(item.image || ""),
+        sizes: Array.isArray(item.sizes) ? item.sizes : [],
+        categoryId: Number(item.category_id),
+        categoryName: item.category?.name ? String(item.category.name) : "",
+        active: Boolean(item.active),
+        allowedAdditionals,
+        hasAdditionals: allowedAdditionals.length > 0
+      }
+    })
   },
 
   // Obter produtos ativos
@@ -47,17 +55,21 @@ export const ProductService = {
       return []
     }
 
-    return data.map((item) => ({
-      id: item.id,
-      name: item.name,
-      description: item.description || "",
-      image: item.image || "",
-      sizes: item.sizes,
-      categoryId: item.category_id,
-      categoryName: item.category?.name || "",
-      active: item.active,
-      allowedAdditionals: item.allowed_additionals || [],
-    }))
+    return data.map((item: any) => {
+      const allowedAdditionals = Array.isArray(item.allowed_additionals) ? item.allowed_additionals : []
+      return {
+      id: Number(item.id),
+      name: String(item.name || ""),
+      description: String(item.description || ""),
+      image: String(item.image || ""),
+      sizes: Array.isArray(item.sizes) ? item.sizes : [],
+      categoryId: Number(item.category_id),
+      categoryName: item.category?.name ? String(item.category.name) : "",
+      active: Boolean(item.active),
+      allowedAdditionals,
+      hasAdditionals: allowedAdditionals.length > 0
+      }
+    })
   },
 
   // Alias para getActiveProducts para compatibilidade
@@ -80,17 +92,21 @@ export const ProductService = {
       return []
     }
 
-    return data.map((item) => ({
-      id: item.id,
-      name: item.name,
-      description: item.description || "",
-      image: item.image || "",
-      sizes: item.sizes,
-      categoryId: item.category_id,
-      categoryName: item.category?.name || "",
-      active: item.active,
-      allowedAdditionals: item.allowed_additionals || [],
-    }))
+    return data.map((item: any) => {
+      const allowedAdditionals = Array.isArray(item.allowed_additionals) ? item.allowed_additionals : []
+      return {
+      id: Number(item.id),
+      name: String(item.name || ""),
+      description: String(item.description || ""),
+      image: String(item.image || ""),
+      sizes: Array.isArray(item.sizes) ? item.sizes : [],
+      categoryId: Number(item.category_id),
+      categoryName: item.category?.name ? String(item.category.name) : "",
+      active: Boolean(item.active),
+      allowedAdditionals,
+      hasAdditionals: allowedAdditionals.length > 0
+      }
+    })
   },
 
   // Obter produto por ID
@@ -120,6 +136,7 @@ export const ProductService = {
       return null
     }
 
+    const allowedAdditionals = Array.isArray(data.allowed_additionals) ? data.allowed_additionals : []
     return {
       id: Number(data.id),
       name: String(data.name || ""),
@@ -129,7 +146,8 @@ export const ProductService = {
       categoryId: Number(data.category_id),
       categoryName: String(data.category?.name || ""),
       active: Boolean(data.active),
-      allowedAdditionals: Array.isArray(data.allowed_additionals) ? data.allowed_additionals : [],
+      allowedAdditionals,
+      hasAdditionals: allowedAdditionals.length > 0
     }
   },
 
@@ -183,24 +201,26 @@ export const ProductService = {
         throw new Error(`Erro ao salvar produto: ${result.error.message}`)
       }
 
-      if (!result.data || result.data.length === 0) {
+      if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
         console.error("Falha ao salvar produto, nenhum dado retornado")
         throw new Error("Falha ao salvar produto, nenhum dado retornado")
       }
 
       // Usar o primeiro item do array de resultados
-      const data = result.data[0]
+      const data = result.data[0] as any
 
+      const allowedAdditionals = Array.isArray(data.allowed_additionals) ? data.allowed_additionals : []
       return {
-        id: data.id,
-        name: data.name,
-        description: data.description || "",
-        image: data.image || "",
-        sizes: data.sizes,
-        categoryId: data.category_id,
-        categoryName: data.category?.name || "",
-        active: data.active,
-        allowedAdditionals: data.allowed_additionals || [],
+        id: Number(data.id),
+        name: String(data.name || ""),
+        description: String(data.description || ""),
+        image: String(data.image || ""),
+        sizes: Array.isArray(data.sizes) ? data.sizes : [],
+        categoryId: Number(data.category_id),
+        categoryName: data.category && typeof data.category === 'object' && data.category !== null && 'name' in data.category ? String(data.category.name) : "",
+        active: Boolean(data.active),
+        allowedAdditionals,
+        hasAdditionals: allowedAdditionals.length > 0
       }
     } catch (error) {
       console.error("Erro ao salvar produto:", error)

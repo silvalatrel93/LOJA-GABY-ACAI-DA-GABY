@@ -74,6 +74,7 @@ export default function ProductList({ products: initialProducts = [], categories
     // Injetar estilos CSS
     const styleElement = document.createElement("style")
     styleElement.innerHTML = `
+      /* Estilização da barra de rolagem */
       .categories-scrollbar::-webkit-scrollbar {
         height: 4px;
         background-color: transparent;
@@ -82,27 +83,39 @@ export default function ProductList({ products: initialProducts = [], categories
       .categories-scrollbar::-webkit-scrollbar-thumb {
         background-color: rgba(139, 92, 246, 0.3);
         border-radius: 10px;
+        transition: background-color 0.3s ease;
       }
       
       .categories-scrollbar::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(139, 92, 246, 0.5);
+        background-color: rgba(139, 92, 246, 0.7);
       }
       
       .categories-scrollbar {
         scrollbar-width: thin;
         scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
         -ms-overflow-style: none; /* IE and Edge */
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch; /* Suave no iOS */
+        scroll-behavior: smooth;
+        will-change: transform;
+        backface-visibility: hidden;
+        transform: translateZ(0);
+      }
+      
+      /* Suporte para navegadores que não suportam scrollbar-width */
+      @supports not (scrollbar-width: thin) {
+        .categories-scrollbar {
+          scrollbar-width: none; /* Firefox */
+        }
+        .categories-scrollbar::-webkit-scrollbar {
+          display: none; /* Chrome, Safari e Opera */
+        }
       }
       
       .scroll-snap-align-center {
         scroll-snap-align: center;
-      }
-      
-      /* Melhorar a suavidade da animação */
-      @media (prefers-reduced-motion: no-preference) {
-        .categories-scrollbar {
-          scroll-behavior: smooth;
-        }
+        scroll-snap-stop: always;
       }
       
       /* Ajustes responsivos para categorias */
@@ -372,14 +385,14 @@ export default function ProductList({ products: initialProducts = [], categories
             }}
           ></div>
 
-          <div
+          <div 
             className="flex overflow-x-auto py-1 gap-2 pl-3 pr-3 md:gap-3 md:pl-4 md:pr-4 categories-scrollbar"
             style={{
-              WebkitOverflowScrolling: "touch",
-              scrollBehavior: "smooth",
-              scrollSnapType: "x mandatory",
-              msOverflowStyle: "none",
-              maxWidth: "100%"
+              WebkitOverflowScrolling: 'touch',
+              scrollBehavior: 'smooth',
+              scrollSnapType: 'x mandatory',
+              scrollPadding: '0 1rem',
+              overscrollBehaviorX: 'contain'
             }}
           >
             {categories.map((category) => (

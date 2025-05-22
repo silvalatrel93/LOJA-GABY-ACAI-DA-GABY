@@ -11,6 +11,7 @@ export interface Product {
   categoryName?: string
   active: boolean
   allowedAdditionals: number[]
+  hasAdditionals?: boolean
 }
 
 // Tamanho do produto

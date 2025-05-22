@@ -47,7 +47,7 @@ export default function ImageViewer({ imageUrl, alt, onClose }: ImageViewerProps
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
+      className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center touch-none"
       onClick={handleBackgroundClick}
     >
       {/* Botão de fechar */}
@@ -60,13 +60,32 @@ export default function ImageViewer({ imageUrl, alt, onClose }: ImageViewerProps
       </button>
 
       {/* Imagem ampliada */}
-      <div className="relative max-w-[90%] max-h-[90%]">
-        <img
-          src={imageUrl || "/placeholder.svg"}
-          alt={alt}
-          className="max-w-full max-h-[90vh] object-contain"
-          onClick={(e) => e.stopPropagation()} // Impedir que cliques na imagem fechem o visualizador
-        />
+      <div className="relative w-full h-full flex items-center justify-center p-2">
+        <div className="relative w-full h-full max-w-full max-h-[90%] flex items-center justify-center">
+          <img
+            src={imageUrl || "/placeholder.svg"}
+            alt={alt}
+            className="max-w-full max-h-full object-contain touch-manipulation"
+            onClick={(e) => e.stopPropagation()} // Impedir que cliques na imagem fechem o visualizador
+            style={{
+              // Melhora o redimensionamento em dispositivos móveis
+              transformOrigin: 'center',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
+              WebkitTapHighlightColor: 'transparent'
+            }}
+            // Atributos para melhorar a experiência em dispositivos móveis
+            draggable={false}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          />
+        </div>
+      </div>
+      
+      {/* Indicador de toque para dispositivos móveis */}
+      <div className="absolute bottom-8 left-0 right-0 text-center text-white text-sm opacity-70">
+        Toque fora da imagem para fechar
       </div>
     </div>
   )

@@ -7,97 +7,130 @@ import { safelyGetRecordById } from "../supabase-utils"
 export const NotificationService = {
   // Obter todas as notificações
   async getAllNotifications(): Promise<Notification[]> {
-    const supabase = createSupabaseClient()
-    const { data, error } = await supabase
-      .from("notifications")
-      .select("*")
-      .order("priority", { ascending: false })
-      .order("created_at", { ascending: false })
+    try {
+      const supabase = createSupabaseClient()
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("store_id", DEFAULT_STORE_ID)
+        .order("priority", { ascending: false })
+        .order("created_at", { ascending: false })
 
-    if (error) {
-      console.error("Erro ao buscar notificações:", error)
+      if (error) {
+        console.error("Erro ao buscar notificações:", error)
+        return []
+      }
+
+      if (!data || !Array.isArray(data)) {
+        console.error("Dados de notificações inválidos:", data)
+        return []
+      }
+
+      return data.map((item) => ({
+        id: Number(item.id),
+        title: String(item.title || ""),
+        message: String(item.message || ""),
+        type: String(item.type || ""),
+        active: Boolean(item.active),
+        startDate: new Date(String(item.start_date)),
+        endDate: new Date(String(item.end_date)),
+        priority: Number(item.priority),
+        read: Boolean(item.read),
+        createdAt: new Date(String(item.created_at)),
+      }))
+    } catch (error) {
+      console.error("Erro inesperado ao buscar notificações:", error)
       return []
     }
-
-    return data.map((item) => ({
-      id: item.id,
-      title: item.title,
-      message: item.message,
-      type: item.type,
-      active: item.active,
-      startDate: new Date(item.start_date),
-      endDate: new Date(item.end_date),
-      priority: item.priority,
-      read: item.read,
-      createdAt: new Date(item.created_at),
-    }))
   },
 
   // Obter notificações ativas
   async getActiveNotifications(): Promise<Notification[]> {
-    const supabase = createSupabaseClient()
-    const now = new Date().toISOString()
+    try {
+      const supabase = createSupabaseClient()
+      const now = new Date().toISOString()
 
-    const { data, error } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("active", true)
-      .lte("start_date", now)
-      .gte("end_date", now)
-      .order("priority", { ascending: false })
-      .order("created_at", { ascending: false })
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("active", true)
+        .lte("start_date", now)
+        .gte("end_date", now)
+        .eq("store_id", DEFAULT_STORE_ID)
+        .order("priority", { ascending: false })
+        .order("created_at", { ascending: false })
 
-    if (error) {
-      console.error("Erro ao buscar notificações ativas:", error)
+      if (error) {
+        console.error("Erro ao buscar notificações ativas:", error)
+        return []
+      }
+
+      if (!data || !Array.isArray(data)) {
+        console.error("Dados de notificações inválidos:", data)
+        return []
+      }
+
+      return data.map((item) => ({
+        id: Number(item.id),
+        title: String(item.title || ""),
+        message: String(item.message || ""),
+        type: String(item.type || ""),
+        active: Boolean(item.active),
+        startDate: new Date(String(item.start_date)),
+        endDate: new Date(String(item.end_date)),
+        priority: Number(item.priority),
+        read: Boolean(item.read),
+        createdAt: new Date(String(item.created_at)),
+      }))
+    } catch (error) {
+      console.error("Erro inesperado ao buscar notificações ativas:", error)
       return []
     }
-
-    return data.map((item) => ({
-      id: item.id,
-      title: item.title,
-      message: item.message,
-      type: item.type,
-      active: item.active,
-      startDate: new Date(item.start_date),
-      endDate: new Date(item.end_date),
-      priority: item.priority,
-      read: item.read,
-      createdAt: new Date(item.created_at),
-    }))
   },
 
   // Obter notificações não lidas
   async getUnreadNotifications(): Promise<Notification[]> {
-    const supabase = createSupabaseClient()
-    const now = new Date().toISOString()
+    try {
+      const supabase = createSupabaseClient()
+      const now = new Date().toISOString()
 
-    const { data, error } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("active", true)
-      .eq("read", false)
-      .lte("start_date", now)
-      .gte("end_date", now)
-      .order("priority", { ascending: false })
-      .order("created_at", { ascending: false })
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("active", true)
+        .eq("read", false)
+        .eq("store_id", DEFAULT_STORE_ID)
+        .lte("start_date", now)
+        .gte("end_date", now)
+        .order("priority", { ascending: false })
+        .order("created_at", { ascending: false })
 
-    if (error) {
-      console.error("Erro ao buscar notificações não lidas:", error)
+      if (error) {
+        console.error("Erro ao buscar notificações não lidas:", error)
+        return []
+      }
+
+      if (!data || !Array.isArray(data)) {
+        console.error("Dados de notificações não lidas inválidos:", data)
+        return []
+      }
+
+      return data.map((item) => ({
+        id: Number(item.id),
+        title: String(item.title || ""),
+        message: String(item.message || ""),
+        type: String(item.type || ""),
+        active: Boolean(item.active),
+        startDate: new Date(String(item.start_date)),
+        endDate: new Date(String(item.end_date)),
+        priority: Number(item.priority),
+        read: Boolean(item.read),
+        createdAt: new Date(String(item.created_at)),
+      }))
+    } catch (error) {
+      console.error("Erro inesperado ao buscar notificações não lidas:", error)
       return []
     }
-
-    return data.map((item) => ({
-      id: item.id,
-      title: item.title,
-      message: item.message,
-      type: item.type,
-      active: item.active,
-      startDate: new Date(item.start_date),
-      endDate: new Date(item.end_date),
-      priority: item.priority,
-      read: item.read,
-      createdAt: new Date(item.created_at),
-    }))
   },
   
   // Obter notificação por ID
