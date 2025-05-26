@@ -24,7 +24,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
       >
         {product.name}
       </h3>
-      <p className="text-xs xs:text-sm sm:text-base bg-gradient-to-r from-gray-700 to-gray-900 text-transparent bg-clip-text font-medium mt-1 line-clamp-2 sm:line-clamp-3" data-component-name="ProductInfo">
+      <p className="text-xs xs:text-sm sm:text-base bg-gradient-to-r from-gray-700 to-gray-900 text-transparent bg-clip-text font-medium mt-1 line-clamp-3 sm:line-clamp-4 leading-relaxed break-words whitespace-pre-line" data-component-name="ProductInfo">
         {product.description}
       </p>
       <div className="mt-2 flex justify-between items-center">

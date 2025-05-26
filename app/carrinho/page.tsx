@@ -220,25 +220,8 @@ function CartPageContent() {
                         {/* Lista de adicionais */}
                         {item.additionals && item.additionals.length > 0 && (
                           <div className="ml-2 sm:ml-4 mt-2">
-                            {/* Agrupamento de adicionais por categoria */}
-                            {(() => {
-                              // Agrupar adicionais por categoria
-                              const groupedByCategory: Record<string, Additional[]> = {};
-                              
-                              item.additionals.forEach((additional) => {
-                                const categoryName = additional.categoryName || "Outros";
-                                if (!groupedByCategory[categoryName]) {
-                                  groupedByCategory[categoryName] = [];
-                                }
-                                groupedByCategory[categoryName].push(additional);
-                              });
-                              
-                              // Renderizar os grupos de categorias
-                              return Object.entries(groupedByCategory).map(([categoryName, additionals]) => (
-                                <div key={`${item.id}-${categoryName}`} className="mb-3">
-                                  <div className="text-sm text-purple-600 font-medium mb-1">{categoryName}</div>
                                   <ul className="text-xs text-gray-600 space-y-1.5" data-component-name="CartPageContent">
-                                    {additionals.map((additional, index) => (
+                              {item.additionals.map((additional, index) => (
                                       <li key={index} className="flex justify-between items-baseline" data-component-name="CartPageContent">
                                         <span className="truncate pr-2 leading-tight" data-component-name="CartPageContent">
                                           + {additional.quantity}x {additional.name}
@@ -247,9 +230,6 @@ function CartPageContent() {
                                       </li>
                                     ))}
                                   </ul>
-                                </div>
-                              ));
-                            })()}
                           </div>
                         )}
                         

@@ -6,6 +6,7 @@ import { useCart } from "@/lib/cart-context"
 import { Trash2, Plus, Minus } from "lucide-react"
 import Image from "next/image"
 import { createSafeKey } from "@/lib/key-utils"
+import { formatCurrency } from "@/lib/utils"
 
 // Função para limpar a exibição do tamanho
 function cleanSizeDisplay(size: string): string {
@@ -73,9 +74,9 @@ export default function CartPage() {
           <p className="text-gray-600 mb-4">Seu carrinho está vazio.</p>
           <button
             onClick={() => router.push("/")}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md"
+            className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-medium flex items-center justify-center space-x-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
           >
-            Continuar Comprando
+            <span>Continuar Comprando</span>
           </button>
         </div>
       ) : (
@@ -110,15 +111,14 @@ export default function CartPage() {
                           <p className="text-sm text-gray-600">Tamanho: {displaySize}</p>
 
                           {item.additionals && item.additionals.length > 0 && (
-                            <div className="mt-1">
-                              <p className="text-xs text-gray-500">Adicionais:</p>
-                              <ul className="text-xs text-gray-600">
+                            <div className="ml-2 text-xs text-gray-600">
+                                    <ul className="text-xs text-gray-600 ml-4">
                                 {item.additionals.map((add, addIndex) => (
-                                  <li key={createSafeKey(`${item.id}-${addIndex}`)}>
-                                    {add.name} (x{add.quantity || 1}) {add.price === 0 ? "- Grátis" : `- R$ ${(add.price * (add.quantity || 1)).toFixed(2)}`}
-                                  </li>
-                                ))}
-                              </ul>
+                                        <li key={createSafeKey(`${item.id}-${add.id}-${addIndex}`)}>
+                                          • {add.name} (x{add.quantity || 1}) {add.price === 0 ? "- Grátis" : `- ${formatCurrency(add.price * (add.quantity || 1))}`}
+                                        </li>
+                                      ))}
+                                    </ul>
                             </div>
                           )}
                         </div>
@@ -144,7 +144,21 @@ export default function CartPage() {
 
                           <div className="text-right">
                             <p className="text-sm font-medium text-gray-800">
-                              R$ {(item.price * item.quantity).toFixed(2)}
+                              {(() => {
+                                // Usar o preço original (já com adicionais) se disponível, senão calcular
+                                if (item.originalPrice) {
+                                  return formatCurrency(item.originalPrice * item.quantity)
+                                }
+                                
+                                // Cálculo para compatibilidade com itens antigos
+                                const itemTotal = item.price * item.quantity
+                                const additionalsTotal = (item.additionals || []).reduce(
+                                  (sum, additional) => sum + additional.price * (additional.quantity || 1), 
+                                  0
+                                ) * item.quantity
+                                
+                                return formatCurrency(itemTotal + additionalsTotal)
+                              })()}
                             </p>
                             <button
                               onClick={() => handleRemoveItem(item.id)}
@@ -207,14 +221,23 @@ export default function CartPage() {
               <button
                 onClick={handleCheckout}
                 disabled={isProcessing || cart.length === 0}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-md font-medium mt-4 disabled:opacity-50"
+                className={`w-full bg-purple-600 text-white py-2.5 rounded-lg font-medium mt-4 flex items-center justify-center space-x-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 ${
+                  isProcessing || cart.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700'
+                }`}
               >
-                {isProcessing ? "Processando..." : "Finalizar Pedido"}
+                {isProcessing ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent"></div>
+                    <span>Processando...</span>
+                  </>
+                ) : (
+                  <span>Finalizar Pedido</span>
+                )}
               </button>
 
               <button
                 onClick={() => router.push("/")}
-                className="w-full text-purple-600 hover:text-purple-800 text-center py-2 mt-2 text-sm"
+                className="w-full text-purple-600 hover:text-purple-800 text-center py-2 mt-2 text-sm hover:underline"
               >
                 Continuar Comprando
               </button>

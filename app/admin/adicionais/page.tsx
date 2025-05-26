@@ -152,12 +152,14 @@ export default function AdditionalsAdminPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
-          <div className="container mx-auto flex items-center">
-            <Link href="/admin" className="mr-4">
-              <ArrowLeft size={24} />
-            </Link>
-            <h1 className="text-xl font-bold">Gerenciar Adicionais</h1>
+        <header className="bg-purple-900 text-white p-3 sm:p-4 sticky top-0 z-10">
+          <div className="container mx-auto">
+            <div className="flex items-center">
+              <Link href="/admin" className="mr-2 sm:mr-4">
+                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+              </Link>
+              <h1 className="text-lg sm:text-xl font-bold">Gerenciar Adicionais</h1>
+            </div>
           </div>
         </header>
         <div className="flex-1 flex justify-center items-center">
@@ -169,29 +171,37 @@ export default function AdditionalsAdminPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center">
-            <Link href="/admin" className="mr-4">
-              <ArrowLeft size={24} />
-            </Link>
-            <h1 className="text-xl font-bold">Gerenciar Adicionais</h1>
-          </div>
-          <div className="flex space-x-2">
-            <Link 
-              href="/admin/categorias-adicionais"
-              className="bg-purple-800 text-white px-4 py-2 rounded-md font-medium flex items-center"
-            >
-              <FolderPlus size={18} className="mr-1" />
-              Categorias
-            </Link>
-            <button
-              onClick={handleAddAdditional}
-              className="bg-white text-purple-900 px-4 py-2 rounded-md font-medium flex items-center"
-            >
-              <Plus size={18} className="mr-1" />
-              Novo Adicional
-            </button>
+      <header className="bg-gradient-to-r from-purple-800 to-purple-900 text-white p-3 sm:p-4 sticky top-0 z-10 shadow-lg">
+        <div className="container mx-auto px-2 sm:px-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Link 
+                href="/admin" 
+                className="p-1.5 rounded-full hover:bg-purple-700 transition-colors duration-200 flex-shrink-0"
+                aria-label="Voltar"
+              >
+                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+              </Link>
+              <h1 className="text-lg sm:text-xl font-bold whitespace-nowrap">
+                Gerenciar Adicionais
+              </h1>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:flex sm:space-x-3 w-full sm:w-auto">
+              <Link 
+                href="/admin/categorias-adicionais"
+                className="w-full bg-purple-700 hover:bg-purple-600 text-white px-4 py-2.5 sm:py-2 rounded-lg font-medium flex items-center justify-center space-x-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+              >
+                <FolderPlus className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Categorias</span>
+              </Link>
+              <button
+                onClick={handleAddAdditional}
+                className="w-full bg-white hover:bg-gray-50 text-purple-900 px-4 py-2.5 sm:py-2 rounded-lg font-medium flex items-center justify-center space-x-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+              >
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Novo Adicional</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>

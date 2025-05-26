@@ -12,6 +12,8 @@ import { ptBR } from "date-fns/locale"
 import OrderLabelPrinter from "@/components/order-label-printer"
 import { useNotificationSound } from "@/hooks/useNotificationSound"
 
+
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -355,17 +357,16 @@ export default function OrdersPage() {
                         <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)} mr-2`}>
                           {getStatusText(order.status)}
                         </span>
-                        {order.printed ? (
-                          <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full">Impresso</span>
-                        ) : (
-                          <button
-                            onClick={() => handlePrintLabel(order)}
-                            className="bg-purple-100 text-purple-800 p-1 rounded-full"
-                            title="Imprimir Etiqueta"
-                          >
-                            <Printer size={16} />
-                          </button>
+                        {order.printed && (
+                          <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full mr-2">Impresso</span>
                         )}
+                        <button
+                          onClick={() => handlePrintLabel(order)}
+                          className="bg-purple-100 text-purple-800 p-1 rounded-full"
+                          title="Imprimir Etiqueta"
+                        >
+                          <Printer size={16} />
+                        </button>
                       </div>
                     </div>
 
@@ -398,9 +399,9 @@ export default function OrdersPage() {
                             {item.additionals && item.additionals.length > 0 ? (
                               <div className="mt-1">
                                 <p className="text-sm text-purple-700 italic">Com Adicionais:</p>
-                                <ul className="pl-4">
-                                  {item.additionals.map((additional, idx) => (
-                                    <li key={idx} className="text-sm">
+                                <ul className="pl-8">
+                                  {item.additionals.map((additional, addIdx) => (
+                                    <li key={addIdx} className="text-sm">
                                       • {additional.quantity || 1}x {additional.name} -{" "}
                                       {additional.price > 0 ? formatCurrency(additional.price * (additional.quantity || 1)) : "Grátis"}
                                     </li>

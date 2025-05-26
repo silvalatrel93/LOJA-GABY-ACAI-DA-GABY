@@ -8,13 +8,18 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Clock, MapPin, CreditCard, Truck, Home, Building, MapPinned, Copy, Check, Eye, EyeOff, CheckCircle } from "lucide-react"
 import { useCart, CartProvider } from "@/lib/cart-context"
-import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
+import { formatCurrency } from "@/lib/utils"
 import { getStoreConfig } from "@/lib/services/store-config-service"
 import { getStoreStatus } from "@/lib/store-utils"
 import { saveOrder } from "@/lib/services/order-service"
 import { getProductById } from "@/lib/services/product-service"
 import { generateSimplePixQRCode } from "@/lib/pix-utils"
 import type { StoreConfig } from "@/lib/types"
+
+// Função para limpar a exibição do tamanho
+function cleanSizeDisplay(size: string): string {
+  return size.replace("_", " ").replace(/^\w/, (c) => c.toUpperCase())
+}
 
 // Componente para exibir e copiar a chave PIX
 interface PixKeyCopyComponentProps {
@@ -305,15 +310,7 @@ function CheckoutPageContent() {
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Pedido Enviado com Sucesso!</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Seu pedido foi registrado e está sendo preparado. Em breve entraremos em contato para confirmar os detalhes da entrega.
-            </p>
-            {orderId && (
-              <p className="text-xs font-medium text-purple-700 mb-4">
-                Número do pedido: {orderId}
-              </p>
-            )}
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Pedido Enviado com Sucesso!</h3>
             <div className="mt-4">
               <button
                 type="button"
@@ -557,26 +554,8 @@ function CheckoutPageContent() {
 
                   {/* Mostrar status de adicionais */}
                   {item.additionals && item.additionals.length > 0 ? (
-                    <>
-                      {/* Agrupamento de adicionais por categoria */}
-                      {(() => {
-                        // Agrupar adicionais por categoria
-                        const groupedByCategory: Record<string, typeof item.additionals> = {};
-                        
-                        item.additionals.forEach((additional) => {
-                          const categoryName = additional.categoryName || "Outros";
-                          if (!groupedByCategory[categoryName]) {
-                            groupedByCategory[categoryName] = [];
-                          }
-                          groupedByCategory[categoryName].push(additional);
-                        });
-                        
-                        // Renderizar os grupos de categorias
-                        return Object.entries(groupedByCategory).map(([categoryName, additionals]) => (
-                          <div key={`${item.id}-${categoryName}`} className="mb-3">
-                            <div className="text-sm text-purple-600 font-medium mt-1 ml-2" data-component-name="CheckoutPageContent">{categoryName}</div>
                             <div className="ml-4 text-sm text-gray-600">
-                              {additionals.map((additional, idx) => (
+                      {item.additionals.map((additional, idx) => (
                                 <div key={idx} className="flex justify-between items-center mt-1">
                                   <div>
                                     + {(additional.quantity ?? 1)}x {additional.name}
@@ -585,10 +564,6 @@ function CheckoutPageContent() {
                                 </div>
                               ))}
                             </div>
-                          </div>
-                        ));
-                      })()}
-                    </>
                   ) : null}
                 </div>
               ))}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useAdditionals } from "@/lib/contexts/additionals-context"
-import { getAllAdditionals } from "@/lib/services/additional-service"
+import { getAllAdditionals, getActiveAdditionalsByProduct } from "@/lib/services/additional-service"
 import { getActiveAdditionalCategories } from "@/lib/services/additional-category-service"
 import type { Additional } from "@/lib/services/additional-service"
 import type { AdditionalCategory } from "@/lib/services/additional-category-service"
@@ -31,13 +31,28 @@ export function useAdditionalsLogic(product?: Product) {
     removeAdditional,
     setIsDataLoaded,
     resetAdditionalsBySize,
-    MAX_ADDITIONALS_PER_SIZE,
+    maxAdditionalsPerSize,
+    setMaxAdditionalsPerSize,
+    updateSizeLimits,
     FREE_ADDITIONALS_LIMIT
   } = useAdditionals()
 
   // Estado local para gerenciar erros de carregamento
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Atualizar apenas os tamanhos quando o produto mudar (não usar mais limite geral)
+  useEffect(() => {
+    if (product?.sizes) {
+      updateSizeLimits(product.sizes)
+      console.log('🔍 DEBUG - Tamanhos atualizados no hook:', product.sizes)
+    }
+  }, [product?.sizes, updateSizeLimits])
+
+  // Debug: Log quando selectedSize mudar
+  useEffect(() => {
+    console.log('🔍 DEBUG - selectedSize mudou no hook:', selectedSize)
+  }, [selectedSize])
 
   // Função para carregar adicionais e suas categorias
   const loadAdditionalsData = async () => {
@@ -48,8 +63,11 @@ export function useAdditionalsLogic(product?: Product) {
       // Carregar categorias ativas e adicionais em paralelo
       const [categories, additionalsData] = await Promise.all([
         getActiveAdditionalCategories(),
-        getAllAdditionals()
+        product?.id ? getActiveAdditionalsByProduct(product.id) : getAllAdditionals()
       ])
+
+      console.log('🔍 DEBUG - Hook: Categorias carregadas:', categories);
+      console.log('🔍 DEBUG - Hook: Adicionais carregados:', additionalsData);
 
       // Verificar se os dados foram carregados com sucesso
       if (!categories || !additionalsData) {
@@ -89,11 +107,15 @@ export function useAdditionalsLogic(product?: Product) {
   const calculateAdditionalsTotal = () => {
     if (!selectedAdditionals) return 0
 
-    return Object.values(selectedAdditionals).reduce((total, { additional, quantity }) => {
-      // Se o tamanho tem adicionais gratuitos e ainda não atingiu o limite
-      if (hasFreeAdditionals && Object.keys(selectedAdditionals).length <= FREE_ADDITIONALS_LIMIT) {
-        return total
+    // Converter para array para ter controle sobre a ordem
+    const additionalsList = Object.values(selectedAdditionals)
+    
+    return additionalsList.reduce((total, { additional, quantity }, index) => {
+      // Se o tamanho tem adicionais gratuitos e este adicional está dentro do limite gratuito
+      if (hasFreeAdditionals && index < FREE_ADDITIONALS_LIMIT) {
+        return total // Este adicional é gratuito
       }
+      // Este adicional é pago
       return total + additional.price * quantity
     }, 0)
   }
@@ -122,7 +144,7 @@ export function useAdditionalsLogic(product?: Product) {
       ? Math.max(0, FREE_ADDITIONALS_LIMIT - selectedAdditionalsCount)
       : 0
       
-    const remainingTotal = MAX_ADDITIONALS_PER_SIZE - selectedAdditionalsCount
+    const remainingTotal = maxAdditionalsPerSize - selectedAdditionalsCount
     
     if (hasFreeAdditionals && !reachedFreeAdditionalsLimit) {
       return `${selectedAdditionalsCount} complemento${selectedAdditionalsCount !== 1 ? 's' : ''} premium selecionado${selectedAdditionalsCount !== 1 ? 's' : ''} (${remainingFree} grátis restante${remainingFree !== 1 ? 's' : ''})`
@@ -201,7 +223,7 @@ export function useAdditionalsLogic(product?: Product) {
     isAdditionalSelected,
     
     // Constantes
-    MAX_ADDITIONALS_PER_SIZE,
+    maxAdditionalsPerSize,
     FREE_ADDITIONALS_LIMIT,
     SIZES_WITH_FREE_ADDITIONALS: useAdditionals().SIZES_WITH_FREE_ADDITIONALS,
     

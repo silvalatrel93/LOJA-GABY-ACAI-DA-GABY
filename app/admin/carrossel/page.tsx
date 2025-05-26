@@ -163,12 +163,14 @@ export default function CarouselAdminPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
-          <div className="container mx-auto flex items-center">
-            <Link href="/admin" className="mr-4">
-              <ArrowLeft size={24} />
-            </Link>
-            <h1 className="text-xl font-bold">Gerenciar Carrossel</h1>
+        <header className="bg-purple-900 text-white p-3 sm:p-4 sticky top-0 z-10">
+          <div className="container mx-auto">
+            <div className="flex items-center">
+              <Link href="/admin" className="mr-2 sm:mr-4">
+                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+              </Link>
+              <h1 className="text-lg sm:text-xl font-bold">Gerenciar Carrossel</h1>
+            </div>
           </div>
         </header>
         <div className="flex-1 flex justify-center items-center">
@@ -180,22 +182,30 @@ export default function CarouselAdminPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
-        <div className="container mx-auto flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center">
-            <Link href="/admin" className="mr-4">
-              <ArrowLeft size={24} />
-            </Link>
-            <h1 className="text-xl font-bold">Gerenciar Carrossel</h1>
-          </div>
-          <div className="flex items-center flex-wrap">
-            <button
-              onClick={handleAddSlide}
-              className="bg-white text-purple-900 px-4 py-2 rounded-md font-medium flex items-center"
-            >
-              <Plus size={18} className="mr-1" />
-              Novo Slide
-            </button>
+      <header className="bg-gradient-to-r from-purple-800 to-purple-900 text-white p-3 sm:p-4 sticky top-0 z-10 shadow-lg">
+        <div className="container mx-auto px-2 sm:px-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Link 
+                href="/admin" 
+                className="p-1.5 rounded-full hover:bg-purple-700 transition-colors duration-200 flex-shrink-0"
+                aria-label="Voltar"
+              >
+                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+              </Link>
+              <h1 className="text-lg sm:text-xl font-bold whitespace-nowrap">
+                Gerenciar Carrossel
+              </h1>
+            </div>
+            <div className="w-full sm:w-auto">
+              <button
+                onClick={handleAddSlide}
+                className="w-full sm:w-auto bg-white hover:bg-gray-50 text-purple-900 px-4 py-2.5 sm:py-2 rounded-lg font-medium flex items-center justify-center space-x-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm sm:text-base"
+              >
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Novo Slide</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>

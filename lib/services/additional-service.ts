@@ -113,14 +113,13 @@ export const AdditionalService = {
         return this.getActiveAdditionals()
       }
 
-      // Buscar apenas os adicionais permitidos para este produto
+      // Buscar todos os adicionais ativos que estão na lista de permitidos
       const { data, error } = await supabase
         .from("additionals")
         .select("*, category:categories(name)")
         .eq("active", true)
         .eq("store_id", DEFAULT_STORE_ID)
         .in("id", productData.allowed_additionals)
-        .order("name")
 
       if (error) {
         console.error(`Erro ao buscar adicionais para o produto ${productId}:`, JSON.stringify(error))
@@ -133,7 +132,7 @@ export const AdditionalService = {
       }
 
       // Converter explicitamente os tipos para evitar erros de tipagem
-      return data.map((item: any) => ({
+      const result = data.map((item: any) => ({
         id: Number(item.id),
         name: String(item.name),
         price: Number(item.price),
@@ -142,6 +141,9 @@ export const AdditionalService = {
         active: Boolean(item.active),
         image: item.image ? String(item.image) : "",
       }))
+      
+      console.log('🔍 DEBUG - Serviço: Dados processados para produto', productId, ':', result);
+      return result
     } catch (error) {
       console.error(`Erro ao buscar adicionais para o produto ${productId}:`, error)
       return []
@@ -176,7 +178,7 @@ export const AdditionalService = {
       // Buscar todos os adicionais ativos que estão na lista de permitidos
       const { data, error } = await supabase
         .from("additionals")
-        .select("*, category_id")
+        .select("*, category:categories(name)")
         .eq("active", true)
         .eq("store_id", DEFAULT_STORE_ID)
         .in("id", productData.allowed_additionals)
@@ -216,9 +218,10 @@ export const AdditionalService = {
           additionalsByCategory[categoryId] = []
         }
         
-        // Buscar o nome da categoria a partir do array de categorias
-        const category = categories.find(c => c.id === categoryId);
-        const categoryName = category ? category.name : "Sem categoria";
+        // Usar o nome da categoria que vem do join SQL se disponível
+        const categoryName = item.category && typeof item.category === 'object' && item.category !== null && 'name' in item.category 
+          ? String((item.category as any).name) 
+          : (categories.find(c => c.id === categoryId)?.name || "Sem categoria");
         
         // Garantir que todos os campos necessários estejam presentes
         const additional: Additional = {

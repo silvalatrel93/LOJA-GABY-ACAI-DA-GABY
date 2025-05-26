@@ -133,6 +133,7 @@ export default function AdminPage() {
       ],
       categoryId: defaultCategoryId,
       allowedAdditionals: [], // Inicialmente sem adicionais permitidos
+      additionalsLimit: 5, // Limite padrão de 5 adicionais
       active: true, // Adicionar a propriedade active que estava faltando
     })
     setIsModalOpen(true)
@@ -194,6 +195,9 @@ export default function AdminPage() {
       updatedSizes[index].size = value;
     } else if (field === "price") {
       updatedSizes[index].price = parseFloat(value) || 0;
+    } else if (field === "additionalsLimit") {
+      const numValue = parseInt(value) || undefined;
+      updatedSizes[index].additionalsLimit = numValue && numValue > 0 ? numValue : undefined;
     }
     setEditingProduct({ ...editingProduct, sizes: updatedSizes });
   };
@@ -202,7 +206,7 @@ export default function AdminPage() {
   const handleAddSize = () => {
     if (!editingProduct) return;
     
-    const updatedSizes = [...editingProduct.sizes, { size: "", price: 0 }];
+    const updatedSizes = [...editingProduct.sizes, { size: "", price: 0, additionalsLimit: undefined }];
     setEditingProduct({ ...editingProduct, sizes: updatedSizes });
   };
 
@@ -331,49 +335,46 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-gradient-to-r from-purple-800 to-purple-900 text-white p-3 sm:p-4 sticky top-0 z-10 shadow-md">
-        <div className="container mx-auto flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center">
-            <Link 
-              href="/" 
-              className="mr-3 sm:mr-4 p-2 rounded-full hover:bg-purple-700/30 transition-colors duration-200 flex items-center justify-center"
-              aria-label="Voltar para a página inicial"
-            >
-              <ArrowLeft size={22} />
-            </Link>
-            <h1 className="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-purple-100">
-              Painel Administrativo
-            </h1>
-          </div>
-          <div className="flex flex-wrap gap-2 sm:gap-3">
-            <button
-              onClick={loadData}
-              className="bg-gradient-to-r from-purple-700 to-purple-800 text-white px-3 sm:px-4 py-2 rounded-lg font-medium flex items-center shadow-sm hover:shadow-md transition-all duration-200 hover:translate-y-[-1px] active:translate-y-[1px]"
-              title="Atualizar dados"
-            >
-              <RefreshCw size={16} className="mr-1.5 transition-transform group-hover:rotate-180" />
-              <span className="hidden xs:inline">Atualizar</span>
-              <span className="xs:hidden">Atual.</span>
-            </button>
-            <button
-              onClick={handleAddProduct}
-              className="bg-white text-purple-900 px-3 sm:px-4 py-2 rounded-lg font-medium flex items-center shadow-sm hover:shadow-md transition-all duration-200 border border-purple-100 hover:bg-purple-50 hover:translate-y-[-1px] active:translate-y-[1px]"
-            >
-              <Plus size={16} className="mr-1.5" />
-              <span className="hidden xs:inline">Novo Produto</span>
-              <span className="xs:hidden">Novo</span>
-            </button>
-            <button
-              onClick={() => {
-                localStorage.removeItem("admin_authenticated")
-                window.location.href = "/admin/login"
-              }}
-              className="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium flex items-center shadow-sm hover:shadow-md transition-all duration-200 hover:translate-y-[-1px] active:translate-y-[1px]"
-              title="Sair do painel"
-            >
-              <ArrowLeft size={16} className="mr-1.5" />
-              <span>Sair</span>
-            </button>
+      <header className="bg-gradient-to-r from-purple-800 to-purple-900 text-white p-3 sm:p-4 sticky top-0 z-10 shadow-lg">
+        <div className="container mx-auto px-2 sm:px-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Link 
+                href="/" 
+                className="p-1.5 rounded-full hover:bg-purple-700 transition-colors duration-200 flex-shrink-0"
+                aria-label="Voltar para a página inicial"
+              >
+                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+              </Link>
+              <h1 className="text-lg sm:text-xl font-bold whitespace-nowrap">
+                Painel Administrativo
+              </h1>
+            </div>
+            
+            <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+              {/* Botão Novo Produto */}
+              <button
+                onClick={handleAddProduct}
+                className="flex-1 bg-white hover:bg-gray-50 text-purple-900 px-3 py-2 rounded-lg font-medium flex items-center justify-center space-x-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+              >
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Novo Produto</span>
+                <span className="sm:hidden">Novo</span>
+              </button>
+              
+              {/* Botão Sair */}
+              <button
+                onClick={() => {
+                  localStorage.removeItem("admin_authenticated")
+                  window.location.href = "/admin/login"
+                }}
+                className="flex-1 sm:flex-none bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg font-medium flex items-center justify-center space-x-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                title="Sair do painel"
+              >
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Sair</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -543,19 +544,33 @@ export default function AdminPage() {
           </Link>
         </div>
 
-        <div className="bg-gradient-to-br from-white via-white to-purple-50 rounded-xl shadow-sm hover:shadow-lg p-4 sm:p-5 mb-6 border border-transparent hover:border-purple-100/50 transition-all duration-500 relative overflow-hidden group/container">
+        <div className="bg-gradient-to-br from-white via-white to-purple-50 rounded-xl shadow-sm hover:shadow-lg p-3 sm:p-4 md:p-5 mb-4 sm:mb-6 border border-transparent hover:border-purple-100/50 transition-all duration-500 relative overflow-hidden group/container">
+          {/* Efeitos de fundo */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 via-pink-400 to-[#92c730] rounded-t-xl group-hover/container:h-1.5 transition-all duration-500"></div>
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-purple-200/20 to-transparent rounded-full blur-2xl group-hover/container:scale-110 transition-transform duration-1000"></div>
-          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-gradient-to-tr from-[#92c730]/10 to-transparent rounded-full blur-2xl group-hover/container:scale-110 transition-transform duration-1000 group-hover/container:rotate-12"></div>
-          <div className="absolute top-1/2 right-0 w-24 h-24 bg-gradient-to-tl from-purple-100/5 to-transparent rounded-full blur-xl opacity-0 group-hover/container:opacity-100 transition-opacity duration-700 group-hover/container:translate-x-6"></div>
-          <h2 className="relative z-10 text-xl sm:text-2xl font-bold mb-5 pb-3 flex items-center">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-700 via-purple-800 to-[#5a7c1e]">Gerenciar Produtos</span>
-            <span className="ml-3 bg-gradient-to-r from-purple-100 to-[#e8f5d3] text-xs sm:text-sm text-purple-800 px-3 py-1 rounded-full font-normal flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
-              {products.length} produtos
-            </span>
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-purple-200 via-[#e8f5d3] to-transparent"></div>
-          </h2>
+          <div className="absolute -top-16 sm:-top-20 -right-16 sm:-right-20 w-32 sm:w-40 h-32 sm:h-40 bg-gradient-to-br from-purple-200/20 to-transparent rounded-full blur-xl sm:blur-2xl group-hover/container:scale-110 transition-transform duration-1000"></div>
+          <div className="absolute -bottom-16 sm:-bottom-20 -left-16 sm:-left-20 w-32 sm:w-40 h-32 sm:h-40 bg-gradient-to-tr from-[#92c730]/10 to-transparent rounded-full blur-xl sm:blur-2xl group-hover/container:scale-110 transition-transform duration-1000 group-hover/container:rotate-12"></div>
+          <div className="absolute top-1/2 -right-8 sm:right-0 w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-tl from-purple-100/5 to-transparent rounded-full blur-lg sm:blur-xl opacity-0 group-hover/container:opacity-100 transition-opacity duration-700 group-hover/container:translate-x-3 sm:group-hover/container:translate-x-6"></div>
+          
+          {/* Cabeçalho */}
+          <div className="relative z-10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-4">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-700 via-purple-800 to-[#5a7c1e]">
+                  Gerenciar Produtos
+                </span>
+              </h2>
+              <div className="flex items-center bg-gradient-to-r from-purple-100 to-[#e8f5d3] text-xs sm:text-sm text-purple-800 px-3 py-1.5 rounded-full font-medium self-start sm:self-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5 flex-shrink-0">
+                  <path d="m7.5 4.27 9 5.15"></path>
+                  <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+                  <path d="m3.3 7 8.7 5 8.7-5"></path>
+                  <path d="M12 22V12"></path>
+                </svg>
+                <span>{products.length} {products.length === 1 ? 'produto' : 'produtos'}</span>
+              </div>
+            </div>
+            <div className="w-full h-0.5 bg-gradient-to-r from-purple-100 via-[#e8f5d3] to-transparent mb-3 sm:mb-4"></div>
+          </div>
 
           {products.length === 0 ? (
             <p className="text-center text-gray-500 py-8">
@@ -736,33 +751,66 @@ export default function AdminPage() {
                 </div>
 
                 {editingProduct.sizes.map((size, index) => (
-                  <div key={createSafeKey(index, 'size-item')} className="flex items-center space-x-2 mb-2">
-                    <input
-                      type="text"
-                      value={size.size}
-                      onChange={(e) => handleSizeChange(index, "size", e.target.value)}
-                      className="w-1/3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Tamanho"
-                    />
-                    <input
-                      type="number"
-                      value={size.price}
-                      onChange={(e) => handleSizeChange(index, "price", e.target.value)}
-                      className="w-2/3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Preço"
-                      step="0.01"
-                      min="0"
-                      inputMode="decimal"
-                    />
-                    <button 
-                      type="button"
-                      onClick={() => handleRemoveSize(index)}
-                      disabled={editingProduct.sizes.length <= 1}
-                      className={`p-2 rounded-full ${editingProduct.sizes.length <= 1 ? 'bg-gray-100 text-gray-400' : 'bg-red-100 text-red-600'}`}
-                      title="Remover tamanho"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                  <div key={createSafeKey(index, 'size-item')} className="border border-gray-200 rounded-lg p-3 mb-3">
+                    <div className="grid grid-cols-12 gap-2 mb-2 items-center">
+                      <div className="col-span-5 xs:col-span-4">
+                        <input
+                          type="text"
+                          value={size.size}
+                          onChange={(e) => handleSizeChange(index, "size", e.target.value)}
+                          className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="Ex: 500ml"
+                        />
+                      </div>
+                      <div className="col-span-5 xs:col-span-4 relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="text-gray-500 text-sm">R$</span>
+                        </div>
+                        <input
+                          type="number"
+                          value={size.price}
+                          onChange={(e) => handleSizeChange(index, "price", e.target.value)}
+                          className="w-full pl-8 pr-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="0,00"
+                          step="0.01"
+                          min="0"
+                          inputMode="decimal"
+                        />
+                      </div>
+                      <div className="col-span-2 xs:col-span-3 flex justify-end">
+                        <button 
+                          type="button"
+                          onClick={() => handleRemoveSize(index)}
+                          disabled={editingProduct.sizes.length <= 1}
+                          className={`p-2 rounded-full transition-colors ${editingProduct.sizes.length <= 1 ? 'bg-gray-100 text-gray-400' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}
+                          title="Remover tamanho"
+                          aria-label="Remover tamanho"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-12 gap-2 items-center mt-2">
+                      <label className="col-span-12 sm:col-span-3 text-sm text-gray-600 whitespace-nowrap">
+                        Limite de adicionais:
+                      </label>
+                      <div className="col-span-8 sm:col-span-5">
+                        <input
+                          type="number"
+                          value={size.additionalsLimit || ''}
+                          onChange={(e) => handleSizeChange(index, "additionalsLimit", e.target.value)}
+                          className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="Vazio = sem limite"
+                          min="0"
+                          max="20"
+                        />
+                      </div>
+                      <div className="col-span-4 sm:col-span-4">
+                        <span className="text-xs sm:text-sm text-gray-500">
+                          vazio = sem limite
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 ))}
                 {editingProduct.sizes.length === 0 && (
@@ -786,6 +834,19 @@ export default function AdminPage() {
                     : editingProduct.allowedAdditionals.length === additionals.length
                       ? "Todos os adicionais selecionados"
                       : `${editingProduct.allowedAdditionals.length} adicionais selecionados`}
+                </p>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center mb-2">
+                  <svg className="w-4 h-4 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <h4 className="text-sm font-medium text-blue-800">Sistema de Limites por Tamanho</h4>
+                </div>
+                <p className="text-xs text-blue-700">
+                  Configure o limite de adicionais individualmente para cada tamanho acima. 
+                  Deixe vazio para permitir adicionais ilimitados naquele tamanho.
                 </p>
               </div>
             </div>

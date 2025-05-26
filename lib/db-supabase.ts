@@ -84,7 +84,7 @@ export async function addToCartInSupabase(item: CartItem): Promise<void> {
       const { error: updateError } = await supabase
         .from("cart")
         .update({
-          quantity: data.quantity + item.quantity,
+          quantity: (data.quantity as number) + item.quantity,
         })
         .eq("session_id", sessionId)
         .eq("product_id", item.id)
@@ -218,6 +218,7 @@ export async function getAllProductsFromSupabase(): Promise<Product[]> {
       categoryId: product.category_id,
       active: product.active,
       allowedAdditionals: product.allowed_additionals,
+      additionalsLimit: product.additionals_limit || 5,
     }))
   } catch (error) {
     console.error("Erro ao obter produtos do Supabase:", error)
@@ -268,6 +269,7 @@ export async function saveProductToSupabase(product: Product): Promise<void> {
       category_id: product.categoryId,
       active: product.active !== undefined ? product.active : true,
       allowed_additionals: product.allowedAdditionals || [],
+      additionals_limit: product.additionalsLimit || 5,
       store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
     }
 
@@ -410,6 +412,7 @@ export async function getAllOrdersFromSupabase(): Promise<Order[]> {
       status: order.status,
       date: new Date(order.date),
       printed: order.printed,
+      notified: order.notified || false, // Adicionar campo notified com valor padrão
     }))
   } catch (error) {
     console.error("Erro ao obter pedidos do Supabase:", error)

@@ -365,40 +365,80 @@ export default function OrdersPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-purple-900 text-white p-4">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center">
-            <Link href="/admin" className="mr-4">
-              <ArrowLeft size={24} />
-            </Link>
-            <h1 className="text-xl font-bold">Gerenciar Pedidos</h1>
-          </div>
-          <div className="flex items-center">
-            <button
-              onClick={() => loadOrders(false)}
-              className="bg-white text-purple-900 px-4 py-2 rounded-md font-medium flex items-center"
-            >
-              <RefreshCw size={18} className="mr-1" />
-              Atualizar
-            </button>
-            <button 
-              onClick={() => setIsSoundEnabled(!isSoundEnabled)} 
-              className="ml-3 p-2 rounded-full hover:bg-purple-200 transition-colors"
-              title={isSoundEnabled ? "Desativar notificações de som" : "Ativar notificações de som"}
-            >
-              {isSoundEnabled ? 
-                <Bell className="w-4 h-4 sm:w-[18px] sm:h-[18px] transition-all duration-200" /> 
-                : 
-                <BellOff className="w-4 h-4 sm:w-[18px] sm:h-[18px] transition-all duration-200" />
-              }
-            </button>
-            <button 
-              onClick={() => setAutoSendWhatsApp(!autoSendWhatsApp)} 
-              className="ml-3 p-2 rounded-full hover:bg-purple-200 transition-colors"
-              title={autoSendWhatsApp ? "Desativar envio automático de WhatsApp" : "Ativar envio automático de WhatsApp"}
-            >
-              <MessageSquare className={`w-4 h-4 sm:w-[18px] sm:h-[18px] transition-all duration-200 ${autoSendWhatsApp ? 'text-green-500' : 'text-gray-400'}`} />
-            </button>
+      <header className="bg-gradient-to-r from-purple-800 to-purple-900 text-white border-b border-purple-700/50 sticky top-0 z-20 shadow-lg">
+        <div className="container mx-auto px-3 py-2 sm:px-4 sm:py-3">
+          <div className="flex items-center justify-between">
+            {/* Lado esquerdo - Navegação */}
+            <div className="flex items-center">
+              <Link 
+                href="/admin" 
+                className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 transition-all duration-200 flex items-center justify-center active:scale-95"
+                aria-label="Voltar para o painel"
+              >
+                <ArrowLeft size={20} className="text-white/90" />
+              </Link>
+              
+              <h1 className="ml-2 sm:ml-3 text-lg sm:text-xl font-bold text-white tracking-tight truncate max-w-[180px] sm:max-w-none">
+                Gerenciar Pedidos
+              </h1>
+            </div>
+            
+            {/* Lado direito - Botões de ação */}
+            <div className="flex items-center gap-2">
+              {/* Botão de som - mobile */}
+              <button 
+                onClick={() => setIsSoundEnabled(!isSoundEnabled)} 
+                className="sm:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200 active:scale-95"
+                title={isSoundEnabled ? "Desativar notificações de som" : "Ativar notificações de som"}
+                aria-label={isSoundEnabled ? "Desativar som" : "Ativar som"}
+              >
+                {isSoundEnabled ? (
+                  <Bell size={20} className="text-emerald-400" />
+                ) : (
+                  <BellOff size={20} className="text-amber-400" />
+                )}
+              </button>
+
+              {/* Botão de som - desktop */}
+              <button 
+                onClick={() => setIsSoundEnabled(!isSoundEnabled)} 
+                className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium text-sm sm:text-base transition-all duration-200 active:scale-[0.98] bg-white/10 hover:bg-white/20"
+                title={isSoundEnabled ? "Desativar notificações de som" : "Ativar notificações de som"}
+                aria-label={isSoundEnabled ? "Desativar som" : "Ativar som"}
+              >
+                {isSoundEnabled ? (
+                  <>
+                    <Bell size={16} className="text-emerald-400" />
+                    <span>Som Ativo</span>
+                  </>
+                ) : (
+                  <>
+                    <BellOff size={16} className="text-amber-400" />
+                    <span>Som Inativo</span>
+                  </>
+                )}
+              </button>
+              
+              {/* Botão de atualizar - mobile */}
+              <button
+                onClick={() => loadOrders(false)}
+                className="sm:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200 active:scale-95"
+                title="Atualizar pedidos"
+                aria-label="Atualizar lista de pedidos"
+              >
+                <RefreshCw size={20} className="text-white/90" />
+              </button>
+              
+              {/* Botão de atualizar - desktop */}
+              <button
+                onClick={() => loadOrders(false)}
+                className="hidden sm:flex items-center gap-1.5 bg-white text-purple-900 hover:bg-purple-50 px-3 py-2 rounded-lg font-medium text-sm sm:text-base transition-all duration-200 active:scale-[0.98] shadow-sm hover:shadow-md"
+                title="Atualizar lista de pedidos"
+              >
+                <RefreshCw size={16} className="text-purple-700" />
+                <span>Atualizar</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -543,9 +583,11 @@ export default function OrdersPage() {
 
       <div className="flex-1 container mx-auto p-4">
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
             <h2 className="text-lg font-semibold text-purple-900">Pedidos Recebidos</h2>
-            <OrderCounterReset />
+            <div className="w-full sm:w-auto">
+              <OrderCounterReset />
+            </div>
           </div>
 
           {isLoading ? (
@@ -586,17 +628,16 @@ export default function OrdersPage() {
                             {getStatusText(order.status)}
                           </span>
                         )}
-                        {order.printed ? (
-                          <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full">Impresso</span>
-                        ) : (
-                          <button
-                            onClick={() => handlePrintLabel(order)}
-                            className="bg-purple-100 text-purple-800 p-1 rounded-full"
-                            title="Imprimir Etiqueta"
-                          >
-                            <Printer size={16} />
-                          </button>
+                        {order.printed && (
+                          <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full mr-2">Impresso</span>
                         )}
+                        <button
+                          onClick={() => handlePrintLabel(order)}
+                          className="bg-purple-100 text-purple-800 p-1 rounded-full"
+                          title="Imprimir Etiqueta"
+                        >
+                          <Printer size={16} />
+                        </button>
                       </div>
                     </div>
 
@@ -609,7 +650,10 @@ export default function OrdersPage() {
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
                               <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                             </svg>
-                            <span className="mr-1">Celular:</span> {formatPhoneNumber(order.customerPhone)}
+                            <div className="flex flex-col">
+                              <span className="mr-1 font-medium">CELULAR</span>
+                              <span>{formatPhoneNumber(order.customerPhone)}</span>
+                            </div>
                           </div>
                           <div className="flex space-x-2 ml-4">
                             <a 
@@ -653,7 +697,7 @@ export default function OrdersPage() {
                     </div>
 
                     <div className="mt-3">
-                      <h4 className="font-medium text-sm text-gray-700">Itens</h4>
+                      <h4 className="font-medium text-sm text-gray-700">Itens do Pedido</h4>
                       <ul className="space-y-3">
                         {order.items.map((item, index) => (
                           <li key={index} className="border-b pb-2 last:border-b-0">
@@ -665,7 +709,7 @@ export default function OrdersPage() {
                             </div>
                             {item.additionals && item.additionals.length > 0 ? (
                               <div className="mt-1">
-                                <p className="text-sm text-purple-700 italic">Com Adicionais:</p>
+                                <p className="text-sm text-purple-700 italic">Adicionais Complementos:</p>
                                 <ul className="pl-4 space-y-1">
                                   {item.additionals.map((additional, idx) => (
                                     <li key={idx} className="text-sm flex flex-col sm:flex-row sm:justify-between">

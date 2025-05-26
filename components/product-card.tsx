@@ -19,7 +19,6 @@ import { ProductImage } from "@/components/product-card/product-image"
 import { ProductInfo } from "@/components/product-card/product-info"
 import { SizeSelector } from "@/components/product-card/size-selector"
 import { AdditionalSelector } from "@/components/product-card/additional-selector"
-import { AdditionalSummary } from "@/components/product-card/additional-summary"
 import { AcaiPattern } from "@/components/ui/acai-pattern"
 
 interface ProductCardProps {
@@ -27,21 +26,55 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  return (
+    <AdditionalsProvider 
+      maxAdditionalsLimit={999} // Não usar limite geral, apenas limites por tamanho
+      productSizes={product.sizes}
+    >
+      <ProductCardContent product={product} />
+    </AdditionalsProvider>
+  )
+}
+
+function ProductCardContent({ product }: ProductCardProps) {
   // Estado local do componente
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false)
-  const [selectedSize, setSelectedSize] = useState<string>('')
   const [storeStatus, setStoreStatus] = useState({ isOpen: true, statusText: "", statusClass: "" })
   const [showSuccess, setShowSuccess] = useState(false)
   
   // Acesso ao contexto do carrinho
   const { addToCart } = useCart()
   
-  // Acesso ao contexto de adicionais
+  // Acesso ao contexto de adicionais (incluindo selectedSize e setSelectedSize)
   const { 
-    selectedAdditionals, 
-    additionalsTotalPrice 
+    selectedSize, 
+    setSelectedSize,
+    selectedAdditionals,
+    additionalsTotalPrice,
+    isDataLoaded,
+    hasFreeAdditionals,
+    selectedAdditionalsCount,
+    reachedFreeAdditionalsLimit,
+    reachedMaxAdditionalsLimit,
+    setSelectedCategoryId,
+    toggleAdditional,
+    removeAdditional,
+    resetAdditionalsBySize,
+    loadAdditionalsData,
+    isAdditionalSelected,
+    maxAdditionalsPerSize,
+    FREE_ADDITIONALS_LIMIT,
+    SIZES_WITH_FREE_ADDITIONALS
   } = useAdditionalsLogic(product)
+
+  // Efeito para selecionar automaticamente o primeiro tamanho disponível quando o produto for aberto
+  useEffect(() => {
+    if (product?.sizes?.length > 0 && !selectedSize) {
+      // Seleciona o primeiro tamanho disponível
+      setSelectedSize(product.sizes[0].size)
+    }
+  }, [product?.sizes, selectedSize, setSelectedSize])
 
   // Carregar status da loja quando o modal é aberto
   useEffect(() => {
@@ -62,7 +95,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   // Informações do tamanho selecionado
   const selectedSizeInfo = selectedSize 
     ? product.sizes.find((s) => s.size === selectedSize)
-    : undefined
+    : product.sizes.length > 0 ? product.sizes[0] : undefined
 
   // Função para adicionar ao carrinho
   const handleAddToCart = () => {
@@ -149,74 +182,73 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       {/* Modal de detalhes do produto */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
           <div className="relative bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-purple-50">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-white to-white rounded-xl" />
             <div className="relative z-10">
               <div className="flex justify-between items-center border-b sticky top-0 bg-white z-10">
-                <h2 className="font-semibold text-xl p-4">{product.name}</h2>
+                <h2 className="font-semibold text-lg sm:text-xl p-3 sm:p-4 break-words leading-tight">{product.name}</h2>
                 <button 
                   onClick={() => setIsModalOpen(false)} 
-                  className="text-gray-500 hover:text-gray-700 p-4"
+                  className="text-gray-500 hover:text-gray-700 p-3 sm:p-4 flex-shrink-0"
                   aria-label="Fechar"
                 >
                   <X size={20} />
                 </button>
               </div>
               
-              <AdditionalsProvider initialSize={selectedSize}>
-                <div className="p-4">
-                  {/* Componente de imagem do produto */}
-                  <ProductImage 
-                    image={product.image || "/placeholder.svg"} 
-                    alt={product.name} 
-                    onOpenViewer={handleOpenImageViewer} 
-                    size="large" 
-                  />
-                  
-                  {/* Categoria e descrição */}
-                  {product.categoryName && (
-                    <p className="text-sm text-purple-700 mb-1">{product.categoryName}</p>
-                  )}
-                  {product.description && (
-                    <p className="text-gray-700 mb-4 border-b pb-4">{product.description}</p>
-                  )}
+              <div className="p-3 sm:p-4">
+                {/* Componente de imagem do produto */}
+                <ProductImage 
+                  image={product.image || "/placeholder.svg"} 
+                  alt={product.name} 
+                  onOpenViewer={handleOpenImageViewer} 
+                  size="large" 
+                />
                 
-                  {/* Componente de seleção de tamanho */}
-                  <SizeSelector 
-                    sizes={product.sizes} 
-                    selectedSize={selectedSize || ""} 
-                    onSizeSelect={setSelectedSize} 
-                  />
-
-                  {/* Componentes de adicionais usando o contexto - não exibir para TOPS HEAI AÇAI COPO PRONTO */}
-                  {product.categoryName !== "TOPS HEAI AÇAI COPO PRONTO" && product.hasAdditionals && (
-                    <>
-                      <AdditionalSelector product={product} />
-                      <AdditionalSummary />
-                    </>
-                  )}
-
-                  <div className="relative">
-                    <button
-                      onClick={handleAddToCart}
-                      className={`w-full bg-gradient-to-r from-purple-700 to-purple-900 hover:from-purple-800 hover:to-purple-950 text-white py-3 rounded-lg font-semibold mt-6 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed ${
-                        showSuccess ? 'opacity-0' : 'opacity-100'
-                      }`}
-                      disabled={!storeStatus.isOpen || !selectedSize}
-                    >
-                      {getButtonText()}
-                    </button>
-                    {showSuccess && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-green-500 rounded-lg mt-6">
-                        <span className="text-white font-semibold flex items-center">
-                          <Check className="mr-2" size={20} /> Adicionado ao carrinho!
-                        </span>
-                      </div>
-                    )}
+                {/* Categoria e descrição */}
+                {product.categoryName && (
+                  <p className="text-sm text-purple-700 mb-1">{product.categoryName}</p>
+                )}
+                {product.description && (
+                  <div className="text-gray-700 mb-4 border-b pb-4 text-sm sm:text-base leading-relaxed">
+                    <p className="whitespace-pre-line break-words">{product.description}</p>
                   </div>
+                )}
+              
+                {/* Componente de seleção de tamanho */}
+                <SizeSelector 
+                  sizes={product.sizes} 
+                  selectedSize={selectedSize || ""} 
+                  onSizeSelect={setSelectedSize} 
+                />
+
+                {/* Componentes de adicionais usando o contexto - não exibir para TOPS HEAI AÇAI COPO PRONTO */}
+                {product.categoryName !== "TOPS HEAI AÇAI COPO PRONTO" && product.hasAdditionals && (
+                  <>
+                    <AdditionalSelector product={product} />
+                  </>
+                )}
+
+                <div className="relative">
+                  <button
+                    onClick={handleAddToCart}
+                    className={`w-full bg-gradient-to-r from-purple-700 to-purple-900 hover:from-purple-800 hover:to-purple-950 text-white py-3 rounded-lg font-semibold mt-6 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed ${
+                      showSuccess ? 'opacity-0' : 'opacity-100'
+                    }`}
+                    disabled={!storeStatus.isOpen || !selectedSize}
+                  >
+                    {getButtonText()}
+                  </button>
+                  {showSuccess && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-green-500 rounded-lg mt-6">
+                      <span className="text-white font-semibold flex items-center">
+                        <Check className="mr-2" size={20} /> Adicionado ao carrinho!
+                      </span>
+                    </div>
+                  )}
                 </div>
-              </AdditionalsProvider>
+              </div>
             </div>
           </div>
         </div>

@@ -75,7 +75,7 @@ export default function StoreClosedNotice() {
           <div className="pulse-icon">
             <Clock size={16} />
           </div>
-          <div className="pulse-text">{storeStatus.statusText}</div>
+          <div className="pulse-text">LOJA FECHADA</div>
         </div>
       </div>
     </div>

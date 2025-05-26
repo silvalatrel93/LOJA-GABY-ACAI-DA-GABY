@@ -119,43 +119,64 @@ export default function PagesAdminPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-purple-900 text-white p-4 sticky top-0 z-10">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center">
-            <Link href="/admin" className="mr-4">
-              <ArrowLeft size={24} />
-            </Link>
-            <h1 className="text-xl font-bold">Gerenciar Páginas</h1>
+      <header className="bg-gradient-to-r from-purple-800 to-purple-900 text-white p-3 sm:p-4 sticky top-0 z-10 shadow-lg">
+        <div className="container mx-auto px-2 sm:px-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Link 
+                href="/admin" 
+                className="p-1.5 rounded-full hover:bg-purple-700 transition-colors duration-200 flex-shrink-0"
+                aria-label="Voltar"
+              >
+                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+              </Link>
+              <h1 className="text-lg sm:text-xl font-bold whitespace-nowrap">
+                Gerenciar Páginas
+              </h1>
+            </div>
+            
+            <div className="w-full sm:w-auto">
+              <button
+                onClick={handleSaveContent}
+                disabled={isSaving || !editingContent}
+                className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium flex items-center justify-center space-x-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 ${
+                  isSaving
+                    ? 'bg-gray-500 cursor-not-allowed'
+                    : saveStatus === 'success'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : saveStatus === 'error'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-purple-600 hover:bg-purple-700'
+                }`}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent"></div>
+                    <span>Salvando...</span>
+                  </>
+                ) : saveStatus === 'success' ? (
+                  <span className="flex items-center">
+                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Salvo!
+                  </span>
+                ) : saveStatus === 'error' ? (
+                  <span className="flex items-center">
+                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Erro ao Salvar
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <Save className="w-4 h-4 mr-1.5" />
+                    Salvar Alterações
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
-          <button
-            onClick={handleSaveContent}
-            disabled={isSaving || !editingContent}
-            className={`px-4 py-2 rounded-md text-white flex items-center ${
-              isSaving
-                ? "bg-gray-400"
-                : saveStatus === "success"
-                  ? "bg-green-600"
-                  : saveStatus === "error"
-                    ? "bg-red-600"
-                    : "bg-purple-700 hover:bg-purple-800"
-            }`}
-          >
-            {isSaving ? (
-              <>
-                <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent mr-2"></div>
-                Salvando...
-              </>
-            ) : saveStatus === "success" ? (
-              "Salvo com Sucesso!"
-            ) : saveStatus === "error" ? (
-              "Erro ao Salvar"
-            ) : (
-              <>
-                <Save size={18} className="mr-1" />
-                Salvar Alterações
-              </>
-            )}
-          </button>
         </div>
       </header>
 

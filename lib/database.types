@@ -13,6 +13,7 @@ export interface Database {
           category_id: number
           active: boolean
           allowed_additionals: number[] | null
+          additionals_limit: number
           created_at: string
           updated_at: string
         }
@@ -25,6 +26,7 @@ export interface Database {
           category_id: number
           active?: boolean
           allowed_additionals?: number[] | null
+          additionals_limit?: number
           created_at?: string
           updated_at?: string
         }
@@ -37,6 +39,7 @@ export interface Database {
           category_id?: number
           active?: boolean
           allowed_additionals?: number[] | null
+          additionals_limit?: number
           created_at?: string
           updated_at?: string
         }

@@ -36,7 +36,8 @@ export const ProductService = {
         categoryName: item.category?.name ? String(item.category.name) : "",
         active: Boolean(item.active),
         allowedAdditionals,
-        hasAdditionals: allowedAdditionals.length > 0
+        hasAdditionals: allowedAdditionals.length > 0,
+        additionalsLimit: Number(item.additionals_limit || 5)
       }
     })
   },
@@ -67,7 +68,8 @@ export const ProductService = {
       categoryName: item.category?.name ? String(item.category.name) : "",
       active: Boolean(item.active),
       allowedAdditionals,
-      hasAdditionals: allowedAdditionals.length > 0
+      hasAdditionals: allowedAdditionals.length > 0,
+      additionalsLimit: Number(item.additionals_limit || 5)
       }
     })
   },
@@ -104,7 +106,8 @@ export const ProductService = {
       categoryName: item.category?.name ? String(item.category.name) : "",
       active: Boolean(item.active),
       allowedAdditionals,
-      hasAdditionals: allowedAdditionals.length > 0
+      hasAdditionals: allowedAdditionals.length > 0,
+      additionalsLimit: Number(item.additionals_limit || 5)
       }
     })
   },
@@ -147,7 +150,8 @@ export const ProductService = {
       categoryName: String(data.category?.name || ""),
       active: Boolean(data.active),
       allowedAdditionals,
-      hasAdditionals: allowedAdditionals.length > 0
+      hasAdditionals: allowedAdditionals.length > 0,
+      additionalsLimit: Number(data.additionals_limit || 5)
     }
   },
 
@@ -163,6 +167,7 @@ export const ProductService = {
       category_id: product.categoryId,
       active: product.active !== undefined ? product.active : true,
       allowed_additionals: product.allowedAdditionals || [],
+      additionals_limit: product.additionalsLimit || 5,
       store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
     }
 
@@ -220,7 +225,8 @@ export const ProductService = {
         categoryName: data.category && typeof data.category === 'object' && data.category !== null && 'name' in data.category ? String(data.category.name) : "",
         active: Boolean(data.active),
         allowedAdditionals,
-        hasAdditionals: allowedAdditionals.length > 0
+        hasAdditionals: allowedAdditionals.length > 0,
+        additionalsLimit: Number(data.additionals_limit || 5)
       }
     } catch (error) {
       console.error("Erro ao salvar produto:", error)

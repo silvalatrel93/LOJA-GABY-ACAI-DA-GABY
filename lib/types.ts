@@ -12,12 +12,14 @@ export interface Product {
   active: boolean
   allowedAdditionals: number[]
   hasAdditionals?: boolean
+  additionalsLimit?: number // Limite personalizado de adicionais para este produto
 }
 
 // Tamanho do produto
 export interface ProductSize {
   size: string
   price: number
+  additionalsLimit?: number // Limite específico de adicionais para este tamanho
 }
 
 // Categoria

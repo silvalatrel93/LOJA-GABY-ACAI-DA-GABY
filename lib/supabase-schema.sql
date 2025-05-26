@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS products (
   category_id INTEGER NOT NULL REFERENCES categories(id),
   active BOOLEAN NOT NULL DEFAULT TRUE,
   allowed_additionals INTEGER[] NULL,
+  additionals_limit INTEGER NOT NULL DEFAULT 5 CHECK (additionals_limit >= 0),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

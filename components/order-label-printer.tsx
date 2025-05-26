@@ -15,6 +15,9 @@ interface OrderLabelPrinterProps {
   onPrintComplete: () => void
 }
 
+// Largura configurável da etiqueta (80mm ou 58mm são os padrões de impressora térmica)
+const LABEL_WIDTH_MM = 80 // Altere para 58 para impressora de 58mm
+
 export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabelPrinterProps) {
   const printContainerRef = useRef<HTMLDivElement>(null)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
@@ -65,7 +68,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       if (printDocument) {
         printDocument.open()
 
-        // Definir o estilo para impressora térmica (geralmente 80mm de largura)
+        // Definir o estilo para impressora térmica (largura configurável)
         printDocument.write(`
           <!DOCTYPE html>
           <html>
@@ -73,22 +76,23 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
               <title>Etiqueta de Pedido #${order.id}</title>
               <style>
                 @page {
-                  size: 80mm auto;
+                  size: ${LABEL_WIDTH_MM}mm auto;
                   margin: 0mm;
                 }
                 body {
                   font-family: 'Courier New', monospace;
-                  width: 72mm;
+                  width: ${LABEL_WIDTH_MM - 8}mm;
                   padding: 3mm;
                   margin: 0;
                   font-size: 10pt;
+                  word-break: break-word;
                 }
                 .header {
                   text-align: center;
                   margin-bottom: 5mm;
                 }
                 .logo {
-                  max-width: 60mm;
+                  max-width: ${LABEL_WIDTH_MM - 20}mm;
                   max-height: 20mm;
                   margin: 0 auto 2mm;
                   display: block;
@@ -217,12 +221,11 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
     try {
       setIsGeneratingPDF(true)
 
-      // Criar um novo documento PDF com tamanho para impressora térmica (80mm de largura)
-      // 80mm = aproximadamente 226.8 pontos (80mm * 2.835)
+      // Criar um novo documento PDF com tamanho para impressora térmica (largura configurável)
       const doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
-        format: [80, 200], // Largura: 80mm, Altura: ajustável (200mm inicial)
+        format: [LABEL_WIDTH_MM, 200], // Largura configurável
       })
 
       // Configurar fonte
@@ -238,13 +241,13 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
         try {
           const logoBase64 = await loadImage(logoUrl)
           // Calcular dimensões para manter a proporção e limitar a largura
-          const maxWidth = 30 // Reduzido de 70mm para 30mm
+          const maxWidth = LABEL_WIDTH_MM * 0.4 // 40% da largura
           const imgProps = doc.getImageProperties(logoBase64)
           const imgWidth = Math.min(maxWidth, imgProps.width / (imgProps.width / maxWidth))
           const imgHeight = imgProps.height * (imgWidth / imgProps.width)
 
           // Centralizar a imagem
-          const xPos = (80 - imgWidth) / 2
+          const xPos = (LABEL_WIDTH_MM - imgWidth) / 2
           doc.addImage(logoBase64, "PNG", xPos, yPos, imgWidth, imgHeight)
           yPos += imgHeight + 5 // Adicionar espaço após a logo
         } catch (error) {
@@ -256,15 +259,15 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       // Cabeçalho
       doc.setFont("courier", "bold")
       doc.setFontSize(12)
-      doc.text(storeName.toUpperCase(), 40, yPos, { align: "center" })
+      doc.text(storeName.toUpperCase(), LABEL_WIDTH_MM / 2, yPos, { align: "center" })
       yPos += 10
 
       doc.setFontSize(10)
-      doc.text(`Pedido #${order.id}`, 40, yPos, { align: "center" })
+      doc.text(`Pedido #${order.id}`, LABEL_WIDTH_MM / 2, yPos, { align: "center" })
       yPos += 5
 
       doc.setFont("courier", "normal")
-      doc.text(format(new Date(order.date), "dd/MM/yyyy HH:mm", { locale: ptBR }), 40, yPos, { align: "center" })
+      doc.text(format(new Date(order.date), "dd/MM/yyyy HH:mm", { locale: ptBR }), LABEL_WIDTH_MM / 2, yPos, { align: "center" })
       yPos += 10
 
       // Cliente
@@ -299,7 +302,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       doc.setFont("courier", "normal")
 
       // Calcular a largura disponível para o texto
-      const availableWidth = 80 - 2 * margin
+      const availableWidth = LABEL_WIDTH_MM - 2 * margin
 
       order.items.forEach((item) => {
         // Usar tamanho limpo na impressão
@@ -311,18 +314,18 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
         if (doc.getTextWidth(itemText) > availableWidth - doc.getTextWidth(priceText) - 5) {
           doc.text(itemText, margin, yPos)
           yPos += 5
-          doc.text(priceText, 80 - margin, yPos, { align: "right" })
+          doc.text(priceText, LABEL_WIDTH_MM - margin, yPos, { align: "right" })
           yPos += 5
         } else {
           doc.text(itemText, margin, yPos)
-          doc.text(priceText, 80 - margin, yPos, { align: "right" })
+          doc.text(priceText, LABEL_WIDTH_MM - margin, yPos, { align: "right" })
           yPos += 5
         }
 
         // Adicionar status de adicionais
         if (item.additionals && item.additionals.length > 0) {
           doc.setFont("courier", "italic")
-          doc.text("Com Adicionais:", margin + 3, yPos)
+          doc.text("Adicionais Complementos:", margin + 3, yPos)
           yPos += 5
           doc.setFont("courier", "normal")
 
@@ -332,7 +335,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
             const additionalPriceText = formatCurrency(additional.price * (additional.quantity ?? 1))
 
             doc.text(additionalText, margin + 5, yPos)
-            doc.text(additionalPriceText, 80 - margin, yPos, { align: "right" })
+            doc.text(additionalPriceText, LABEL_WIDTH_MM - margin, yPos, { align: "right" })
             yPos += 4
           })
         }
@@ -345,21 +348,21 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       // Linha divisória
       doc.setDrawColor(0)
       doc.setLineDashPattern([1, 1], 0)
-      doc.line(margin, yPos, 80 - margin, yPos)
+      doc.line(margin, yPos, LABEL_WIDTH_MM - margin, yPos)
       yPos += 5
 
       // Totais
       doc.text("Subtotal:", margin, yPos)
-      doc.text(formatCurrency(order.subtotal), 80 - margin, yPos, { align: "right" })
+      doc.text(formatCurrency(order.subtotal), LABEL_WIDTH_MM - margin, yPos, { align: "right" })
       yPos += 5
 
       doc.text("Taxa de entrega:", margin, yPos)
-      doc.text(formatCurrency(order.deliveryFee), 80 - margin, yPos, { align: "right" })
+      doc.text(formatCurrency(order.deliveryFee), LABEL_WIDTH_MM - margin, yPos, { align: "right" })
       yPos += 5
 
       doc.setFont("courier", "bold")
       doc.text("TOTAL:", margin, yPos)
-      doc.text(formatCurrency(order.total), 80 - margin, yPos, { align: "right" })
+      doc.text(formatCurrency(order.total), LABEL_WIDTH_MM - margin, yPos, { align: "right" })
       yPos += 10
 
       // Forma de pagamento
@@ -373,17 +376,17 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       // Rodapé
       doc.setFont("courier", "normal")
       doc.setFontSize(9)
-      doc.text("Obrigado pela preferência!", 40, yPos, { align: "center" })
+      doc.text("Obrigado pela preferência!", LABEL_WIDTH_MM / 2, yPos, { align: "center" })
       yPos += 10
 
       // Adicionar salmo
       doc.setDrawColor(0)
       doc.setLineDashPattern([1, 1], 0)
-      doc.line(margin, yPos, 80 - margin, yPos)
+      doc.line(margin, yPos, LABEL_WIDTH_MM - margin, yPos)
       yPos += 5
 
       // Quebrar o texto do salmo em múltiplas linhas se necessário
-      const maxLineWidth = 70 // 70mm de largura máxima para o texto
+      const maxLineWidth = LABEL_WIDTH_MM - 10 // largura máxima para o texto
       const salmoTexto = doc.splitTextToSize(salmo.texto, maxLineWidth)
 
       doc.setFont("courier", "italic")
@@ -391,13 +394,13 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
       // Centralizar cada linha do texto do salmo
       salmoTexto.forEach((linha: string) => {
-        doc.text(linha, 40, yPos, { align: "center" })
+        doc.text(linha, LABEL_WIDTH_MM / 2, yPos, { align: "center" })
         yPos += 4
       })
 
       // Adicionar a referência do salmo
       doc.setFont("courier", "bold")
-      doc.text(salmo.referencia, 40, yPos, { align: "center" })
+      doc.text(salmo.referencia, LABEL_WIDTH_MM / 2, yPos, { align: "center" })
 
       // Salvar o PDF
       doc.save(`pedido-${order.id}.pdf`)
@@ -423,8 +426,8 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                 alt={`Logo ${storeName}`}
                 className="logo"
                 style={{
-                  maxWidth: "40mm", // Reduzido de 60mm para 40mm
-                  maxHeight: "15mm", // Reduzido de 20mm para 15mm
+                  maxWidth: `${LABEL_WIDTH_MM - 20}mm`,
+                  maxHeight: "15mm",
                   margin: "0 auto 8px",
                   display: "block",
                 }}
@@ -437,7 +440,8 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
           <div className="section">
             <div className="section-title">CLIENTE</div>
-            <div>{order.customerName}</div>
+            <div className="mb-1">{order.customerName}</div>
+            <div className="mb-1 font-bold">CELULAR</div>
             <div>{order.customerPhone}</div>
           </div>
 
@@ -451,49 +455,29 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           </div>
 
           <div className="section">
-            <div className="section-title">ITENS</div>
+            <div className="section-title">ITENS DO PEDIDO</div>
             {order.items.map((item, index) => (
               <div key={index} style={{ marginBottom: "8px" }}>
                 <div className="item">
                   <div>
-                    {item.quantity}x {item.name} ({cleanSizeDisplay(item.size)})
+                    <span className="font-bold">{item.quantity}x {item.name}</span> ({cleanSizeDisplay(item.size)})
                   </div>
                   <div>{formatCurrency(item.price * item.quantity)}</div>
                 </div>
 
                 {/* Indicar se tem ou não adicionais */}
                 {item.additionals && item.additionals.length > 0 ? (
-                  <>
-                    {/* Agrupamento de adicionais por categoria */}
-                    {(() => {
-                      // Agrupar adicionais por categoria
-                      const groupedByCategory: Record<string, typeof item.additionals> = {};
-                      
-                      item.additionals.forEach((additional) => {
-                        // @ts-ignore - Alguns adicionais podem ter categoryName, outros não
-                        const categoryName = additional.categoryName || "Complementos Premium";
-                        if (!groupedByCategory[categoryName]) {
-                          groupedByCategory[categoryName] = [];
-                        }
-                        groupedByCategory[categoryName].push(additional);
-                      });
-                      
-                      // Renderizar os grupos de categorias
-                      return Object.entries(groupedByCategory).map(([categoryName, additionals]) => (
-                        <div key={`${item.name}-${categoryName}`} className="mb-2">
-                          <div className="additional-status">{categoryName}</div>
-                          {additionals.map((additional, idx) => (
-                            <div key={idx} className="item additional">
-                              <div>
-                                • {additional.quantity ?? 1}x {additional.name}
-                              </div>
-                              <div>{formatCurrency(additional.price * (additional.quantity ?? 1))}</div>
-                            </div>
-                          ))}
+                  <div className="mb-2">
+                    <div className="additional-status font-bold">Adicionais Complementos</div>
+                    {item.additionals.map((additional, idx) => (
+                      <div key={idx} className="item additional">
+                        <div>
+                          • {additional.quantity ?? 1}x {additional.name}
                         </div>
-                      ));
-                    })()}
-                  </>
+                        <div>{formatCurrency(additional.price * (additional.quantity ?? 1))}</div>
+                      </div>
+                    ))}
+                  </div>
                 ) : null}
               </div>
             ))}
@@ -531,6 +515,11 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
         </div>
       </div>
 
+      {/* Instrução para configuração de impressão */}
+      <div className="mb-2 p-2 bg-yellow-100 text-yellow-800 text-xs rounded">
+        <b>Dica:</b> Para melhor resultado, configure a largura do papel para <b>{LABEL_WIDTH_MM}mm</b> na janela de impressão do navegador.<br />
+        Se sua impressora for de 58mm, altere a configuração no topo deste arquivo para <b>58</b> e ajuste a largura do papel na impressão.
+      </div>
       <div className="flex space-x-2">
         <button
           onClick={handlePrint}

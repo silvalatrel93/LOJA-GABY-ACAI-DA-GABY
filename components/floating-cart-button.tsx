@@ -15,7 +15,21 @@ export default function FloatingCartButton() {
 
   // Calcular o total de itens e o valor total
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
-  const totalValue = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const totalValue = cart.reduce((sum, item) => {
+    // Usar o preço original (já com adicionais) se disponível, senão calcular
+    if (item.originalPrice) {
+      return sum + (item.originalPrice * item.quantity)
+    }
+    
+    // Cálculo para compatibilidade com itens antigos
+    const itemTotal = item.price * item.quantity
+    const additionalsTotal = (item.additionals || []).reduce(
+      (addSum, additional) => addSum + additional.price * (additional.quantity || 1), 
+      0
+    ) * item.quantity
+    
+    return sum + itemTotal + additionalsTotal
+  }, 0)
 
   // Controlar a visibilidade do botão com base na rolagem
   useEffect(() => {

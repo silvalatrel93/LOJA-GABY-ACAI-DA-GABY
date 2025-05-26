@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 export default function OrderCounterReset() {
   const [isResetting, setIsResetting] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [showInfoMessage, setShowInfoMessage] = useState(false)
 
   // Função para abrir o diálogo de confirmação
   const openConfirmDialog = () => {
@@ -72,28 +73,35 @@ export default function OrderCounterReset() {
 
   return (
     <>
-      <div className="mt-4">
-        <Button
-          onClick={openConfirmDialog}
-          disabled={isResetting}
-          variant="outline"
-          className="flex items-center gap-2 bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100"
-        >
-          {isResetting ? (
-            <>
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              Redefinindo contador...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="h-4 w-4" />
-              Zerar contador de pedidos
-            </>
+      <div className="w-full">
+        <div className="flex flex-col items-end">
+          <Button
+            onClick={openConfirmDialog}
+            disabled={isResetting}
+            variant="outline"
+            className="flex items-center gap-2 bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 w-full sm:w-auto justify-center sm:justify-start px-3 sm:px-4"
+          >
+            {isResetting ? (
+              <>
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span>Redefinindo contador...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 flex-shrink-0" />
+                <span className="whitespace-nowrap">
+                  <span className="hidden sm:inline">Zerar contador de pedidos</span>
+                  <span className="sm:hidden">Zerar contador</span>
+                </span>
+              </>
+            )}
+          </Button>
+          {showInfoMessage && (
+            <p className="text-xs text-gray-500 mt-1 text-right w-full animate-fade-in">
+              Isso redefinirá o contador para que o próximo pedido comece com o ID #1
+            </p>
           )}
-        </Button>
-        <p className="text-xs text-gray-500 mt-1">
-          Isso redefinirá o contador para que o próximo pedido comece com o ID #1
-        </p>
+        </div>
       </div>
       
       {/* Diálogo de confirmação */}

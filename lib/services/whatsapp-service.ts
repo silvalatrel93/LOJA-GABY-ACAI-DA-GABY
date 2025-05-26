@@ -39,31 +39,12 @@ export const WhatsAppService = {
       minute: '2-digit'
     });
 
-    // Formata os itens do pedido
-    const itemsList = order.items.map(item => {
-      const additionalText = item.additionals && item.additionals.length > 0
-        ? `\n   - Com: ${item.additionals.map(add => `${add.quantity || 1}x ${add.name}`).join(', ')}`
-        : '';
-      
-      return `• ${item.quantity}x ${item.name}${additionalText}`;
-    }).join('\n');
-
-    // Formata valores monetários
-    const formatCurrency = (value: number) => `R$ ${value.toFixed(2).replace('.', ',')}`;
-
-    // Constrói a mensagem
-    return `*Olá, ${order.customerName}!* 😊\n\n` +
-           `Recebemos seu pedido #${order.id} realizado em ${formattedDate}.\n\n` +
-           `*📋 Resumo do Pedido:*\n${itemsList}\n\n` +
-           `*💰 Valores:*\n` +
-           `Subtotal: ${formatCurrency(order.subtotal)}\n` +
-           `Taxa de entrega: ${formatCurrency(order.deliveryFee)}\n` +
-           `*Total: ${formatCurrency(order.total)}*\n\n` +
-           `*🚚 Entrega:*\n` +
-           `${order.address.street}, ${order.address.number}` +
-           `${order.address.complement ? ` - ${order.address.complement}` : ''}\n` +
-           `${order.address.neighborhood}, ${order.address.city}\n\n` +
-           `*💳 Pagamento:* ${order.paymentMethod === 'pix' ? 'PIX' : 'Cartão na entrega'}\n\n` +
+    // Formata o nome do cliente em maiúsculas
+    const customerName = order.customerName ? order.customerName.toUpperCase() : 'CLIENTE';
+    
+    // Constrói a mensagem simplificada
+    return `Olá, ${customerName}! 😊\n\n` +
+           `Recebemos seu pedido realizado em ${formattedDate}.\n\n` +
            `Seu pedido está sendo preparado com todo carinho! Agradecemos a preferência. 💜\n\n` +
            `Em caso de dúvidas, entre em contato conosco.`;
   },

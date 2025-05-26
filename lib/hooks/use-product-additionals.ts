@@ -99,10 +99,15 @@ export function useProductAdditionals(product: Product) {
   const calculateAdditionalsTotal = () => {
     if (!selectedAdditionals) return 0
 
-    return Object.values(selectedAdditionals).reduce((total, { additional, quantity }) => {
-      if (hasFreeAdditionals && Object.keys(selectedAdditionals).length <= FREE_ADDITIONALS_LIMIT) {
-        return total
+    // Converter para array para ter controle sobre a ordem
+    const additionalsList = Object.values(selectedAdditionals)
+    
+    return additionalsList.reduce((total, { additional, quantity }, index) => {
+      // Se o tamanho tem adicionais gratuitos e este adicional está dentro do limite gratuito
+      if (hasFreeAdditionals && index < FREE_ADDITIONALS_LIMIT) {
+        return total // Este adicional é gratuito
       }
+      // Este adicional é pago
       return total + additional.price * quantity
     }, 0)
   }
