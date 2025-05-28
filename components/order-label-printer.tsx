@@ -16,7 +16,7 @@ interface OrderLabelPrinterProps {
 }
 
 // Largura configurável da etiqueta (80mm ou 58mm são os padrões de impressora térmica)
-const LABEL_WIDTH_MM = 80 // Altere para 58 para impressora de 58mm
+const LABEL_WIDTH_MM = 80 // Configurado para MP-4200 TH (58-82.5mm)
 
 export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabelPrinterProps) {
   const printContainerRef = useRef<HTMLDivElement>(null)
@@ -49,9 +49,92 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
     fetchStoreConfig()
   }, [])
 
+  // Função para normalizar texto especificamente para impressão térmica
+  const normalizeForThermalPrint = (text: string): string => {
+    if (!text) return '';
+    
+    return text
+      // Converter para string se não for
+      .toString()
+      // Remover caracteres especiais que causam problemas na impressão térmica
+      .replace(/[áàâãä]/gi, 'A')
+      .replace(/[éèêë]/gi, 'E') 
+      .replace(/[íìîï]/gi, 'I')
+      .replace(/[óòôõö]/gi, 'O')
+      .replace(/[úùûü]/gi, 'U')
+      .replace(/ç/gi, 'C')
+      .replace(/ñ/gi, 'N')
+      // Substituir bullet points e símbolos especiais
+      .replace(/[•·‧∙]/g, '-') // Bullet points viram hífen
+      .replace(/[★☆]/g, '*') // Estrelas viram asterisco
+      // Remover aspas especiais
+      .replace(/[""]/g, '"')
+      .replace(/['']/g, "'")
+      // Remover hífens especiais
+      .replace(/[–—]/g, '-')
+      // Converter outros símbolos problemáticos
+      .replace(/…/g, '...')
+      .replace(/°/g, 'o')
+      .replace(/²/g, '2')
+      .replace(/³/g, '3')
+      .replace(/ª/g, 'a')
+      .replace(/º/g, 'o')
+      // Remover caracteres de controle e não imprimíveis
+      .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+      // Normalizar espaços múltiplos
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  // Função para formatar linha de adicional com espaçamento adequado
+  const formatAdditionalLine = (quantity: number, name: string, price: number): string => {
+    const normalizedName = normalizeForThermalPrint(name);
+    const itemText = `- ${quantity}x ${normalizedName}`;
+    const priceText = formatCurrency(price * quantity);
+    
+    // Calcular quantos caracteres cabem em 80mm (aproximadamente 42 caracteres para Courier New 10pt)
+    const maxWidth = 42;
+    const spacesNeeded = maxWidth - itemText.length - priceText.length;
+    const spaces = spacesNeeded > 3 ? ' '.repeat(spacesNeeded) : '   '; // Mínimo 3 espaços
+    
+    return `${itemText}${spaces}${priceText}`;
+  };
+
+  // Função para formatar linha de item principal com espaçamento adequado
+  const formatItemLine = (quantity: number, name: string, size: string, price: number): string => {
+    const normalizedName = normalizeForThermalPrint(name);
+    const cleanedSize = cleanSizeDisplay(size);
+    const itemText = `${quantity}x ${normalizedName}: (${cleanedSize})`;
+    const priceText = formatCurrency(price * quantity);
+    
+    // Calcular quantos caracteres cabem em 80mm (aproximadamente 42 caracteres para Courier New 10pt)
+    const maxWidth = 42;
+    const spacesNeeded = maxWidth - itemText.length - priceText.length;
+    const spaces = spacesNeeded > 3 ? ' '.repeat(spacesNeeded) : '   '; // Mínimo 3 espaços
+    
+    return `${itemText}${spaces}${priceText}`;
+  };
+
   // Função para imprimir diretamente na impressora
   const handlePrint = () => {
     if (printContainerRef.current) {
+      // Processar o conteúdo para normalizar caracteres antes da impressão
+      let processedContent = printContainerRef.current.innerHTML;
+      
+      // Normalizar especificamente o nome da loja
+      const normalizedStoreName = normalizeForThermalPrint(storeName);
+      
+      // Substituir o nome da loja no conteúdo
+      processedContent = processedContent
+        .replace(new RegExp(storeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), normalizedStoreName)
+        .replace(/[""]/g, '"')
+        .replace(/['']/g, "'")
+        .replace(/[–—]/g, '-')
+        .replace(/…/g, '...')
+        .replace(/°/g, 'o')
+        .replace(/²/g, '2')
+        .replace(/³/g, '3');
+
       // Criar um iframe oculto para impressão
       const printIframe = document.createElement("iframe")
       printIframe.style.position = "fixed"
@@ -71,21 +154,50 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
         // Definir o estilo para impressora térmica (largura configurável)
         printDocument.write(`
           <!DOCTYPE html>
-          <html>
+          <html lang="pt-BR">
             <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
               <title>Etiqueta de Pedido #${order.id}</title>
               <style>
+                /* Configurações globais para impressão térmica */
+                * {
+                  -webkit-print-color-adjust: exact;
+                  print-color-adjust: exact;
+                  box-sizing: border-box;
+                }
+                
                 @page {
                   size: ${LABEL_WIDTH_MM}mm auto;
                   margin: 0mm;
                 }
+                
+                @media print {
+                  * {
+                    -webkit-font-smoothing: none !important;
+                    -moz-osx-font-smoothing: unset !important;
+                    font-smoothing: none !important;
+                    text-rendering: optimizeSpeed !important;
+                  }
+                }
+                
                 body {
-                  font-family: 'Courier New', monospace;
+                  font-family: 'Courier New', 'Liberation Mono', 'DejaVu Sans Mono', 'Consolas', monospace;
                   width: ${LABEL_WIDTH_MM - 8}mm;
                   padding: 3mm;
                   margin: 0;
                   font-size: 10pt;
+                  font-variant: normal;
+                  font-weight: normal;
+                  text-rendering: optimizeSpeed;
+                  -webkit-font-smoothing: none;
+                  -moz-osx-font-smoothing: unset;
+                  font-smoothing: none;
+                  letter-spacing: 0;
+                  word-spacing: 0;
+                  line-height: 1.2;
                   word-break: break-word;
+                  font-feature-settings: "kern" 0, "liga" 0;
                 }
                 .header {
                   text-align: center;
@@ -93,16 +205,18 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                 }
                 .logo {
                   max-width: ${LABEL_WIDTH_MM - 20}mm;
-                  max-height: 20mm;
-                  margin: 0 auto 2mm;
+                  max-height: 18mm;
+                  margin: 0 auto 3mm;
                   display: block;
                 }
                 .title {
                   font-size: 12pt;
                   font-weight: bold;
+                  margin-bottom: 1.5mm;
                 }
                 .subtitle {
                   font-size: 10pt;
+                  margin-bottom: 1mm;
                 }
                 .section {
                   margin-bottom: 3mm;
@@ -110,53 +224,89 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                 .section-title {
                   font-weight: bold;
                   border-bottom: 1px solid #000;
-                  margin-bottom: 1mm;
+                  margin-bottom: 1.5mm;
+                  font-size: 10pt;
                 }
                 .item {
                   display: flex;
                   justify-content: space-between;
+                  margin-bottom: 1mm;
+                  font-size: 9pt;
                 }
                 .additional-status {
                   font-style: italic;
-                  margin-left: 5mm;
+                  margin-left: 4mm;
                   margin-top: 1mm;
                   margin-bottom: 1mm;
+                  font-size: 9pt;
                 }
                 .additional {
-                  padding-left: 5mm;
-                  font-size: 9pt;
+                  font-family: 'Courier New', 'Liberation Mono', 'DejaVu Sans Mono', 'Consolas', monospace;
+                  font-size: 8pt;
+                  font-weight: normal;
+                  font-variant: normal;
+                  margin-left: 4mm;
+                  margin-bottom: 1mm;
+                  padding-left: 0;
+                  white-space: pre;
+                  word-break: keep-all;
+                  letter-spacing: 0;
+                  word-spacing: 0;
+                  text-rendering: optimizeSpeed;
                 }
                 .divider {
                   border-top: 1px dashed #000;
-                  margin: 2mm 0;
+                  margin: 3mm 0;
                 }
                 .total {
                   font-weight: bold;
-                  text-align: right;
+                  font-size: 10pt;
+                  font-variant: normal;
                 }
                 .footer {
                   text-align: center;
-                  margin-top: 5mm;
+                  margin-top: 4mm;
                   font-size: 9pt;
+                  font-variant: normal;
                 }
                 .salmo {
                   text-align: center;
-                  margin-top: 5mm;
-                  font-size: 9pt;
+                  margin-top: 4mm;
+                  font-size: 8pt;
                   font-style: italic;
+                  font-variant: normal;
                   border-top: 1px dashed #000;
                   padding-top: 3mm;
                 }
                 .salmo-texto {
-                  margin-bottom: 1mm;
+                  margin-bottom: 1.5mm;
+                  line-height: 1.1;
+                  font-variant: normal;
                 }
                 .salmo-referencia {
                   font-weight: bold;
+                  font-size: 7pt;
+                  font-variant: normal;
+                }
+                .item-formatted {
+                  font-family: 'Courier New', 'Liberation Mono', 'DejaVu Sans Mono', 'Consolas', monospace;
+                  font-size: 9pt;
+                  font-weight: normal;
+                  font-variant: normal;
+                  margin-bottom: 2mm;
+                  white-space: pre;
+                  word-break: keep-all;
+                  letter-spacing: 0;
+                  word-spacing: 0;
+                  text-rendering: optimizeSpeed;
+                }
+                .items-spacing {
+                  margin-bottom: 4mm;
                 }
               </style>
             </head>
             <body>
-              ${printContainerRef.current.innerHTML}
+              ${processedContent}
             </body>
           </html>
         `)
@@ -259,7 +409,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       // Cabeçalho
       doc.setFont("courier", "bold")
       doc.setFontSize(12)
-      doc.text(storeName.toUpperCase(), LABEL_WIDTH_MM / 2, yPos, { align: "center" })
+      doc.text(normalizeForThermalPrint(storeName).toUpperCase(), LABEL_WIDTH_MM / 2, yPos, { align: "center" })
       yPos += 10
 
       doc.setFontSize(10)
@@ -275,22 +425,22 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       doc.text("CLIENTE", margin, yPos)
       yPos += 5
       doc.setFont("courier", "normal")
-      doc.text(order.customerName, margin, yPos)
+      doc.text(normalizeForThermalPrint(order.customerName), margin, yPos)
       yPos += 5
       doc.text(order.customerPhone, margin, yPos)
       yPos += 10
 
       // Endereço
       doc.setFont("courier", "bold")
-      doc.text("ENDEREÇO", margin, yPos)
+      doc.text(normalizeForThermalPrint("ENDEREÇO"), margin, yPos)
       yPos += 5
       doc.setFont("courier", "normal")
-      doc.text(`${order.address.street}, ${order.address.number}`, margin, yPos)
+      doc.text(`${normalizeForThermalPrint(order.address.street)}, ${order.address.number}`, margin, yPos)
       yPos += 5
-      doc.text(`Bairro: ${order.address.neighborhood}`, margin, yPos)
+      doc.text(`Bairro: ${normalizeForThermalPrint(order.address.neighborhood)}`, margin, yPos)
       yPos += 5
       if (order.address.complement) {
-        doc.text(`Complemento: ${order.address.complement}`, margin, yPos)
+        doc.text(`Complemento: ${normalizeForThermalPrint(order.address.complement)}`, margin, yPos)
         yPos += 5
       }
       yPos += 5
@@ -305,22 +455,10 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       const availableWidth = LABEL_WIDTH_MM - 2 * margin
 
       order.items.forEach((item) => {
-        // Usar tamanho limpo na impressão
-        const cleanedSize = cleanSizeDisplay(item.size)
-        const itemText = `${item.quantity}x ${item.name} (${cleanedSize})`
-        const priceText = formatCurrency(item.price * item.quantity)
-
-        // Verificar se o texto é muito longo e quebrar em múltiplas linhas se necessário
-        if (doc.getTextWidth(itemText) > availableWidth - doc.getTextWidth(priceText) - 5) {
-          doc.text(itemText, margin, yPos)
-          yPos += 5
-          doc.text(priceText, LABEL_WIDTH_MM - margin, yPos, { align: "right" })
-          yPos += 5
-        } else {
-          doc.text(itemText, margin, yPos)
-          doc.text(priceText, LABEL_WIDTH_MM - margin, yPos, { align: "right" })
-          yPos += 5
-        }
+        // Usar a nova formatação de linha
+        const formattedItemLine = formatItemLine(item.quantity, item.name, item.size, item.price)
+        doc.text(formattedItemLine, margin, yPos)
+        yPos += 5
 
         // Adicionar status de adicionais
         if (item.additionals && item.additionals.length > 0) {
@@ -331,11 +469,8 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
           // Adicionar adicionais do item
           item.additionals.forEach((additional) => {
-            const additionalText = `• ${additional.quantity ?? 1}x ${additional.name}`
-            const additionalPriceText = formatCurrency(additional.price * (additional.quantity ?? 1))
-
-            doc.text(additionalText, margin + 5, yPos)
-            doc.text(additionalPriceText, LABEL_WIDTH_MM - margin, yPos, { align: "right" })
+            const formattedLine = formatAdditionalLine(additional.quantity ?? 1, additional.name, additional.price)
+            doc.text(formattedLine, margin + 5, yPos)
             yPos += 4
           })
         }
@@ -349,6 +484,9 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       doc.setDrawColor(0)
       doc.setLineDashPattern([1, 1], 0)
       doc.line(margin, yPos, LABEL_WIDTH_MM - margin, yPos)
+      yPos += 5
+
+      // Espaçamento adicional de 1 linha entre divider e subtotal  
       yPos += 5
 
       // Totais
@@ -366,17 +504,15 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       yPos += 10
 
       // Forma de pagamento
-      doc.setFont("courier", "bold")
-      doc.text("PAGAMENTO", margin, yPos)
-      yPos += 5
       doc.setFont("courier", "normal")
-      doc.text(order.paymentMethod === "pix" ? "PIX" : "Cartão na Entrega", margin, yPos)
+      const paymentText = `Forma de pagamento: ${order.paymentMethod === "pix" ? "PIX" : "Cartão na Entrega"}`
+      doc.text(normalizeForThermalPrint(paymentText), margin, yPos)
       yPos += 10
 
       // Rodapé
       doc.setFont("courier", "normal")
       doc.setFontSize(9)
-      doc.text("Obrigado pela preferência!", LABEL_WIDTH_MM / 2, yPos, { align: "center" })
+      doc.text("Obrigado pela preferencia!", LABEL_WIDTH_MM / 2, yPos, { align: "center" })
       yPos += 10
 
       // Adicionar salmo
@@ -387,7 +523,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
       // Quebrar o texto do salmo em múltiplas linhas se necessário
       const maxLineWidth = LABEL_WIDTH_MM - 10 // largura máxima para o texto
-      const salmoTexto = doc.splitTextToSize(salmo.texto, maxLineWidth)
+      const salmoTexto = doc.splitTextToSize(normalizeForThermalPrint(salmo.texto), maxLineWidth)
 
       doc.setFont("courier", "italic")
       doc.setFontSize(8)
@@ -400,7 +536,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
       // Adicionar a referência do salmo
       doc.setFont("courier", "bold")
-      doc.text(salmo.referencia, LABEL_WIDTH_MM / 2, yPos, { align: "center" })
+      doc.text(normalizeForThermalPrint(salmo.referencia), LABEL_WIDTH_MM / 2, yPos, { align: "center" })
 
       // Salvar o PDF
       doc.save(`pedido-${order.id}.pdf`)
@@ -427,20 +563,20 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                 className="logo"
                 style={{
                   maxWidth: `${LABEL_WIDTH_MM - 20}mm`,
-                  maxHeight: "15mm",
-                  margin: "0 auto 8px",
+                  maxHeight: "18mm",
+                  margin: "0 auto 3mm",
                   display: "block",
                 }}
               />
             )}
-            <div className="title">{storeName.toUpperCase()}</div>
+            <div className="title">{normalizeForThermalPrint(storeName).toUpperCase()}</div>
             <div className="subtitle">Pedido #{order.id}</div>
             <div className="subtitle">{format(new Date(order.date), "dd/MM/yyyy HH:mm", { locale: ptBR })}</div>
           </div>
 
           <div className="section">
             <div className="section-title">CLIENTE</div>
-            <div className="mb-1">{order.customerName}</div>
+            <div className="mb-1">{normalizeForThermalPrint(order.customerName)}</div>
             <div className="mb-1 font-bold">CELULAR</div>
             <div>{order.customerPhone}</div>
           </div>
@@ -448,21 +584,18 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           <div className="section">
             <div className="section-title">ENDEREÇO</div>
             <div>
-              {order.address.street}, {order.address.number}
+              {normalizeForThermalPrint(order.address.street)}, {order.address.number}
             </div>
-            <div>Bairro: {order.address.neighborhood}</div>
-            {order.address.complement && <div>Complemento: {order.address.complement}</div>}
+            <div>Bairro: {normalizeForThermalPrint(order.address.neighborhood)}</div>
+            {order.address.complement && <div>Complemento: {normalizeForThermalPrint(order.address.complement)}</div>}
           </div>
 
           <div className="section">
             <div className="section-title">ITENS DO PEDIDO</div>
             {order.items.map((item, index) => (
-              <div key={index} style={{ marginBottom: "8px" }}>
-                <div className="item">
-                  <div>
-                    <span className="font-bold">{item.quantity}x {item.name}</span> ({cleanSizeDisplay(item.size)})
-                  </div>
-                  <div>{formatCurrency(item.price * item.quantity)}</div>
+              <div key={index} style={{ marginBottom: "6px" }}>
+                <div className="item-formatted" style={{ fontFamily: "monospace", fontSize: "11px", marginBottom: "4px" }}>
+                  {formatItemLine(item.quantity, item.name, item.size, item.price)}
                 </div>
 
                 {/* Indicar se tem ou não adicionais */}
@@ -470,29 +603,31 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                   <div className="mb-2">
                     <div className="additional-status font-bold">Adicionais Complementos</div>
                     {item.additionals.map((additional, idx) => (
-                      <div key={idx} className="item additional">
-                        <div>
-                          • {additional.quantity ?? 1}x {additional.name}
-                        </div>
-                        <div>{formatCurrency(additional.price * (additional.quantity ?? 1))}</div>
+                      <div key={idx} className="additional" style={{ fontFamily: "monospace", fontSize: "10px", marginBottom: "2px" }}>
+                        {formatAdditionalLine(additional.quantity ?? 1, additional.name, additional.price)}
                       </div>
                     ))}
                   </div>
                 ) : null}
               </div>
             ))}
+            {/* Espaçamento adicional de 1 linha após todos os itens */}
+            <div className="items-spacing"></div>
           </div>
 
           <div className="divider"></div>
+          
+          {/* Espaçamento adicional de 1 linha entre divider e subtotal */}
+          <div className="items-spacing"></div>
 
           <div className="section">
             <div className="item">
               <div>Subtotal:</div>
-              <div>{formatCurrency(order.subtotal)}</div>
+              <div style={{ fontWeight: "bold" }}>{formatCurrency(order.subtotal)}</div>
             </div>
             <div className="item">
               <div>Taxa de entrega:</div>
-              <div>{formatCurrency(order.deliveryFee)}</div>
+              <div style={{ fontWeight: "bold" }}>{formatCurrency(order.deliveryFee)}</div>
             </div>
             <div className="item total">
               <div>TOTAL:</div>
@@ -501,16 +636,15 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           </div>
 
           <div className="section">
-            <div className="section-title">PAGAMENTO</div>
-            <div>{order.paymentMethod === "pix" ? "PIX" : "Cartão na Entrega"}</div>
+            <div>Forma de pagamento: {order.paymentMethod === "pix" ? "PIX" : "Cartão na Entrega"}</div>
           </div>
 
-          <div className="footer">Obrigado pela preferência!</div>
+          <div className="footer">Obrigado pela preferencia!</div>
 
           {/* Adicionar salmo */}
           <div className="salmo">
-            <div className="salmo-texto">{salmo.texto}</div>
-            <div className="salmo-referencia">{salmo.referencia}</div>
+            <div className="salmo-texto">{normalizeForThermalPrint(salmo.texto)}</div>
+            <div className="salmo-referencia">{normalizeForThermalPrint(salmo.referencia)}</div>
           </div>
         </div>
       </div>
@@ -518,7 +652,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       {/* Instrução para configuração de impressão */}
       <div className="mb-2 p-2 bg-yellow-100 text-yellow-800 text-xs rounded">
         <b>Dica:</b> Para melhor resultado, configure a largura do papel para <b>{LABEL_WIDTH_MM}mm</b> na janela de impressão do navegador.<br />
-        Se sua impressora for de 58mm, altere a configuração no topo deste arquivo para <b>58</b> e ajuste a largura do papel na impressão.
+        <b>MP-4200 TH:</b> Suporta papel de 58-82.5mm. Configurado para 80mm (padrão). Se usar papel de 58mm, altere LABEL_WIDTH_MM para 58.
       </div>
       <div className="flex space-x-2">
         <button
