@@ -1,0 +1,16 @@
+{
+  "css.lint.unknownAtRules": "ignore",
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  },
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "editor.autoClosingQuotes": "always",
+  "editor.autoClosingBrackets": "always",
+  "editor.formatOnSave": true
+}
