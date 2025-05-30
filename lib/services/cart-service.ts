@@ -62,20 +62,20 @@ export async function getCartItems(): Promise<CartItem[]> {
     return []
   }
 
-  return data.map((item) => {
+  return data.map((item: any): CartItem => {
     // Criar uma cópia do item com o tamanho modificado para exibição
-    const displayItem = {
-      id: item.id,
-      productId: item.product_id,
-      name: item.name,
+    const displayItem: CartItem = {
+      id: Number(item.id),
+      productId: Number(item.product_id),
+      name: String(item.name),
       price: Number(item.price),
-      quantity: item.quantity,
-      image: item.image || "",
+      quantity: Number(item.quantity),
+      image: String(item.image || ""),
       // Armazenar o tamanho original para uso interno
-      originalSize: item.size,
+      originalSize: String(item.size),
       // Limpar o tamanho para exibição
-      size: cleanSizeDisplay(item.size),
-      additionals: item.additionals || [],
+      size: cleanSizeDisplay(String(item.size)),
+      additionals: Array.isArray(item.additionals) ? item.additionals : [],
     }
 
     return displayItem
@@ -84,8 +84,8 @@ export async function getCartItems(): Promise<CartItem[]> {
 
 // Função para verificar se dois arrays de adicionais são iguais
 function areAdditionalsEqual(additionals1: any[] = [], additionals2: any[] = []): boolean {
-  if (!additionals1) additionals1 = []
-  if (!additionals2) additionals2 = []
+  if (!Array.isArray(additionals1)) additionals1 = []
+  if (!Array.isArray(additionals2)) additionals2 = []
 
   if (additionals1.length !== additionals2.length) return false
 
@@ -139,7 +139,7 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
     }
 
     // Verificar se existe um item com os mesmos adicionais
-    const matchingItem = existingItems?.find((existingItem) =>
+    const matchingItem = existingItems?.find((existingItem: any) =>
       areAdditionalsEqual(existingItem.additionals, item.additionals),
     )
 
@@ -148,11 +148,11 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
       const { data, error: updateError } = await supabase
         .from("cart")
         .update({
-          quantity: matchingItem.quantity + item.quantity,
+          quantity: Number(matchingItem.quantity) + item.quantity,
           // Garantir que store_id esteja presente mesmo em atualizações
           store_id: storeId,
         })
-        .eq("id", matchingItem.id)
+        .eq("id", Number(matchingItem.id))
         .select()
         .single()
 
@@ -161,15 +161,16 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
         return null
       }
 
+      const typedData = data as any
       return {
-        id: data.id,
-        productId: data.product_id,
-        name: data.name,
-        price: Number(data.price),
-        quantity: data.quantity,
-        image: data.image || "",
-        size: cleanSizeDisplay(data.size), // Limpar o tamanho para exibição
-        additionals: data.additionals || [],
+        id: Number(typedData.id),
+        productId: Number(typedData.product_id),
+        name: String(typedData.name),
+        price: Number(typedData.price),
+        quantity: Number(typedData.quantity),
+        image: String(typedData.image || ""),
+        size: cleanSizeDisplay(String(typedData.size)), // Limpar o tamanho para exibição
+        additionals: Array.isArray(typedData.additionals) ? typedData.additionals : [],
       }
     } else {
       // Não encontramos um item com os mesmos adicionais
@@ -213,15 +214,16 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
         return null
       }
 
+      const typedInsertData = data as any
       return {
-        id: data.id,
-        productId: data.product_id,
-        name: data.name,
-        price: Number(data.price),
-        quantity: data.quantity,
-        image: data.image || "",
-        size: cleanSizeDisplay(data.size), // Limpar o tamanho para exibição
-        additionals: data.additionals || [],
+        id: Number(typedInsertData.id),
+        productId: Number(typedInsertData.product_id),
+        name: String(typedInsertData.name),
+        price: Number(typedInsertData.price),
+        quantity: Number(typedInsertData.quantity),
+        image: String(typedInsertData.image || ""),
+        size: cleanSizeDisplay(String(typedInsertData.size)), // Limpar o tamanho para exibição
+        additionals: Array.isArray(typedInsertData.additionals) ? typedInsertData.additionals : [],
       }
     }
   } catch (error) {

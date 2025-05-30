@@ -14,11 +14,11 @@ export const PhraseService = {
       return []
     }
 
-    return data.map((item) => ({
-      id: item.id,
-      text: item.text,
-      order: item.order,
-      active: item.active,
+    return data.map((item: any) => ({
+      id: Number(item.id),
+      text: String(item.text),
+      order: Number(item.order),
+      active: Boolean(item.active),
     }))
   },
 
@@ -32,11 +32,11 @@ export const PhraseService = {
       return []
     }
 
-    return data.map((item) => ({
-      id: item.id,
-      text: item.text,
-      order: item.order,
-      active: item.active,
+    return data.map((item: any) => ({
+      id: Number(item.id),
+      text: String(item.text),
+      order: Number(item.order),
+      active: Boolean(item.active),
     }))
   },
 
@@ -50,11 +50,13 @@ export const PhraseService = {
       return null
     }
 
+    const typedData = data as any
+
     return {
-      id: data.id,
-      text: data.text,
-      order: data.order,
-      active: data.active,
+      id: Number(typedData.id),
+      text: String(typedData.text),
+      order: Number(typedData.order),
+      active: Boolean(typedData.active),
     }
   },
 
@@ -93,13 +95,13 @@ export const PhraseService = {
       }
 
       // Usar o primeiro item do array de resultados
-      const data = result.data[0]
+      const data = result.data[0] as any
 
       return {
-        id: data.id,
-        text: data.text,
-        order: data.order,
-        active: data.active,
+        id: Number(data.id),
+        text: String(data.text),
+        order: Number(data.order),
+        active: Boolean(data.active),
       }
     } catch (error) {
       console.error("Erro ao salvar frase:", error)

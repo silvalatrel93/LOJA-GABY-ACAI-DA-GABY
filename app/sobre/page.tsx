@@ -7,18 +7,21 @@ import { getStoreConfig } from "@/lib/db"
 
 export default function SobrePage() {
   const [pageContent, setPageContent] = useState<(PageContent & { storeName?: string }) | null>(null)
+  const [storeConfig, setStoreConfig] = useState<{ name: string; logoUrl?: string } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const loadContent = async () => {
       try {
         setIsLoading(true)
-        const [content, storeConfig] = await Promise.all([getPageContent("sobre"), getStoreConfig()])
+        const [content, config] = await Promise.all([getPageContent("sobre"), getStoreConfig()])
+
+        setStoreConfig(config)
 
         if (content) {
           setPageContent({
             ...content,
-            storeName: storeConfig.name,
+            storeName: config.name,
           })
         }
       } catch (error) {
@@ -33,7 +36,10 @@ export default function SobrePage() {
 
   return (
     <main className="flex min-h-screen flex-col">
-      <StoreHeader />
+      <StoreHeader
+        name={storeConfig?.name || "Açaí Online"}
+        logoUrl={storeConfig?.logoUrl}
+      />
 
       <div className="container mx-auto p-4 py-8">
         <h1 className="text-2xl font-bold text-purple-900 mb-6">{pageContent?.title || "Sobre Nós"}</h1>

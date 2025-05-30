@@ -9,10 +9,8 @@ import {
   saveAdditional,
   deleteAdditional,
   backupData,
-  getAllCategories,
   AdditionalCategoryService,
   type Additional,
-  type Category,
 } from "@/lib/db"
 import type { AdditionalCategory } from "@/lib/services/additional-category-service"
 import { formatCurrency } from "@/lib/utils"
@@ -20,13 +18,12 @@ import { createSafeKey } from "@/lib/key-utils";
 
 export default function AdditionalsAdminPage() {
   const [additionals, setAdditionals] = useState<Additional[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
   const [additionalCategories, setAdditionalCategories] = useState<AdditionalCategory[]>([])
   const [editingAdditional, setEditingAdditional] = useState<Additional | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [deleteStatus, setDeleteStatus] = useState<{ id: number; status: "pending" | "success" | "error" } | null>(null)
-  
+
   // Função para obter o nome da categoria de um adicional
   const getCategoryName = (categoryId: number): string => {
     const category = additionalCategories.find(c => c.id === categoryId);
@@ -37,13 +34,11 @@ export default function AdditionalsAdminPage() {
   const loadData = async () => {
     try {
       setIsLoading(true)
-      const [additionalsList, categoriesList, additionalCategoriesList] = await Promise.all([
-        getAllAdditionals(), 
-        getAllCategories(),
+      const [additionalsList, additionalCategoriesList] = await Promise.all([
+        getAllAdditionals(),
         AdditionalCategoryService.getAllAdditionalCategories()
       ])
       setAdditionals(additionalsList)
-      setCategories(categoriesList)
       setAdditionalCategories(additionalCategoriesList)
     } catch (error) {
       console.error("Erro ao carregar dados:", error)
@@ -60,8 +55,8 @@ export default function AdditionalsAdminPage() {
   const handleEditAdditional = (additional: Additional) => {
     // Verificar se o adicional tem preço definido ou não
     const hasPricing = additional.price > 0;
-    
-    setEditingAdditional({ 
+
+    setEditingAdditional({
       ...additional,
       hasPricing // Adicionar propriedade para controlar se tem preço ou não
     })
@@ -112,18 +107,18 @@ export default function AdditionalsAdminPage() {
       alert("O nome do adicional é obrigatório")
       return
     }
-    
+
     // Se não tem preço definido, garantir que o preço seja zero
     const additionalToSave = {
       ...editingAdditional,
       price: editingAdditional.hasPricing ? editingAdditional.price : 0
     };
-    
+
     // Remover a propriedade hasPricing antes de salvar no banco
-    delete (additionalToSave as any).hasPricing;
+    const { hasPricing: _hasPricing, ...additionalForDatabase } = additionalToSave as Additional & { hasPricing?: boolean };
 
     try {
-      await saveAdditional(additionalToSave)
+      await saveAdditional(additionalForDatabase)
 
       // Atualizar a lista de adicionais após salvar
       await loadData()
@@ -175,8 +170,8 @@ export default function AdditionalsAdminPage() {
         <div className="container mx-auto px-2 sm:px-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <Link 
-                href="/admin" 
+              <Link
+                href="/admin"
                 className="p-1.5 rounded-full hover:bg-purple-700 transition-colors duration-200 flex-shrink-0"
                 aria-label="Voltar"
               >
@@ -187,7 +182,7 @@ export default function AdditionalsAdminPage() {
               </h1>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:flex sm:space-x-3 w-full sm:w-auto">
-              <Link 
+              <Link
                 href="/admin/categorias-adicionais"
                 className="w-full bg-purple-700 hover:bg-purple-600 text-white px-4 py-2.5 sm:py-2 rounded-lg font-medium flex items-center justify-center space-x-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
               >
@@ -214,8 +209,8 @@ export default function AdditionalsAdminPage() {
           </p>
 
           {additionals.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">
-              Nenhum adicional cadastrado. Clique em "Novo Adicional" para começar.
+            <p className="text-gray-600">
+              Nenhum adicional encontrado. Clique em &quot;Adicionar Adicional&quot; para criar o primeiro.
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -253,9 +248,8 @@ export default function AdditionalsAdminPage() {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleToggleActive(additional)}
-                          className={`p-2 rounded-full ${
-                            additional.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
-                          }`}
+                          className={`p-2 rounded-full ${additional.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+                            }`}
                           title={additional.active ? "Desativar adicional" : "Ativar adicional"}
                         >
                           {additional.active ? <Eye size={18} /> : <EyeOff size={18} />}
@@ -350,7 +344,7 @@ export default function AdditionalsAdminPage() {
                     </label>
                   </div>
                 </div>
-                
+
                 {editingAdditional.hasPricing ? (
                   <input
                     type="number"
@@ -381,15 +375,12 @@ export default function AdditionalsAdminPage() {
                   onChange={(e) => setEditingAdditional({ ...editingAdditional, categoryId: Number(e.target.value) })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
-                  {additionalCategories.length === 0 ? (
-                    <option value="0">Nenhuma categoria disponível</option>
-                  ) : (
-                    additionalCategories.map((category, index) => (
-                      <option key={createSafeKey(category.id, 'admin-additional-category-option', index)} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))
-                  )}
+                  <option value="">Selecione uma categoria</option>
+                  {additionalCategories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 

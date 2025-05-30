@@ -165,8 +165,8 @@ export default function CategoriesAdminPage() {
         <div className="container mx-auto px-2 sm:px-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <Link 
-                href="/admin" 
+              <Link
+                href="/admin"
                 className="p-1.5 rounded-full hover:bg-purple-700 transition-colors duration-200 flex-shrink-0"
                 aria-label="Voltar"
               >
@@ -198,7 +198,7 @@ export default function CategoriesAdminPage() {
 
           {categories.length === 0 ? (
             <p className="text-center text-gray-500 py-8">
-              Nenhuma categoria cadastrada. Clique em "Nova Categoria" para começar.
+              Nenhuma categoria cadastrada. Clique em &quot;Nova Categoria&quot; para começar.
             </p>
           ) : (
             <div className="space-y-4">
@@ -214,9 +214,8 @@ export default function CategoriesAdminPage() {
                       <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => handleToggleActive(category)}
-                          className={`p-2 rounded-full ${
-                            category.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
-                          }`}
+                          className={`p-2 rounded-full ${category.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+                            }`}
                           title={category.active ? "Desativar categoria" : "Ativar categoria"}
                         >
                           {category.active ? <Eye size={18} /> : <EyeOff size={18} />}

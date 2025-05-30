@@ -13,10 +13,10 @@ import { getActivePhrases } from "@/lib/services/phrase-service"
 import { getStoreConfig } from "@/lib/services/store-config-service"
 import { getStoreStatus } from "@/lib/store-utils"
 import type { CarouselSlide } from "@/lib/services/carousel-service"
-import type { Category } from "@/lib/types"
-import type { Product } from "@/lib/types"
-import type { Phrase } from "@/lib/types"
-import type { StoreConfig } from "@/lib/types"
+import type { Category } from "@/lib/services/category-service"
+import type { Product } from "@/lib/services/product-service"
+import type { Phrase } from "@/lib/services/phrase-service"
+import type { StoreConfig } from "@/lib/services/store-config-service"
 
 export default function Home() {
   const [slides, setSlides] = useState<CarouselSlide[]>([])
@@ -109,11 +109,11 @@ export default function Home() {
       {/* Aviso de loja fechada logo após o carrossel de frases */}
       {!storeOpen && <StoreClosedNotice />}
 
-      <div className="w-screen py-0" style={{ 
-        marginLeft: 'calc(-50vw + 50%)', 
-        marginRight: 'calc(-50vw + 50%)', 
-        width: '100vw', 
-        background: 'linear-gradient(to bottom, #f3e8ff, white)' 
+      <div className="w-screen py-0" style={{
+        marginLeft: 'calc(-50vw + 50%)',
+        marginRight: 'calc(-50vw + 50%)',
+        width: '100vw',
+        background: 'linear-gradient(to bottom, #f3e8ff, white)'
       }}>
         {loading ? (
           <div className="flex justify-center p-12">

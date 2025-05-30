@@ -31,7 +31,7 @@ export function useProductAdditionals(product: Product) {
     reachedFreeAdditionalsLimit,
     reachedMaxAdditionalsLimit,
     FREE_ADDITIONALS_LIMIT,
-    MAX_ADDITIONALS_PER_SIZE
+    maxAdditionalsPerSize
   } = useAdditionals()
 
   // Função para carregar adicionais e suas categorias
@@ -52,7 +52,7 @@ export function useProductAdditionals(product: Product) {
       }
 
       // Filtrar apenas os adicionais permitidos para este produto
-      const productAdditionals = allAdditionals.filter(additional => 
+      const productAdditionals = allAdditionals.filter(additional =>
         product.allowedAdditionals.includes(additional.id)
       )
 
@@ -101,7 +101,7 @@ export function useProductAdditionals(product: Product) {
 
     // Converter para array para ter controle sobre a ordem
     const additionalsList = Object.values(selectedAdditionals)
-    
+
     return additionalsList.reduce((total, { additional, quantity }, index) => {
       // Se o tamanho tem adicionais gratuitos e este adicional está dentro do limite gratuito
       if (hasFreeAdditionals && index < FREE_ADDITIONALS_LIMIT) {
@@ -115,7 +115,7 @@ export function useProductAdditionals(product: Product) {
   // Função para obter adicionais da categoria selecionada
   const getSelectedCategoryAdditionals = (): Additional[] => {
     if (selectedCategoryId === null) return availableAdditionals
-    
+
     return availableAdditionals.filter(
       additional => additional.categoryId === selectedCategoryId
     )
@@ -129,17 +129,17 @@ export function useProductAdditionals(product: Product) {
   // Função para obter o texto de resumo dos adicionais
   const getAdditionalsCountText = (): string => {
     if (selectedAdditionalsCount === 0) return "Sem complementos premium"
-    
-    const remainingFree = hasFreeAdditionals 
+
+    const remainingFree = hasFreeAdditionals
       ? Math.max(0, FREE_ADDITIONALS_LIMIT - selectedAdditionalsCount)
       : 0
-      
-    const remainingTotal = MAX_ADDITIONALS_PER_SIZE - selectedAdditionalsCount
-    
+
+    const remainingTotal = maxAdditionalsPerSize - selectedAdditionalsCount
+
     if (hasFreeAdditionals && !reachedFreeAdditionalsLimit) {
       return `${selectedAdditionalsCount} complemento${selectedAdditionalsCount !== 1 ? 's' : ''} premium selecionado${selectedAdditionalsCount !== 1 ? 's' : ''} (${remainingFree} grátis restante${remainingFree !== 1 ? 's' : ''})`
     }
-    
+
     return `${selectedAdditionalsCount} complemento${selectedAdditionalsCount !== 1 ? 's' : ''} premium selecionado${selectedAdditionalsCount !== 1 ? 's' : ''} (${remainingTotal} restante${remainingTotal !== 1 ? 's' : ''})`
   }
 
@@ -151,7 +151,7 @@ export function useProductAdditionals(product: Product) {
     selectedAdditionals,
     error,
     loading,
-    
+
     // Valores calculados
     hasFreeAdditionals,
     selectedAdditionalsCount,
@@ -160,15 +160,15 @@ export function useProductAdditionals(product: Product) {
     selectedCategoryAdditionals: getSelectedCategoryAdditionals(),
     additionalsTotalPrice: calculateAdditionalsTotal(),
     additionalsCountText: getAdditionalsCountText(),
-    
+
     // Métodos
     setSelectedCategoryId,
     toggleAdditional,
     removeAdditional,
     isAdditionalSelected,
-    
+
     // Constantes
-    MAX_ADDITIONALS_PER_SIZE,
+    maxAdditionalsPerSize,
     FREE_ADDITIONALS_LIMIT
   }
 }

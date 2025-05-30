@@ -58,7 +58,7 @@ export default function CarouselAdminPage() {
       try {
         console.log(`[DEBUG] Confirmação aceita, definindo status como pending`)
         setDeleteStatus({ id, status: "pending" })
-        
+
         console.log(`[DEBUG] Chamando deleteCarouselSlide(${id})`)
         const resultado = await deleteCarouselSlide(id)
         console.log(`[DEBUG] Resultado da exclusão:`, resultado)
@@ -67,14 +67,14 @@ export default function CarouselAdminPage() {
         console.log(`[DEBUG] Recarregando lista de slides`)
         await loadSlides()
         console.log(`[DEBUG] Lista de slides recarregada`)
-        
+
         setDeleteStatus({ id, status: "success" })
 
         // Fazer backup após exclusão
         console.log(`[DEBUG] Iniciando backup de dados`)
         await backupData()
         console.log(`[DEBUG] Backup concluído`)
-        
+
         alert("Slide excluído com sucesso!")
       } catch (error) {
         console.error("[DEBUG] Erro ao excluir slide:", error)
@@ -186,8 +186,8 @@ export default function CarouselAdminPage() {
         <div className="container mx-auto px-2 sm:px-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <Link 
-                href="/admin" 
+              <Link
+                href="/admin"
                 className="p-1.5 rounded-full hover:bg-purple-700 transition-colors duration-200 flex-shrink-0"
                 aria-label="Voltar"
               >
@@ -218,8 +218,8 @@ export default function CarouselAdminPage() {
           </p>
 
           {slides.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">
-              Nenhum slide cadastrado. Clique em "Novo Slide" para começar.
+            <p className="text-gray-600">
+              Nenhum slide encontrado. Clique em &quot;Novo Slide&quot; para criar o primeiro.
             </p>
           ) : (
             <div className="space-y-4">
@@ -251,9 +251,8 @@ export default function CarouselAdminPage() {
                         <div className="flex flex-wrap gap-2">
                           <button
                             onClick={() => handleToggleActive(slide)}
-                            className={`p-2 rounded-full ${
-                              slide.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
-                            }`}
+                            className={`p-2 rounded-full ${slide.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+                              }`}
                             title={slide.active ? "Desativar slide" : "Ativar slide"}
                           >
                             {slide.active ? <Eye size={18} /> : <EyeOff size={18} />}

@@ -35,7 +35,7 @@ export const PushNotificationService = {
   async sendNotificationToUser(userId: string, payload: PushNotificationPayload): Promise<boolean> {
     try {
       const supabase = createSupabaseClient();
-      
+
       // Obter a assinatura do usuário
       const { data: subscription, error } = await supabase
         .from('push_subscriptions')
@@ -94,7 +94,7 @@ export const PushNotificationService = {
   async broadcastNotification(payload: PushNotificationPayload): Promise<{ success: boolean; sent: number; failed: number }> {
     try {
       const supabase = createSupabaseClient();
-      
+
       // Obter todas as assinaturas
       const { data: subscriptions, error } = await supabase
         .from('push_subscriptions')

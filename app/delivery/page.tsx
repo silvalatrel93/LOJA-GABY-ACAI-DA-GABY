@@ -55,7 +55,10 @@ export default function DeliveryPage() {
 
   return (
     <main className="flex min-h-screen flex-col">
-      <StoreHeader />
+      <StoreHeader
+        name={storeConfig?.name || "Açaí Online"}
+        logoUrl={storeConfig?.logoUrl}
+      />
 
       <div className="container mx-auto p-4 py-8">
         <h1 className="text-2xl font-bold text-purple-900 mb-6">{pageContent?.title || "Delivery"}</h1>
@@ -80,7 +83,7 @@ export default function DeliveryPage() {
               </p>
             )}
 
-            
+
           </div>
         )}
       </div>

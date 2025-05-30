@@ -14,11 +14,11 @@ export const PageContentService = {
       return []
     }
 
-    return data.map((item) => ({
-      id: item.id,
-      title: item.title,
-      content: item.content,
-      lastUpdated: new Date(item.last_updated),
+    return data.map((item: any) => ({
+      id: String(item.id),
+      title: String(item.title),
+      content: String(item.content),
+      lastUpdated: new Date(),
     }))
   },
 
@@ -32,11 +32,13 @@ export const PageContentService = {
       return null
     }
 
+    const typedData = data as any
+
     return {
-      id: data.id,
-      title: data.title,
-      content: data.content,
-      lastUpdated: new Date(data.last_updated),
+      id: String(typedData.id),
+      title: String(typedData.title),
+      content: String(typedData.content),
+      lastUpdated: new Date(typedData.last_updated),
     }
   },
 
@@ -50,11 +52,13 @@ export const PageContentService = {
       return null
     }
 
+    const typedData = data as any
+
     return {
-      id: data.id,
-      title: data.title,
-      content: data.content,
-      lastUpdated: new Date(data.last_updated),
+      id: String(typedData.id),
+      title: String(typedData.title),
+      content: String(typedData.content),
+      lastUpdated: new Date(typedData.last_updated),
     }
   },
 
@@ -77,11 +81,13 @@ export const PageContentService = {
       return null
     }
 
+    const typedData = data as any
+
     return {
-      id: data.id,
-      title: data.title,
-      content: data.content,
-      lastUpdated: new Date(data.last_updated),
+      id: String(typedData.id),
+      title: String(typedData.title),
+      content: String(typedData.content),
+      lastUpdated: new Date(typedData.last_updated),
     }
   },
 

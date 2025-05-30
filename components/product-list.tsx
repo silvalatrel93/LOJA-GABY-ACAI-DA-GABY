@@ -8,6 +8,11 @@ import type { Product } from "@/lib/services/product-service"
 import type { Category } from "@/lib/services/category-service"
 import { createSafeKey } from "@/lib/key-utils"
 
+interface ProductListProps {
+  products?: Product[]
+  categories?: Category[]
+}
+
 // Função auxiliar para abreviar nomes de categorias
 const abbreviateCategory = (name: string, isMobile: boolean): string => {
   // Mapeamento de nomes longos para versões abreviadas
@@ -24,21 +29,21 @@ const abbreviateCategory = (name: string, isMobile: boolean): string => {
     "SORVETE TRADICIONAL": "SORVETE",
     "PICOLÉ TRADICIONAL": "PICOLÉ"
   };
-  
+
   // Se for mobile, usar versões mais curtas
   if (isMobile && abbreviations[name]) {
     return abbreviations[name];
   }
-  
+
   // Para desktop, podemos usar versões um pouco mais longas
   if (!isMobile && name.length > 20) {
     return abbreviations[name] || name.substring(0, 20) + "...";
   }
-  
+
   return name;
 };
 
-export default function ProductList({ products: initialProducts = [], categories: initialCategories = [] }) {
+export default function ProductList({ products: _initialProducts = [], categories: initialCategories = [] }: ProductListProps) {
   const [allProducts, setAllProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>(initialCategories)
   const [selectedCategory, setSelectedCategory] = useState<number | null>(0)
@@ -46,7 +51,6 @@ export default function ProductList({ products: initialProducts = [], categories
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [isBarFixed, setIsBarFixed] = useState(false)
   const [isScrollingDown, setIsScrollingDown] = useState(true)
-  const [isTransitioning, setIsTransitioning] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const prevScrollY = useRef(0)
   const categoriesBarRef = useRef<HTMLDivElement>(null)
@@ -64,13 +68,13 @@ export default function ProductList({ products: initialProducts = [], categories
       const isSmallScreen = window.innerWidth < 768;
       setIsMobile(isMobileDevice || isSmallScreen);
     };
-    
+
     // Verificar inicialmente
     checkIfMobile();
-    
+
     // Adicionar listener para redimensionamento da janela
     window.addEventListener('resize', checkIfMobile);
-    
+
     // Injetar estilos CSS
     const styleElement = document.createElement("style")
     styleElement.innerHTML = `
@@ -184,20 +188,20 @@ export default function ProductList({ products: initialProducts = [], categories
   // Função para controlar a barra fixa durante o scroll
   const handleScroll = useCallback(() => {
     const currentScrollY = window.scrollY
-    
+
     // Salvar a posição inicial da barra de categorias
     if (initialCategoriesBarPosition.current === null && categoriesBarRef.current) {
       initialCategoriesBarPosition.current = categoriesBarRef.current.getBoundingClientRect().top + window.scrollY
     }
-    
+
     // Verificar a direção do scroll
     const isScrollDown = currentScrollY > prevScrollY.current
     setIsScrollingDown(isScrollDown)
-    
+
     // Verificar se a barra deve ser fixa
     if (initialCategoriesBarPosition.current !== null) {
       const shouldBeFixed = currentScrollY > initialCategoriesBarPosition.current - 56
-      
+
       // Aplicar a fixação da barra com base na posição, sem alternar rapidamente
       if (shouldBeFixed !== isBarFixed) {
         // Usar um pequeno atraso para evitar mudanças rápidas de estado
@@ -206,18 +210,18 @@ export default function ProductList({ products: initialProducts = [], categories
         })
       }
     }
-    
+
     prevScrollY.current = currentScrollY
-    
+
     // Detectar categoria ativa durante a rolagem
     if (selectedCategory === 0) {
       const headerHeight = 56
       const categoriesBarHeight = 56
       const offset = headerHeight + categoriesBarHeight + 20
-      
+
       let activeId = null
       let minDistance = Infinity
-      
+
       categoryRefs.current.forEach((ref, id) => {
         if (ref) {
           const rect = ref.getBoundingClientRect()
@@ -230,20 +234,20 @@ export default function ProductList({ products: initialProducts = [], categories
           }
         }
       })
-      
+
       if (activeId !== activeCategory) {
         setActiveCategory(activeId)
-        
+
         // Rolar a barra de categorias para mostrar a categoria ativa
         const buttonRef = activeId !== null ? categoryButtonsRef.current.get(activeId) : null
         const categoriesContainer = document.querySelector('.categories-scrollbar');
         if (buttonRef && categoriesContainer) {
           const containerRect = categoriesContainer.getBoundingClientRect();
           const buttonRect = buttonRef.getBoundingClientRect();
-          
+
           // Calcular a posição de scroll para centralizar o botão
           const scrollLeft = buttonRect.left - containerRect.left - (containerRect.width / 2) + (buttonRect.width / 2);
-          
+
           // Aplicar o scroll com comportamento suave apenas se a diferença for significativa
           if (Math.abs(scrollLeft) > buttonRect.width / 2) {
             categoriesContainer.scrollTo({
@@ -255,7 +259,7 @@ export default function ProductList({ products: initialProducts = [], categories
       }
     }
   }, [selectedCategory, activeCategory])
-  
+
   // Função para limitar a frequência de execução do handler de scroll usando requestAnimationFrame
   const throttledScrollHandler = useCallback(() => {
     let ticking = false
@@ -275,7 +279,7 @@ export default function ProductList({ products: initialProducts = [], categories
     const scrollHandler = throttledScrollHandler()
     window.addEventListener('scroll', scrollHandler)
     handleScroll()
-    
+
     return () => {
       window.removeEventListener('scroll', scrollHandler)
     }
@@ -296,21 +300,16 @@ export default function ProductList({ products: initialProducts = [], categories
         const headerHeight = 56 // Altura do cabeçalho fixo
         const categoriesBarHeight = 56 // Altura da barra de categorias
         const headerOffset = headerHeight + categoriesBarHeight + 10 // Adicionar margem extra
-        
+
         const elementPosition = categoryRef.getBoundingClientRect().top + window.scrollY
         const offsetPosition = elementPosition - headerOffset
-        
+
         window.scrollTo({
           top: offsetPosition,
           behavior: "smooth"
         })
       }
     }
-
-    // Terminar a transição após um breve período
-    setTimeout(() => {
-      setIsTransitioning(false)
-    }, 300)
   }
 
   // Renderizar produtos agrupados por categoria quando "Todos" está selecionado
@@ -323,8 +322,8 @@ export default function ProductList({ products: initialProducts = [], categories
         if (categoryProducts.length === 0) return null
 
         return (
-          <div 
-            key={createSafeKey(category.id, 'category')} 
+          <div
+            key={createSafeKey(category.id, 'category')}
             className="mb-8"
             ref={(el) => {
               if (el) categoryRefs.current.set(category.id, el);
@@ -385,7 +384,7 @@ export default function ProductList({ products: initialProducts = [], categories
             }}
           ></div>
 
-          <div 
+          <div
             className="flex overflow-x-auto py-1 gap-2 pl-3 pr-3 md:gap-3 md:pl-4 md:pr-4 categories-scrollbar"
             style={{
               WebkitOverflowScrolling: 'touch',
@@ -407,7 +406,7 @@ export default function ProductList({ products: initialProducts = [], categories
                   selectedCategory === category.id || (selectedCategory === 0 && activeCategory === category.id)
                     ? "bg-gradient-to-r from-purple-600 to-purple-900 text-white shadow-sm font-medium"
                     : "bg-white text-gray-700 border border-gray-200 hover:bg-gradient-to-r hover:from-purple-100 hover:to-purple-200"
-                }`}
+                  }`}
                 data-component-name="ProductList"
                 title={category.name} // Mostrar o nome completo no tooltip
               >
@@ -428,7 +427,7 @@ export default function ProductList({ products: initialProducts = [], categories
 
       {/* Espaçador para compensar a barra de categorias fixa (apenas quando está fixa) */}
       {isBarFixed && <div className="h-[56px]"></div>}
-      
+
       {/* Conteúdo dos produtos com transição suave */}
       <div className="px-4 py-4 min-h-[500px]">
         {isInitialLoading ? (
