@@ -89,7 +89,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
   // Função para formatar linha de adicional com espaçamento adequado
   const formatAdditionalLine = (quantity: number, name: string, price: number): string => {
     const normalizedName = normalizeForThermalPrint(name);
-    const itemText = `- ${quantity}x ${normalizedName}`;
+    const itemText = `+ ${quantity}x ${normalizedName}`; // Alterado de - para +
     const priceText = formatCurrency(price * quantity);
     
     // Calcular quantos caracteres cabem em 80mm (aproximadamente 42 caracteres para Courier New 10pt)
@@ -226,6 +226,8 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                   border-bottom: 1px solid #000;
                   margin-bottom: 1.5mm;
                   font-size: 10pt;
+                  font-family: Arial, sans-serif !important;
+                  text-transform: uppercase;
                 }
                 .item {
                   display: flex;
@@ -406,10 +408,11 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
         }
       }
 
-      // Cabeçalho
-      doc.setFont("courier", "bold")
+      // Configurar fonte com suporte a caracteres especiais
+      doc.setFont("helvetica", "bold")
       doc.setFontSize(12)
-      doc.text(normalizeForThermalPrint(storeName).toUpperCase(), LABEL_WIDTH_MM / 2, yPos, { align: "center" })
+      // Cabeçalho
+      doc.text(storeName.toUpperCase(), LABEL_WIDTH_MM / 2, yPos, { align: "center" })
       yPos += 10
 
       doc.setFontSize(10)
@@ -431,8 +434,8 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       yPos += 10
 
       // Endereço
-      doc.setFont("courier", "bold")
-      doc.text(normalizeForThermalPrint("ENDEREÇO"), margin, yPos)
+      doc.setFont("helvetica", "bold")
+      doc.text("ENDEREÇO", margin, yPos)
       yPos += 5
       doc.setFont("courier", "normal")
       doc.text(`${normalizeForThermalPrint(order.address.street)}, ${order.address.number}`, margin, yPos)
@@ -582,7 +585,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           </div>
 
           <div className="section">
-            <div className="section-title">ENDEREÇO</div>
+            <div className="section-title" style={{ fontFamily: 'Arial, sans-serif' }}>ENDEREÇO</div>
             <div>
               {normalizeForThermalPrint(order.address.street)}, {order.address.number}
             </div>
