@@ -1,11 +1,13 @@
 {
-  "buildCommand": "pnpm install && pnpm run build",
-  "installCommand": "pnpm install",
   "build": {
     "env": {
       "NODE_VERSION": "20",
       "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
     }
   },
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "installCommand": "npm install -g pnpm@8 && pnpm install",
+  "buildCommand": "pnpm run build",
+  "devCommand": "pnpm run dev",
+  "outputDirectory": ".next"
 }
