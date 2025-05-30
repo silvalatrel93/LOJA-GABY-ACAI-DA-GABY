@@ -10,8 +10,6 @@ import {
   getAllPageContents,
 } from "@/lib/db" // Importa do IndexedDB
 
-// Temporariamente comentado para resolver problemas de build
-/*
 import {
   saveProductToSupabase,
   saveCategoryToSupabase,
@@ -23,7 +21,6 @@ import {
   saveNotificationToSupabase,
   savePageContentToSupabase,
 } from "@/lib/db-supabase" // Funções para salvar no Supabase
-*/
 
 // Interface para o resultado da migração
 export interface MigrationResult {
@@ -45,13 +42,6 @@ export interface MigrationResult {
 
 // Função para migrar todos os dados do IndexedDB para o Supabase
 export async function migrateAllData(): Promise<MigrationResult> {
-  // Temporariamente desabilitado para resolver problemas de build
-  return {
-    success: false,
-    message: "Migração temporariamente desabilitada"
-  }
-
-  /*
   const errors: string[] = []
   const details: MigrationResult["details"] = {}
 
@@ -182,16 +172,17 @@ export async function migrateAllData(): Promise<MigrationResult> {
       errors: [`Erro geral: ${error}`],
     }
   }
-  */
 }
 
 // Função para verificar se a migração já foi concluída
 export function isMigrationCompleted(): boolean {
+  if (typeof window === "undefined") return false
   return localStorage.getItem("migrationCompleted") === "true"
 }
 
 // Função para obter a data da última migração
 export function getLastMigrationDate(): Date | null {
+  if (typeof window === "undefined") return null
   const dateStr = localStorage.getItem("migrationDate")
   return dateStr ? new Date(dateStr) : null
 }

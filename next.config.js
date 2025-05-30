@@ -3,10 +3,9 @@ const nextConfig = {
   // Configurações opcionais do Next.js
   reactStrictMode: true,
   images: {
-    domains: ['localhost', 'your-supabase-url.supabase.co', 'i.postimg.cc'], // Adicione aqui os domínios das imagens
+    domains: ['localhost', 'vercel.app'],
   },
   // Habilita o output estático para facilitar o deploy
-  output: 'standalone',
   eslint: {
     // Permite que o build de produção passe mesmo com erros de ESLint
     ignoreDuringBuilds: true,
@@ -14,6 +13,12 @@ const nextConfig = {
   typescript: {
     // Permite que o build de produção passe mesmo com erros de TypeScript
     ignoreBuildErrors: true,
+  },
+  distDir: '.next',
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['localhost:3000', 'vercel.app'],
+    },
   },
 }
 
