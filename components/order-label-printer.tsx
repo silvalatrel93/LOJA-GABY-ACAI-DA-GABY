@@ -25,6 +25,9 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
   const [logoUrl, setLogoUrl] = useState("")
   const [salmo, setSalmo] = useState({ referencia: "", texto: "" })
 
+  const [isLogoReady, setIsLogoReady] = useState(false)
+  const [logoError, setLogoError] = useState(false)
+
   // Buscar o nome e logo da loja quando o componente for montado
   useEffect(() => {
     const fetchStoreConfig = async () => {
@@ -35,11 +38,31 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
             setStoreName(storeConfig.name)
           }
           if (storeConfig.logoUrl) {
-            setLogoUrl(storeConfig.logoUrl)
+            // Pré-carregar a imagem para garantir que esteja disponível
+            const img = new Image()
+            img.onload = () => {
+              setLogoUrl(storeConfig.logoUrl)
+              setIsLogoReady(true)
+              setLogoError(false)
+            }
+            img.onerror = () => {
+              console.error("Erro ao carregar a logo")
+              setLogoError(true)
+              // Usar uma imagem de fallback ou continuar sem logo
+              setLogoUrl("")
+              setIsLogoReady(true)
+            }
+            img.src = storeConfig.logoUrl
+          } else {
+            setIsLogoReady(true) // Nenhuma logo para carregar
           }
+        } else {
+          setIsLogoReady(true) // Nenhuma configuração encontrada
         }
       } catch (error) {
         console.error("Erro ao buscar configurações da loja:", error)
+        setLogoError(true)
+        setIsLogoReady(true) // Continuar mesmo com erro
       }
     }
 
@@ -117,6 +140,11 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
   // Função para imprimir diretamente na impressora
   const handlePrint = () => {
+    if (!isLogoReady) {
+      // Se a logo ainda não estiver pronta, tente novamente em breve
+      setTimeout(handlePrint, 100)
+      return
+    }
     if (printContainerRef.current) {
       // Processar o conteúdo para normalizar caracteres antes da impressão
       let processedContent = printContainerRef.current.innerHTML;
@@ -559,19 +587,42 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       <div className="mb-4 border rounded-lg p-4 max-h-96 overflow-auto">
         <div ref={printContainerRef} className="thermal-receipt">
           <div className="header">
-            {logoUrl && (
-              <img
-                src={logoUrl || "/placeholder.svg"}
-                alt={`Logo ${storeName}`}
-                className="logo"
-                style={{
-                  maxWidth: `${LABEL_WIDTH_MM - 20}mm`,
-                  maxHeight: "18mm",
-                  margin: "0 auto 3mm",
-                  display: "block",
-                }}
-              />
-            )}
+            {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={`Logo ${storeName}`}
+              className="logo"
+              style={{
+                maxWidth: `${LABEL_WIDTH_MM - 20}mm`,
+                maxHeight: "18mm",
+                margin: "0 auto 3mm",
+                display: "block",
+              }}
+              onError={(e) => {
+                // Se a imagem falhar ao carregar, remova o src para evitar tentativas repetidas
+                const target = e.target as HTMLImageElement
+                target.style.display = 'none'
+              }}
+            />
+          ) : !logoError && (
+            // Mostrar placeholder enquanto carrega (se não houver erro)
+            <div 
+              className="logo-placeholder" 
+              style={{
+                width: `${LABEL_WIDTH_MM - 20}mm`,
+                height: "18mm",
+                margin: "0 auto 3mm",
+                backgroundColor: "#f3f4f6",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#9ca3af",
+                fontSize: "10px"
+              }}
+            >
+              {isLogoReady ? "Sem logo configurada" : "Carregando..."}
+            </div>
+          )}
             <div className="title">{normalizeForThermalPrint(storeName).toUpperCase()}</div>
             <div className="subtitle">Pedido #{order.id}</div>
             <div className="subtitle">{format(new Date(order.date), "dd/MM/yyyy HH:mm", { locale: ptBR })}</div>
@@ -652,10 +703,15 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
         </div>
       </div>
 
-      {/* Instrução para configuração de impressão */}
-      <div className="mb-2 p-2 bg-yellow-100 text-yellow-800 text-xs rounded">
-        <b>Dica:</b> Para melhor resultado, configure a largura do papel para <b>{LABEL_WIDTH_MM}mm</b> na janela de impressão do navegador.<br />
-        <b>MP-4200 TH:</b> Suporta papel de 58-82.5mm. Configurado para 80mm (padrão). Se usar papel de 58mm, altere LABEL_WIDTH_MM para 58.
+      {/* Instrução para configuração de impressão - Estilo mais discreto */}
+      <div className="mb-3 p-2 bg-gray-50 border border-gray-200 text-gray-600 text-[11px] rounded-md">
+        <div className="flex items-start">
+          <span className="text-gray-500 mr-1">ℹ️</span>
+          <div>
+            <p className="mb-1">Configure a largura do papel para <span className="font-medium">{LABEL_WIDTH_MM}mm</span> na impressão.</p>
+            <p className="text-gray-500 text-[10px]">MP-4200 TH: papel 58-82.5mm. Atual: 80mm.</p>
+          </div>
+        </div>
       </div>
       <div className="flex space-x-2">
         <button
