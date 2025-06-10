@@ -14,6 +14,7 @@ interface SupabaseOrder {
   delivery_fee: string | number
   total: string | number
   payment_method: string
+  payment_change?: string // Adicionando o campo opcional payment_change
   status: OrderStatus
   date: string
   printed: boolean
@@ -46,6 +47,7 @@ export const OrderService = {
       deliveryFee: Number(item.delivery_fee),
       total: Number(item.total),
       paymentMethod: item.payment_method,
+      ...(item.payment_change && { paymentChange: item.payment_change }),
       status: item.status,
       date: new Date(item.date),
       printed: item.printed,
@@ -77,6 +79,7 @@ export const OrderService = {
       deliveryFee: Number(item.delivery_fee),
       total: Number(item.total),
       paymentMethod: item.payment_method,
+      ...(item.payment_change && { paymentChange: item.payment_change }),
       status: item.status,
       date: new Date(item.date),
       printed: item.printed,
@@ -108,6 +111,7 @@ export const OrderService = {
       deliveryFee: Number(item.delivery_fee),
       total: Number(item.total),
       paymentMethod: item.payment_method,
+      ...(item.payment_change && { paymentChange: item.payment_change }),
       status: item.status,
       date: new Date(item.date),
       printed: item.printed || false,
@@ -140,6 +144,7 @@ export const OrderService = {
       deliveryFee: Number(orderData.delivery_fee),
       total: Number(orderData.total),
       paymentMethod: orderData.payment_method,
+      ...(orderData.payment_change && { paymentChange: orderData.payment_change }),
       status: orderData.status,
       date: new Date(orderData.date),
       printed: orderData.printed,
@@ -162,6 +167,8 @@ export const OrderService = {
         delivery_fee: order.deliveryFee,
         total: order.total,
         payment_method: order.paymentMethod,
+        // Incluir payment_change apenas se existir e for um pagamento em dinheiro
+        ...(order.paymentMethod === 'money' && { payment_change: order.paymentChange || '0' }),
         status: order.status,
         date: order.date.toISOString(),
         printed: order.printed || false,
@@ -219,6 +226,8 @@ export const OrderService = {
         deliveryFee: Number(createdOrder.delivery_fee),
         total: Number(createdOrder.total),
         paymentMethod: createdOrder.payment_method,
+        // Incluir paymentChange se existir no item retornado
+        ...(createdOrder.payment_change && { paymentChange: createdOrder.payment_change }),
         status: createdOrder.status,
         date: new Date(createdOrder.date),
         printed: createdOrder.printed,

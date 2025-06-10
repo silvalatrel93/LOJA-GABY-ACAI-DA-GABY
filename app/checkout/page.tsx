@@ -137,6 +137,7 @@ function CheckoutPageContent() {
     number: "",
     complement: "",
     paymentMethod: "pix",
+    paymentChange: ""
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [deliveryFee, setDeliveryFee] = useState(5.0)
@@ -268,10 +269,12 @@ function CheckoutPageContent() {
         deliveryFee,
         total,
         paymentMethod: formData.paymentMethod,
+        // Adicionando o campo paymentChange apenas se o pagamento for em dinheiro
+        ...(formData.paymentMethod === "money" && { paymentChange: formData.paymentChange }),
         status: "new" as const,
         date: new Date(),
         printed: false,
-        notified: false, // Adicionando a propriedade notified que estava faltando
+        notified: false,
       }
 
       // Salvar pedido no banco de dados e obter o ID do pedido
@@ -525,7 +528,54 @@ function CheckoutPageContent() {
                 </label>
               </div>
               
-              {/* Informações de pagamento serão enviadas após a confirmação */}
+              <div className="flex flex-col sm:flex-row sm:items-start gap-3 w-full">
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    id="money"
+                    name="paymentMethod"
+                    value="money"
+                    checked={formData.paymentMethod === "money"}
+                    onChange={handleChange}
+                    className="h-5 w-5 text-purple-600 focus:ring-purple-500"
+                  />
+                  <label htmlFor="money" className="ml-2 block text-sm text-gray-700 whitespace-nowrap">
+                    Dinheiro
+                  </label>
+                </div>
+                
+                {formData.paymentMethod === "money" && (
+                  <div className="w-full">
+                    <label htmlFor="paymentChange" className="block text-xs text-gray-500 mb-2 mt-1">
+                      Precisa de troco? Se sim, informe o valor
+                    </label>
+                    <div className="relative rounded-md shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-500 text-sm">R$</span>
+                      </div>
+                      <input
+                        type="number"
+                        id="paymentChange"
+                        name="paymentChange"
+                        value={formData.paymentChange}
+                        onChange={handleChange}
+                        min={total}
+                        step="0.01"
+                        placeholder={formatCurrency(total)}
+                        className="focus:ring-purple-500 focus:border-purple-500 block w-full pl-10 pr-28 sm:pr-32 py-2 text-sm border-gray-300 rounded-md"
+                        inputMode="decimal"
+                      />
+                      {formData.paymentChange && parseFloat(formData.paymentChange) > 0 && (
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                          <span className="text-gray-700 text-xs sm:text-sm whitespace-nowrap">
+                            Troco: {formatCurrency(parseFloat(formData.paymentChange) - total)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -587,11 +637,18 @@ function CheckoutPageContent() {
 
           <button
             type="submit"
-            disabled={!storeStatus.isOpen || isSubmitting}
+            disabled={!storeStatus.isOpen || isSubmitting || 
+              (formData.paymentMethod === "money" && formData.paymentChange ? parseFloat(formData.paymentChange) < total : false)}
             className={`w-full ${
-              storeStatus.isOpen && !isSubmitting ? "bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800" : "bg-gray-400"
-            } text-white py-3 rounded-lg font-semibold flex items-center justify-center sticky bottom-4 shadow-lg`}
+              !storeStatus.isOpen || isSubmitting || 
+              (formData.paymentMethod === "money" && formData.paymentChange && parseFloat(formData.paymentChange) < total)
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800"
+            } text-white py-3 rounded-lg font-semibold flex items-center justify-center sticky bottom-4 shadow-lg transition-colors`}
             data-component-name="CheckoutPageContent"
+            title={formData.paymentMethod === "money" && formData.paymentChange && parseFloat(formData.paymentChange) < total 
+              ? "O valor informado é menor que o total do pedido" 
+              : undefined}
           >
             {isSubmitting ? (
               <>
@@ -599,6 +656,9 @@ function CheckoutPageContent() {
                 Processando...
               </>
             ) : storeStatus.isOpen ? (
+              formData.paymentMethod === "pix" ? "Pagar com PIX" :
+              formData.paymentMethod === "card" ? "Pagar com Cartão" :
+              formData.paymentMethod === "money" ? "Pagar em Dinheiro" :
               "Finalizar e Enviar Pedido"
             ) : (
               "Loja Fechada - Não é possível finalizar"

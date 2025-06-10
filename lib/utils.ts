@@ -6,10 +6,15 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
 export function formatCurrency(value: number): string {
+  // Verifica se o valor é um número inteiro
+  const isInteger = Number.isInteger(value);
+  
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(value)
+    minimumFractionDigits: isInteger ? 0 : 2,
+    maximumFractionDigits: isInteger ? 0 : 2,
+  }).format(value);
 }
 
 export function formatDate(date: Date | string, formatString = "dd/MM/yyyy HH:mm"): string {

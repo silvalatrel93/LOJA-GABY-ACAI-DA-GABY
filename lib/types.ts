@@ -129,6 +129,7 @@ export interface Order {
   deliveryFee: number
   total: number
   paymentMethod: string
+  paymentChange?: string
   status: OrderStatus
   date: Date
   printed: boolean

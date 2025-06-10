@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useEffect } from "react"
+import { useRef, useState, useEffect, ReactNode } from "react"
 import { Printer, Download } from "lucide-react"
 import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
 import { format } from "date-fns"
@@ -30,13 +30,9 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
   // Buscar o nome e logo da loja quando o componente for montado
   useEffect(() => {
-    let isMounted = true;
-    
     const fetchStoreConfig = async () => {
       try {
         const storeConfig = await getStoreConfig()
-        if (!isMounted) return;
-        
         if (storeConfig) {
           if (storeConfig.name) {
             setStoreName(storeConfig.name)
@@ -44,41 +40,19 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           if (storeConfig.logoUrl) {
             // Pré-carregar a imagem para garantir que esteja disponível
             const img = new Image()
-            
-            // Configurar um timeout para evitar espera infinita
-            const timeoutId = setTimeout(() => {
-              if (isMounted) {
-                console.log("Timeout ao carregar a logo")
-                setLogoError(true)
-                setLogoUrl("")
-                setIsLogoReady(true)
-              }
-            }, 2000) // Timeout de 2 segundos
-            
             img.onload = () => {
-              if (!isMounted) return;
-              clearTimeout(timeoutId);
               setLogoUrl(storeConfig.logoUrl)
               setIsLogoReady(true)
               setLogoError(false)
             }
-            
             img.onerror = () => {
-              if (!isMounted) return;
-              clearTimeout(timeoutId);
               console.error("Erro ao carregar a logo")
               setLogoError(true)
+              // Usar uma imagem de fallback ou continuar sem logo
               setLogoUrl("")
               setIsLogoReady(true)
             }
-            
-            // Iniciar o carregamento após configurar os event listeners
             img.src = storeConfig.logoUrl
-            
-            // Forçar o início do carregamento (útil para cache)
-            if (img.complete) {
-              img.onload(null as any);
-            }
           } else {
             setIsLogoReady(true) // Nenhuma logo para carregar
           }
@@ -86,17 +60,10 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           setIsLogoReady(true) // Nenhuma configuração encontrada
         }
       } catch (error) {
-        if (!isMounted) return;
         console.error("Erro ao buscar configurações da loja:", error)
         setLogoError(true)
         setIsLogoReady(true) // Continuar mesmo com erro
       }
-    }
-    
-    fetchStoreConfig()
-    
-    return () => {
-      isMounted = false;
     }
 
     // Gerar um salmo aleatório
@@ -145,30 +112,17 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
   // Função para formatar linha de adicional com espaçamento adequado
   const formatAdditionalLine = (quantity: number, name: string, price: number): string => {
     const normalizedName = normalizeForThermalPrint(name);
-    const itemText = `+ ${quantity}x ${normalizedName}`; // Alterado de - para +
+    const itemText = `+ ${quantity}x ${normalizedName}`;
     const priceText = formatCurrency(price * quantity);
     
-    // Calcular quantos caracteres cabem em 80mm (aproximadamente 42 caracteres para Courier New 10pt)
-    const maxWidth = 42;
-    const spacesNeeded = maxWidth - itemText.length - priceText.length;
-    const spaces = spacesNeeded > 3 ? ' '.repeat(spacesNeeded) : '   '; // Mínimo 3 espaços
-    
-    return `${itemText}${spaces}${priceText}`;
+    return `${itemText}${' '.repeat(30 - itemText.length - priceText.length)}${priceText}`;
   };
 
   // Função para formatar linha de item principal com espaçamento adequado
   const formatItemLine = (quantity: number, name: string, size: string, price: number): string => {
     const normalizedName = normalizeForThermalPrint(name);
     const cleanedSize = cleanSizeDisplay(size);
-    const itemText = `${quantity}x ${normalizedName}: (${cleanedSize})`;
-    const priceText = formatCurrency(price * quantity);
-    
-    // Calcular quantos caracteres cabem em 80mm (aproximadamente 42 caracteres para Courier New 10pt)
-    const maxWidth = 42;
-    const spacesNeeded = maxWidth - itemText.length - priceText.length;
-    const spaces = spacesNeeded > 3 ? ' '.repeat(spacesNeeded) : '   '; // Mínimo 3 espaços
-    
-    return `${itemText}${spaces}${priceText}`;
+    return `${quantity}x ${normalizedName}: (${cleanedSize})`;
   };
 
   // Função para imprimir diretamente na impressora
@@ -569,7 +523,19 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
       // Forma de pagamento
       doc.setFont("courier", "normal")
-      const paymentText = `Forma de pagamento: ${order.paymentMethod === "pix" ? "PIX" : "Cartão na Entrega"}`
+      let paymentText = "Forma de pagamento: "
+      if (order.paymentMethod === "pix") {
+        paymentText += "PIX"
+      } else if (order.paymentMethod === "card") {
+        paymentText += "Cartão na Entrega"
+      } else if (order.paymentMethod === "money") {
+        paymentText += "Dinheiro"
+        if (order.paymentChange && parseFloat(order.paymentChange) > 0) {
+          paymentText += ` (Troco para R$ ${parseFloat(order.paymentChange).toFixed(2).replace('.', ',')})`
+        } else {
+          paymentText += " (Sem troco)"
+        }
+      }
       doc.text(normalizeForThermalPrint(paymentText), margin, yPos)
       yPos += 10
 
@@ -681,17 +647,23 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
             <div className="section-title">ITENS DO PEDIDO</div>
             {order.items.map((item, index) => (
               <div key={index} style={{ marginBottom: "6px" }}>
-                <div className="item-formatted" style={{ fontFamily: "monospace", fontSize: "11px", marginBottom: "4px" }}>
-                  {formatItemLine(item.quantity, item.name, item.size, item.price)}
+                <div className="flex justify-between items-start w-full" style={{ fontFamily: "monospace", fontSize: "11px", marginBottom: "4px" }}>
+                <div className="flex-1 pr-2">
+                  {item.quantity}x {normalizeForThermalPrint(item.name)} ({cleanSizeDisplay(item.size)})
                 </div>
+                <div className="font-medium text-right">
+                  {formatCurrency(item.price * item.quantity)}
+                </div>
+              </div>
 
                 {/* Indicar se tem ou não adicionais */}
                 {item.additionals && item.additionals.length > 0 ? (
                   <div className="mb-2">
                     <div className="additional-status font-bold">Adicionais Complementos</div>
                     {item.additionals.map((additional, idx) => (
-                      <div key={idx} className="additional" style={{ fontFamily: "monospace", fontSize: "10px", marginBottom: "2px" }}>
-                        {formatAdditionalLine(additional.quantity ?? 1, additional.name, additional.price)}
+                      <div key={idx} className="flex justify-between w-full" style={{ fontFamily: 'monospace', fontSize: '10px', marginBottom: '2px' }}>
+                        <span>+ {additional.quantity}x {normalizeForThermalPrint(additional.name)}</span>
+                        <span>{additional.price === 0 ? 'Grátis' : formatCurrency(additional.price * (additional.quantity ?? 1))}</span>
                       </div>
                     ))}
                   </div>
@@ -708,22 +680,38 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           <div className="items-spacing"></div>
 
           <div className="section">
-            <div className="item">
+            <div className="item flex justify-between">
               <div>Subtotal:</div>
               <div style={{ fontWeight: "bold" }}>{formatCurrency(order.subtotal)}</div>
             </div>
-            <div className="item">
+            <div className="item flex justify-between">
               <div>Taxa de entrega:</div>
               <div style={{ fontWeight: "bold" }}>{formatCurrency(order.deliveryFee)}</div>
             </div>
-            <div className="item total">
+            <div className="item total flex justify-between">
               <div>TOTAL:</div>
               <div>{formatCurrency(order.total)}</div>
             </div>
           </div>
 
           <div className="section">
-            <div>Forma de pagamento: {order.paymentMethod === "pix" ? "PIX" : "Cartão na Entrega"}</div>
+            <div className="mb-1">
+              <span className="font-medium">Forma de pagamento:</span> {
+                order.paymentMethod === "pix" ? "PIX" :
+                order.paymentMethod === "card" ? "Cartão na Entrega" :
+                "Dinheiro"
+              }
+            </div>
+            {order.paymentMethod === "money" && order.paymentChange && parseFloat(order.paymentChange) > 0 && (
+              <div className="grid grid-cols-2 gap-1 text-sm">
+                <div>Valor pago:</div>
+                <div className="text-right font-medium">{formatCurrency(parseFloat(order.paymentChange))}</div>
+                <div className="text-green-700 font-semibold">Troco:</div>
+                <div className="text-right font-bold text-green-700">
+                  {formatCurrency(parseFloat(order.paymentChange) - order.total)}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="footer">Obrigado pela preferencia!</div>
@@ -749,37 +737,16 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       <div className="flex space-x-2">
         <button
           onClick={handlePrint}
-          disabled={!isLogoReady || isGeneratingPDF}
-          className={`flex-1 text-white py-2 rounded-md flex items-center justify-center ${
-            !isLogoReady || isGeneratingPDF 
-              ? 'bg-purple-400 cursor-not-allowed' 
-              : 'bg-purple-700 hover:bg-purple-800'
-          }`}
+          className="flex-1 bg-purple-700 hover:bg-purple-800 text-white py-2 rounded-md flex items-center justify-center"
         >
-          {!isLogoReady ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Carregando...
-            </>
-          ) : (
-            <>
-              <Printer size={18} className="mr-2" />
-              {isGeneratingPDF ? 'Gerando...' : 'Imprimir'}
-            </>
-          )}
+          <Printer size={18} className="mr-2" />
+          Imprimir
         </button>
 
         <button
           onClick={handleGeneratePDF}
-          disabled={!isLogoReady || isGeneratingPDF}
-          className={`flex-1 text-white py-2 rounded-md flex items-center justify-center ${
-            !isLogoReady || isGeneratingPDF 
-              ? 'bg-blue-400 cursor-not-allowed' 
-              : 'bg-blue-600 hover:bg-blue-700'
-          }`}
+          disabled={isGeneratingPDF}
+          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md flex items-center justify-center"
         >
           <Download size={18} className="mr-2" />
           {isGeneratingPDF ? "Gerando..." : "Salvar PDF"}

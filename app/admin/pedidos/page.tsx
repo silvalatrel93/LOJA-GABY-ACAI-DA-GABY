@@ -730,25 +730,43 @@ export default function OrdersPage() {
                       </ul>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t">
+                    <div className="mt-4">
                       <div className="grid grid-cols-2 gap-2">
                         <span className="text-gray-700">Subtotal</span>
                         <span className="text-right font-medium">{formatCurrency(order.subtotal)}</span>
-                      
+                        
                         <span className="text-gray-700">Taxa de entrega</span>
                         <span className="text-right font-medium">{formatCurrency(order.deliveryFee)}</span>
-                      
+                        
                         <span className="text-gray-900 font-bold">Total</span>
                         <span className="text-right font-bold text-purple-700">{formatCurrency(order.total)}</span>
                       </div>
                       
-                      <div className="mt-3 p-2 bg-gray-50 rounded-md">
-                        <span className="flex items-center text-sm">
-                          <span className="font-medium mr-2">Forma de pagamento:</span>
-                          <span className="text-purple-700">
-                            {order.paymentMethod === "pix" ? "PIX" : "Cartão na Entrega"}
+                      <div className="mt-3 pt-3 border-t">
+                        <div className="grid grid-cols-2 gap-2">
+                          <span className="text-gray-700">Forma de pagamento</span>
+                          <span className="text-right font-medium">
+                            {order.paymentMethod === "pix" 
+                              ? "PIX" 
+                              : order.paymentMethod === "card" 
+                                ? "Cartão na Entrega" 
+                                : "Dinheiro"
+                            }
                           </span>
-                        </span>
+                        
+                          {order.paymentMethod === "money" && order.paymentChange && parseFloat(order.paymentChange) > 0 && (
+                            <>
+                              <span className="text-sm text-gray-700">Valor pago</span>
+                              <span className="text-sm text-right font-medium">
+                                {formatCurrency(parseFloat(order.paymentChange))}
+                              </span>
+                              <span className="text-sm text-green-700 font-semibold">Troco</span>
+                              <span className="text-sm text-right text-green-700 font-semibold">
+                                {formatCurrency(parseFloat(order.paymentChange) - order.total)}
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="mt-3 flex justify-between">
