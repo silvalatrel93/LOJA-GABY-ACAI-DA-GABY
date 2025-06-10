@@ -30,9 +30,13 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
   // Buscar o nome e logo da loja quando o componente for montado
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchStoreConfig = async () => {
       try {
         const storeConfig = await getStoreConfig()
+        if (!isMounted) return;
+        
         if (storeConfig) {
           if (storeConfig.name) {
             setStoreName(storeConfig.name)
@@ -40,19 +44,41 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           if (storeConfig.logoUrl) {
             // Pré-carregar a imagem para garantir que esteja disponível
             const img = new Image()
+            
+            // Configurar um timeout para evitar espera infinita
+            const timeoutId = setTimeout(() => {
+              if (isMounted) {
+                console.log("Timeout ao carregar a logo")
+                setLogoError(true)
+                setLogoUrl("")
+                setIsLogoReady(true)
+              }
+            }, 2000) // Timeout de 2 segundos
+            
             img.onload = () => {
+              if (!isMounted) return;
+              clearTimeout(timeoutId);
               setLogoUrl(storeConfig.logoUrl)
               setIsLogoReady(true)
               setLogoError(false)
             }
+            
             img.onerror = () => {
+              if (!isMounted) return;
+              clearTimeout(timeoutId);
               console.error("Erro ao carregar a logo")
               setLogoError(true)
-              // Usar uma imagem de fallback ou continuar sem logo
               setLogoUrl("")
               setIsLogoReady(true)
             }
+            
+            // Iniciar o carregamento após configurar os event listeners
             img.src = storeConfig.logoUrl
+            
+            // Forçar o início do carregamento (útil para cache)
+            if (img.complete) {
+              img.onload(null as any);
+            }
           } else {
             setIsLogoReady(true) // Nenhuma logo para carregar
           }
@@ -60,10 +86,17 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           setIsLogoReady(true) // Nenhuma configuração encontrada
         }
       } catch (error) {
+        if (!isMounted) return;
         console.error("Erro ao buscar configurações da loja:", error)
         setLogoError(true)
         setIsLogoReady(true) // Continuar mesmo com erro
       }
+    }
+    
+    fetchStoreConfig()
+    
+    return () => {
+      isMounted = false;
     }
 
     // Gerar um salmo aleatório
@@ -716,16 +749,37 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       <div className="flex space-x-2">
         <button
           onClick={handlePrint}
-          className="flex-1 bg-purple-700 hover:bg-purple-800 text-white py-2 rounded-md flex items-center justify-center"
+          disabled={!isLogoReady || isGeneratingPDF}
+          className={`flex-1 text-white py-2 rounded-md flex items-center justify-center ${
+            !isLogoReady || isGeneratingPDF 
+              ? 'bg-purple-400 cursor-not-allowed' 
+              : 'bg-purple-700 hover:bg-purple-800'
+          }`}
         >
-          <Printer size={18} className="mr-2" />
-          Imprimir
+          {!isLogoReady ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Carregando...
+            </>
+          ) : (
+            <>
+              <Printer size={18} className="mr-2" />
+              {isGeneratingPDF ? 'Gerando...' : 'Imprimir'}
+            </>
+          )}
         </button>
 
         <button
           onClick={handleGeneratePDF}
-          disabled={isGeneratingPDF}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md flex items-center justify-center"
+          disabled={!isLogoReady || isGeneratingPDF}
+          className={`flex-1 text-white py-2 rounded-md flex items-center justify-center ${
+            !isLogoReady || isGeneratingPDF 
+              ? 'bg-blue-400 cursor-not-allowed' 
+              : 'bg-blue-600 hover:bg-blue-700'
+          }`}
         >
           <Download size={18} className="mr-2" />
           {isGeneratingPDF ? "Gerando..." : "Salvar PDF"}
