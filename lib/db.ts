@@ -249,8 +249,8 @@ export const getPhraseById = PhraseService.getPhraseById
 export const savePhrase = PhraseService.savePhrase
 export const deletePhrase = PhraseService.deletePhrase
 
-export const getStoreConfig = StoreConfigService.getStoreConfig
-export const saveStoreConfig = StoreConfigService.saveStoreConfig
+export const getStoreConfig = StoreConfigService.getStoreConfig.bind(StoreConfigService)
+export const saveStoreConfig = StoreConfigService.saveStoreConfig.bind(StoreConfigService)
 
 // Exportar funções do OrderService
 export const getAllOrders = OrderService.getAllOrders

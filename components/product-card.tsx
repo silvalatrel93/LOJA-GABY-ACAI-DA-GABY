@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { X, Check } from "lucide-react"
+import { X, Check, Minus, Plus } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
 import ImageViewer from "@/components/image-viewer"
@@ -74,7 +74,10 @@ function ProductCardContent({ product }: ProductCardProps) {
       // Seleciona o primeiro tamanho disponível
       setSelectedSize(product.sizes[0].size)
     }
-  }, [product?.sizes, selectedSize, setSelectedSize])
+    
+    // Redefine a quantidade para 1 quando o produto for alterado
+    setQuantity(1)
+  }, [product?.id, product?.sizes, selectedSize, setSelectedSize])
 
   // Carregar status da loja quando o modal é aberto
   useEffect(() => {
@@ -97,6 +100,46 @@ function ProductCardContent({ product }: ProductCardProps) {
     ? product.sizes.find((s) => s.size === selectedSize)
     : product.sizes.length > 0 ? product.sizes[0] : undefined
 
+  // Estado para controlar a quantidade do produto
+  const [quantity, setQuantity] = useState(1)
+  
+  // Buscar configurações da loja para obter o limite de picolés
+  const [maxPicolesPerOrder, setMaxPicolesPerOrder] = useState(20)
+
+  useEffect(() => {
+    // Função assíncrona para buscar as configurações da loja
+    const fetchStoreConfig = async () => {
+      try {
+        const { getStoreConfig } = await import('@/lib/services/store-config-service')
+        const config = await getStoreConfig()
+        if (config?.maxPicolesPerOrder) {
+          setMaxPicolesPerOrder(config.maxPicolesPerOrder)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar configurações da loja:', error)
+      }
+    }
+
+    fetchStoreConfig()
+  }, [])
+
+  // Função para incrementar a quantidade
+  const incrementQuantity = () => {
+    setQuantity(prev => {
+      // Se for um picolé, respeita o limite máximo
+      if (isPicolé(product.categoryName)) {
+        return Math.min(prev + 1, maxPicolesPerOrder)
+      }
+      // Para outros produtos, mantém o limite de 100
+      return Math.min(prev + 1, 100)
+    })
+  }
+
+  // Função para decrementar a quantidade
+  const decrementQuantity = () => {
+    setQuantity(prev => Math.max(prev - 1, 1)) // Mínimo de 1 item
+  }
+
   // Função para adicionar ao carrinho
   const handleAddToCart = () => {
     if (!selectedSize || !selectedSizeInfo) return
@@ -118,8 +161,8 @@ function ProductCardContent({ product }: ProductCardProps) {
       name: product.name,
       price: selectedSizeInfo.price,
       image: product.image || "",
-      size: selectedSize, // Agora temos certeza que não é null aqui
-      quantity: 1,
+      size: selectedSize,
+      quantity: product.categoryName?.includes("PICOLÉ") ? quantity : 1, // Usar quantidade para Picolé, senão 1
       additionals: selectedAdditionalsArray,
       originalPrice: selectedSizeInfo.price + additionalsTotalPrice,
       categoryName: product.categoryName
@@ -149,11 +192,38 @@ function ProductCardContent({ product }: ProductCardProps) {
     return selectedSizeInfo.price + additionalsTotalPrice
   }
   
-  // Obter o texto do botão
+  // Função para verificar se o produto é da categoria Picolé
+  const isPicolé = (categoryName: string | null | undefined): boolean => {
+    if (!categoryName) return false
+    
+    const picoléTerms = [
+      "PICOLÉ", 
+      "PICOLÉ AO LEITE", 
+      "PICOLE", 
+      "PICOLE AO LEITE", 
+      "PICOLÉ AO LEITÉ", 
+      "PICOLE AO LEITÉ"
+    ]
+    
+    return picoléTerms.some(term => 
+      categoryName.toUpperCase().includes(term)
+    )
+  }
+
+  // Função para obter o texto do botão
   const getButtonText = () => {
     if (!storeStatus.isOpen) return "Loja fechada - Não é possível adicionar"
     if (!selectedSize || selectedSize === '') return "Selecione um tamanho"
-    return `Adicionar ao Carrinho • ${formatCurrency(calculateTotal())}`
+    
+    const total = calculateTotal()
+    const isPicoléProduct = isPicolé(product.categoryName)
+    const totalPrice = isPicoléProduct ? total * quantity : total
+    
+    if (isPicoléProduct && quantity > 1) {
+      return `Adicionar ${quantity} un. • ${formatCurrency(totalPrice)}`
+    }
+    
+    return `Adicionar ao Carrinho • ${formatCurrency(totalPrice)}`
   }
 
   return (
@@ -231,15 +301,51 @@ function ProductCardContent({ product }: ProductCardProps) {
                 )}
 
                 <div className="relative">
-                  <button
-                    onClick={handleAddToCart}
-                    className={`w-full bg-gradient-to-r from-purple-700 to-purple-900 hover:from-purple-800 hover:to-purple-950 text-white py-3 rounded-lg font-semibold mt-6 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed ${
-                      showSuccess ? 'opacity-0' : 'opacity-100'
-                    }`}
-                    disabled={!storeStatus.isOpen || !selectedSize}
-                  >
-                    {getButtonText()}
-                  </button>
+                  <div className={`flex items-center gap-4 mt-6 ${showSuccess ? 'opacity-0' : 'opacity-100'}`}>
+                    {/* Seletor de quantidade apenas para as categorias de Picolé */}
+                    {isPicolé(product.categoryName) && (
+                      <div className="flex-shrink-0">
+                        <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={decrementQuantity}
+                            disabled={quantity <= 1}
+                            className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label="Diminuir quantidade"
+                          >
+                            <Minus size={16} />
+                          </button>
+                          <span className="w-10 text-center font-medium">{quantity}</span>
+                          <button
+                            type="button"
+                            onClick={incrementQuantity}
+                            disabled={isPicolé(product.categoryName) ? quantity >= maxPicolesPerOrder : quantity >= 100}
+                            className="px-3 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label="Aumentar quantidade"
+                            title={isPicolé(product.categoryName) && quantity >= maxPicolesPerOrder ? `Limite de ${maxPicolesPerOrder} itens atingido` : ''}
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
+                        {isPicolé(product.categoryName) && quantity >= maxPicolesPerOrder - 2 && (
+                          <p className="text-xs text-center mt-1 text-amber-600">
+                            {quantity >= maxPicolesPerOrder 
+                              ? `Limite de ${maxPicolesPerOrder} itens atingido`
+                              : `Restam ${maxPicolesPerOrder - quantity} itens disponíveis`}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    
+                    <button
+                      onClick={handleAddToCart}
+                      className={`flex-1 bg-gradient-to-r from-purple-700 to-purple-900 hover:from-purple-800 hover:to-purple-950 text-white py-3 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed`}
+                      disabled={!storeStatus.isOpen || !selectedSize}
+                    >
+                      {getButtonText()}
+                    </button>
+                  </div>
+                  
                   {showSuccess && (
                     <div className="absolute inset-0 flex items-center justify-center bg-green-500 rounded-lg mt-6">
                       <span className="text-white font-semibold flex items-center">

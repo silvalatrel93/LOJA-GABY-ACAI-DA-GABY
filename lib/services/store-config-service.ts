@@ -16,6 +16,7 @@ interface SupabaseStoreConfig {
   pix_key: string | null
   last_updated: string
   carousel_initialized: boolean
+  max_picoles_per_order?: number
 }
 
 // Configuração padrão para usar como fallback
@@ -38,7 +39,8 @@ const DEFAULT_STORE_CONFIG: StoreConfig = {
   specialDates: [],
   whatsappNumber: "5511999999999",
   pixKey: "09300021990",
-  lastUpdated: new Date().toISOString()
+  lastUpdated: new Date().toISOString(),
+  maxPicolesPerOrder: 20
 }
 
 // ID da loja padrão (Loja Principal)
@@ -95,6 +97,9 @@ export const StoreConfigService = {
         carousel_initialized: typeof config.carousel_initialized === 'boolean'
           ? config.carousel_initialized
           : false,
+        maxPicolesPerOrder: typeof config.max_picoles_per_order === 'number'
+          ? config.max_picoles_per_order
+          : 20, // Valor padrão de 20 se não estiver definido
       }
     } catch (error) {
       console.error("Erro ao buscar configurações da loja:", error)
@@ -144,6 +149,9 @@ export const StoreConfigService = {
         pix_key: validatedConfig.pixKey || '09300021990', // Adiciona a chave PIX
         last_updated: validatedConfig.lastUpdated || new Date().toISOString(), // Garante uma data válida
         carousel_initialized: validatedConfig.carousel_initialized ?? false, // Controle de inicialização do carrossel
+        max_picoles_per_order: typeof config.maxPicolesPerOrder === 'number' 
+          ? config.maxPicolesPerOrder 
+          : 20, // Valor padrão de 20 se não estiver definido
       }
 
 
@@ -195,6 +203,9 @@ export const StoreConfigService = {
         lastUpdated: typeof savedConfig.last_updated === 'string' 
           ? savedConfig.last_updated 
           : new Date().toISOString(),
+        maxPicolesPerOrder: typeof savedConfig.max_picoles_per_order === 'number'
+          ? savedConfig.max_picoles_per_order
+          : 20, // Valor padrão de 20 se não estiver definido
       }
 
       return result

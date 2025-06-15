@@ -97,6 +97,7 @@ export interface StoreConfig {
   pixKey?: string
   lastUpdated?: string
   carousel_initialized?: boolean
+  maxPicolesPerOrder: number // Limite de picolés por pedido
 }
 
 // Horário de funcionamento

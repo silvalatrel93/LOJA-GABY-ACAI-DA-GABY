@@ -222,6 +222,33 @@ export default function StoreConfigPage() {
                     : "Este valor será aplicado a todos os pedidos como taxa de entrega."}
                 </p>
               </div>
+              <div className="border-t pt-4">
+                <h3 className="text-md font-semibold text-gray-800 mb-3">Configurações de Picolés</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Limite de Picolés por Pedido
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={storeConfig.maxPicolesPerOrder || 20}
+                      onChange={(e) =>
+                        setStoreConfig({
+                          ...storeConfig,
+                          maxPicolesPerOrder: Math.max(1, parseInt(e.target.value) || 1),
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="Ex: 20"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Número máximo de picolés que podem ser adicionados em um único pedido.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Prévia</label>
                 <div className="border rounded-lg p-4 bg-gray-50">

@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, ReactNode } from "react"
+import { createContext, useContext, useState, ReactNode, useEffect } from "react"
 import type { Additional } from "@/lib/services/additional-service"
 import type { AdditionalCategory } from "@/lib/services/additional-category-service"
 import type { ProductSize } from "@/lib/types"
@@ -130,6 +130,19 @@ export function AdditionalsProvider({
     return limit // 999 = sem limite prático
   }
   
+  // Atualizar maxAdditionalsPerSize quando o selectedSize mudar
+  useEffect(() => {
+    if (selectedSize && sizeLimits.length > 0) {
+      const currentSizeInfo = sizeLimits.find(size => size.size === selectedSize)
+      if (currentSizeInfo?.additionalsLimit) {
+        setMaxAdditionalsPerSize(currentSizeInfo.additionalsLimit)
+      } else {
+        // Se não houver limite definido para o tamanho, usar um valor alto (sem limite prático)
+        setMaxAdditionalsPerSize(999)
+      }
+    }
+  }, [selectedSize, sizeLimits])
+
   // Valores calculados
   const selectedAdditionals = additionalsBySize[selectedSize] || {}
   const selectedAdditionalsCount = Object.keys(selectedAdditionals).length
@@ -216,6 +229,14 @@ export function AdditionalsProvider({
   
   const updateSizeLimits = (sizes: ProductSize[]) => {
     setSizeLimits(sizes)
+    
+    // Atualiza o maxAdditionalsPerSize com base no tamanho atualmente selecionado
+    if (selectedSize) {
+      const currentSizeInfo = sizes.find(size => size.size === selectedSize)
+      if (currentSizeInfo?.additionalsLimit) {
+        setMaxAdditionalsPerSize(currentSizeInfo.additionalsLimit)
+      }
+    }
   }
   
   // Valor do contexto
