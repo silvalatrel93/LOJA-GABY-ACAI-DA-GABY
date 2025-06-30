@@ -268,6 +268,33 @@ export default function AdditionalCategoriesAdminPage() {
                   step="1"
                 />
               </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Limite de Seleção
+                  <span className="text-xs text-gray-500 ml-1">(opcional)</span>
+                </label>
+                <div className="flex items-center">
+                  <input
+                    type="number"
+                    value={editingCategory.selectionLimit !== undefined ? editingCategory.selectionLimit : ""}
+                    onChange={(e) => {
+                      const value = e.target.value.trim();
+                      setEditingCategory({
+                        ...editingCategory,
+                        selectionLimit: value === "" ? undefined : Number.parseInt(value) || 0,
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Sem limite"
+                    min="0"
+                    step="1"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Define quantos adicionais desta categoria podem ser selecionados. Deixe em branco para não ter limite.
+                </p>
+              </div>
 
               <div className="flex items-center">
                 <input

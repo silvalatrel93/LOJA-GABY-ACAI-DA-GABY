@@ -16,10 +16,16 @@ import type { AdditionalCategory } from "@/lib/services/additional-category-serv
 import { formatCurrency } from "@/lib/utils"
 import { createSafeKey } from "@/lib/key-utils";
 
+// Estender o tipo Additional para incluir propriedades adicionais para o formulário
+type EditingAdditional = Additional & {
+  hasPricing?: boolean;
+  priceInput?: string; // Campo para armazenar o valor de entrada como string
+};
+
 export default function AdditionalsAdminPage() {
   const [additionals, setAdditionals] = useState<Additional[]>([])
   const [additionalCategories, setAdditionalCategories] = useState<AdditionalCategory[]>([])
-  const [editingAdditional, setEditingAdditional] = useState<Additional | null>(null)
+  const [editingAdditional, setEditingAdditional] = useState<EditingAdditional | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [deleteStatus, setDeleteStatus] = useState<{ id: number; status: "pending" | "success" | "error" } | null>(null)
@@ -58,7 +64,8 @@ export default function AdditionalsAdminPage() {
 
     setEditingAdditional({
       ...additional,
-      hasPricing // Adicionar propriedade para controlar se tem preço ou não
+      hasPricing, // Adicionar propriedade para controlar se tem preço ou não
+      priceInput: additional.price > 0 ? additional.price.toString() : "" // Inicializar o campo de entrada
     })
     setIsModalOpen(true)
   }
@@ -71,7 +78,8 @@ export default function AdditionalsAdminPage() {
     setEditingAdditional({
       id: 0, // ID temporário que será ignorado pelo backend
       name: "",
-      price: 0,
+      price: 0, // Manter como número para compatibilidade com o tipo
+      priceInput: "", // Campo para armazenar o valor de entrada como string
       hasPricing: false, // Inicialmente sem preço definido
       categoryId: defaultCategoryId,
       active: true,
@@ -111,7 +119,7 @@ export default function AdditionalsAdminPage() {
     // Se não tem preço definido, garantir que o preço seja zero
     const additionalToSave = {
       ...editingAdditional,
-      price: editingAdditional.hasPricing ? editingAdditional.price : 0
+      price: editingAdditional.hasPricing ? (editingAdditional.priceInput ? parseFloat(editingAdditional.priceInput) : 0) : 0
     };
 
     // Remover a propriedade hasPricing antes de salvar no banco
@@ -348,13 +356,15 @@ export default function AdditionalsAdminPage() {
                 {editingAdditional.hasPricing ? (
                   <input
                     type="number"
-                    value={editingAdditional.price}
-                    onChange={(e) =>
+                    value={editingAdditional.priceInput}
+                    onChange={(e) => {
+                      const inputValue = e.target.value;
                       setEditingAdditional({
                         ...editingAdditional,
-                        price: Number.parseFloat(e.target.value) || 0,
-                      })
-                    }
+                        priceInput: inputValue,
+                        price: inputValue === "" ? 0 : Number.parseFloat(inputValue) || 0,
+                      });
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="Preço do adicional"
                     step="0.01"

@@ -6,14 +6,12 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
 export function formatCurrency(value: number): string {
-  // Verifica se o valor é um número inteiro
-  const isInteger = Number.isInteger(value);
-  
+  // Sempre mostrar duas casas decimais, independentemente de ser um número inteiro
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-    minimumFractionDigits: isInteger ? 0 : 2,
-    maximumFractionDigits: isInteger ? 0 : 2,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 

@@ -212,6 +212,8 @@ export function useAdditionalsLogic(product?: Product) {
     additionalsTotalPrice: calculateAdditionalsTotal(),
     additionalsCountText: getAdditionalsCountText(),
     groupedAdditionals: groupAdditionalsByCategory(),
+    selectedAdditionalsByCategory: useAdditionals().selectedAdditionalsByCategory,
+    reachedCategoryLimit: useAdditionals().reachedCategoryLimit,
     
     // Métodos
     setSelectedSize,

@@ -35,6 +35,8 @@ type AdditionalsContextType = {
   selectedAdditionalsCount: number
   reachedFreeAdditionalsLimit: boolean
   reachedMaxAdditionalsLimit: boolean
+  selectedAdditionalsByCategory: Record<number, number> // Contagem de adicionais selecionados por categoria
+  reachedCategoryLimit: (categoryId: number) => boolean // Verifica se atingiu o limite da categoria
   
   // Métodos
   setAdditionals: (additionals: Additional[]) => void
@@ -67,6 +69,8 @@ const defaultContext: AdditionalsContextType = {
   selectedAdditionalsCount: 0,
   reachedFreeAdditionalsLimit: false,
   reachedMaxAdditionalsLimit: false,
+  selectedAdditionalsByCategory: {},
+  reachedCategoryLimit: () => false,
   
   setAdditionals: () => {},
   setAdditionalsByCategory: () => {},
@@ -151,6 +155,37 @@ export function AdditionalsProvider({
   const currentLimit = getCurrentSizeLimit()
   const reachedMaxAdditionalsLimit = selectedAdditionalsCount >= currentLimit
   
+  // Calcular contagem de adicionais por categoria
+  const calculateSelectedAdditionalsByCategory = () => {
+    const countByCategory: Record<number, number> = {}
+    
+    // Inicializar contagem para todas as categorias como 0
+    additionalsByCategory.forEach(({ category }) => {
+      countByCategory[category.id] = 0
+    })
+    
+    // Contar adicionais selecionados por categoria
+    Object.values(selectedAdditionals).forEach(({ additional }) => {
+      const categoryId = additional.categoryId
+      if (categoryId) {
+        countByCategory[categoryId] = (countByCategory[categoryId] || 0) + 1
+      }
+    })
+    
+    return countByCategory
+  }
+  
+  const selectedAdditionalsByCategory = calculateSelectedAdditionalsByCategory()
+  
+  // Verificar se atingiu o limite da categoria
+  const reachedCategoryLimit = (categoryId: number) => {
+    const category = additionalsByCategory.find(item => item.category.id === categoryId)?.category
+    if (!category || !category.selectionLimit) return false
+    
+    const count = selectedAdditionalsByCategory[categoryId] || 0
+    return count >= category.selectionLimit
+  }
+  
   // Métodos
   const toggleAdditional = (additional: Additional) => {
     // Verificar se este adicional já está selecionado para o tamanho atual
@@ -185,8 +220,8 @@ export function AdditionalsProvider({
         return newState
       })
     } 
-    // Se não estiver selecionado e não atingiu o limite máximo de adicionais, adicionar
-    else if (!reachedMaxAdditionalsLimit) {
+    // Se não estiver selecionado e não atingiu o limite máximo de adicionais ou da categoria, adicionar
+    else if (!reachedMaxAdditionalsLimit && !reachedCategoryLimit(additional.categoryId)) {
       console.log('➕ Adicionando adicional:', additional.name)
       setAdditionalsBySize(prev => {
         const newState = { ...prev }
@@ -202,7 +237,9 @@ export function AdditionalsProvider({
         return newState
       })
     } else {
-      console.log('🚫 Limite atingido! Não é possível adicionar:', additional.name)
+      const isCategoryLimitReached = reachedCategoryLimit(additional.categoryId)
+      const limitType = isCategoryLimitReached ? 'da categoria' : 'geral'
+      console.log(`🚫 Limite ${limitType} atingido! Não é possível adicionar:`, additional.name)
     }
   }
   
@@ -257,6 +294,8 @@ export function AdditionalsProvider({
     selectedAdditionalsCount,
     reachedFreeAdditionalsLimit,
     reachedMaxAdditionalsLimit,
+    selectedAdditionalsByCategory,
+    reachedCategoryLimit,
     
     setAdditionals,
     setAdditionalsByCategory,

@@ -49,6 +49,7 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [deleteStatus, setDeleteStatus] = useState<{ id: number; status: "pending" | "success" | "error" } | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
 
   // Função para carregar produtos, categorias e adicionais
   const loadData = async () => {
@@ -570,6 +571,33 @@ export default function AdminPage() {
               </div>
             </div>
             <div className="w-full h-0.5 bg-gradient-to-r from-purple-100 via-[#e8f5d3] to-transparent mb-3 sm:mb-4"></div>
+          
+          {/* Barra de pesquisa */}
+          <div className="relative mb-4">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <svg className="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+              </svg>
+            </div>
+            <input 
+              type="text" 
+              className="block w-full p-2.5 pl-10 text-sm text-gray-900 border border-purple-200 rounded-lg bg-white focus:ring-purple-500 focus:border-purple-500 transition-all duration-300" 
+              placeholder="Pesquisar produtos..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button 
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                onClick={() => setSearchTerm("")}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            )}
+          </div>
           </div>
 
           {products.length === 0 ? (
@@ -582,8 +610,15 @@ export default function AdminPage() {
               {categories
                 .sort((a, b) => a.order - b.order) // Ordenar categorias pela ordem definida
                 .map((category) => {
-                  // Filtrar produtos desta categoria
-                  const categoryProducts = products.filter(product => product.categoryId === category.id);
+                  // Filtrar produtos desta categoria e aplicar filtro de pesquisa
+                  const categoryProducts = products.filter(product => 
+                    product.categoryId === category.id && 
+                    (searchTerm === "" || 
+                     product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                     product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                     product.sizes.some(size => size.size.toLowerCase().includes(searchTerm.toLowerCase()))
+                    )
+                  );
                   
                   // Não mostrar categorias vazias
                   if (categoryProducts.length === 0) return null;
@@ -751,9 +786,11 @@ export default function AdminPage() {
                 </div>
 
                 {editingProduct.sizes.map((size, index) => (
-                  <div key={createSafeKey(index, 'size-item')} className="border border-gray-200 rounded-lg p-3 mb-3">
-                    <div className="grid grid-cols-12 gap-2 mb-2 items-center">
-                      <div className="col-span-5 xs:col-span-4">
+                  <div key={createSafeKey(index, 'size-item')} className="border border-gray-200 rounded-lg p-3 mb-3 hover:border-purple-300 transition-colors">
+                    <div className="flex flex-wrap md:flex-nowrap gap-3 items-center">
+                      {/* Tamanho */}
+                      <div className="w-full md:w-1/4 lg:w-1/5">
+                        <label className="block text-xs text-gray-500 mb-1 font-medium">Tamanho</label>
                         <input
                           type="text"
                           value={size.size}
@@ -762,22 +799,48 @@ export default function AdminPage() {
                           placeholder="Ex: 500ml"
                         />
                       </div>
-                      <div className="col-span-5 xs:col-span-4 relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <span className="text-gray-500 text-sm">R$</span>
+                      
+                      {/* Preço */}
+                      <div className="w-full md:w-1/4 lg:w-1/5">
+                        <label className="block text-xs text-gray-500 mb-1 font-medium">Preço</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className="text-gray-500 text-sm">R$</span>
+                          </div>
+                          <input
+                            type="number"
+                            value={size.price}
+                            onChange={(e) => handleSizeChange(index, "price", e.target.value)}
+                            className="w-full pl-8 pr-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            placeholder="0,00"
+                            step="0.01"
+                            min="0"
+                            inputMode="decimal"
+                          />
                         </div>
-                        <input
-                          type="number"
-                          value={size.price}
-                          onChange={(e) => handleSizeChange(index, "price", e.target.value)}
-                          className="w-full pl-8 pr-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          placeholder="0,00"
-                          step="0.01"
-                          min="0"
-                          inputMode="decimal"
-                        />
                       </div>
-                      <div className="col-span-2 xs:col-span-3 flex justify-end">
+                      
+                      {/* Limite de adicionais */}
+                      <div className="w-full md:w-1/3 lg:w-2/5">
+                        <label className="block text-xs text-gray-500 mb-1 font-medium">Limite de adicionais</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={size.additionalsLimit || ''}
+                            onChange={(e) => handleSizeChange(index, "additionalsLimit", e.target.value)}
+                            className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            placeholder="Vazio = sem limite"
+                            min="0"
+                            max="20"
+                          />
+                          <span className="text-xs whitespace-nowrap text-gray-500 hidden md:inline-block">
+                            vazio = sem limite
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Botão remover */}
+                      <div className="w-auto md:w-auto flex items-end justify-end md:justify-center md:pb-0.5 md:ml-auto">
                         <button 
                           type="button"
                           onClick={() => handleRemoveSize(index)}
@@ -786,30 +849,16 @@ export default function AdminPage() {
                           title="Remover tamanho"
                           aria-label="Remover tamanho"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={18} />
                         </button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-12 gap-2 items-center mt-2">
-                      <label className="col-span-12 sm:col-span-3 text-sm text-gray-600 whitespace-nowrap">
-                        Limite de adicionais:
-                      </label>
-                      <div className="col-span-8 sm:col-span-5">
-                        <input
-                          type="number"
-                          value={size.additionalsLimit || ''}
-                          onChange={(e) => handleSizeChange(index, "additionalsLimit", e.target.value)}
-                          className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          placeholder="Vazio = sem limite"
-                          min="0"
-                          max="20"
-                        />
-                      </div>
-                      <div className="col-span-4 sm:col-span-4">
-                        <span className="text-xs sm:text-sm text-gray-500">
-                          vazio = sem limite
-                        </span>
-                      </div>
+                    
+                    {/* Mensagem para telas pequenas */}
+                    <div className="mt-1 md:hidden">
+                      <span className="text-xs text-gray-500">
+                        vazio = sem limite
+                      </span>
                     </div>
                   </div>
                 ))}

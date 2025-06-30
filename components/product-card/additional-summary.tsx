@@ -15,7 +15,10 @@ export function AdditionalSummary(_props: AdditionalSummaryProps) {
     SIZES_WITH_FREE_ADDITIONALS,
     FREE_ADDITIONALS_LIMIT,
     maxAdditionalsPerSize,
-    selectedAdditionalsCount
+    selectedAdditionalsCount,
+    additionalsByCategory,
+    selectedAdditionalsByCategory,
+    reachedCategoryLimit
   } = useAdditionalsLogic()
   
   if (Object.keys(selectedAdditionals).length === 0) {
@@ -61,6 +64,36 @@ export function AdditionalSummary(_props: AdditionalSummaryProps) {
             }
           </p>
         ) : null}
+        
+        {/* Limites por categoria */}
+        {additionalsByCategory.some(({category}) => category.selectionLimit) && (
+          <div className="mt-3">
+            <h6 className="text-xs font-medium text-purple-900 border-b pb-1 mb-1">
+              Limites por categoria:
+            </h6>
+            <p className="text-xs text-gray-600 mb-2">
+              Algumas categorias possuem limites específicos de seleção, independente do limite geral de adicionais.
+            </p>
+            <ul className="space-y-1">
+              {additionalsByCategory
+                .filter(({category}) => category.selectionLimit)
+                .map(({category}) => {
+                  const count = selectedAdditionalsByCategory[category.id] || 0;
+                  const limit = category.selectionLimit || 0;
+                  const isLimitReached = reachedCategoryLimit(category.id);
+                  
+                  return (
+                    <li key={`limit-${category.id}`} className="flex justify-between text-xs">
+                      <span>{category.name}</span>
+                      <span className={isLimitReached ? 'text-red-500 font-medium' : 'text-green-600'}>
+                        {count}/{limit}
+                      </span>
+                    </li>
+                  );
+                })}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   )

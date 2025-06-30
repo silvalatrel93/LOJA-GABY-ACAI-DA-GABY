@@ -8,6 +8,7 @@ export interface AdditionalCategory {
   name: string
   order: number // Mantemos o nome 'order' na interface para compatibilidade
   active: boolean
+  selectionLimit?: number // Limite de seleção para esta categoria (opcional)
 }
 
 // Serviço para gerenciar categorias de adicionais
@@ -44,6 +45,7 @@ export const AdditionalCategoryService = {
         name: String(item.name),
         order: Number(item.display_order), // Mapear display_order para order na interface
         active: Boolean(item.active),
+        selectionLimit: item.selection_limit !== null ? Number(item.selection_limit) : undefined,
       }))
       
       console.log("Categorias de adicionais processadas:", JSON.stringify(result))
@@ -81,6 +83,7 @@ export const AdditionalCategoryService = {
         name: String(item.name),
         order: Number(item.display_order), // Mapear display_order para order na interface
         active: Boolean(item.active),
+        selectionLimit: item.selection_limit !== null ? Number(item.selection_limit) : undefined,
       }))
     } catch (error) {
       console.error("Erro ao buscar categorias de adicionais ativas:", error)
@@ -150,11 +153,22 @@ export const AdditionalCategoryService = {
           console.log("Atualizando categoria de adicional existente com ID:", category.id)
           
           // Preparar dados para atualização
-          const categoryData = {
+          const categoryData: Record<string, any> = {
             name: category.name,
             display_order: category.order, // Mapear order da interface para display_order no banco
             active: category.active,
             store_id: DEFAULT_STORE_ID || "00000000-0000-0000-0000-000000000000",
+          }
+          
+          // Verificar se o campo selectionLimit foi definido
+          if (category.selectionLimit !== undefined) {
+            // Tentar salvar o campo selection_limit
+            try {
+              categoryData.selection_limit = category.selectionLimit;
+              console.log("Incluindo selection_limit no update:", category.selectionLimit);
+            } catch (error) {
+              console.warn("Não foi possível incluir selection_limit, a coluna pode não existir:", error);
+            }
           }
           
           const { error: updateError } = await supabase
@@ -177,12 +191,23 @@ export const AdditionalCategoryService = {
       console.log("Inserindo nova categoria de adicional")
       
       // Preparar dados para inserção - incluindo o ID para evitar violação de restrição not-null
-      const categoryData = {
+      const categoryData: Record<string, any> = {
         id: category.id, // Incluir o ID para evitar valor nulo
         name: category.name,
         display_order: category.order, // Mapear order da interface para display_order no banco
         active: category.active,
         store_id: DEFAULT_STORE_ID || "00000000-0000-0000-0000-000000000000",
+      }
+      
+      // Verificar se o campo selectionLimit foi definido
+      if (category.selectionLimit !== undefined) {
+        // Tentar salvar o campo selection_limit
+        try {
+          categoryData.selection_limit = category.selectionLimit;
+          console.log("Incluindo selection_limit na inserção:", category.selectionLimit);
+        } catch (error) {
+          console.warn("Não foi possível incluir selection_limit, a coluna pode não existir:", error);
+        }
       }
       
       console.log("Dados para inserção:", JSON.stringify(categoryData))
