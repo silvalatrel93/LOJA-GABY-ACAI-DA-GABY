@@ -80,7 +80,7 @@ export function AdditionalSelector({ product }: AdditionalSelectorProps) {
             
             {/* Mensagem informativa quando o limite da categoria for atingido */}
             {category.selectionLimit && reachedCategoryLimit(category.id) && (
-              <div className="text-xs text-red-500 mt-1 animate-pulse">
+              <div className="text-xs text-red-500 mt-1 animate-pulse text-center">
                 Limite de {category.selectionLimit} itens desta categoria atingido
               </div>
             )}
