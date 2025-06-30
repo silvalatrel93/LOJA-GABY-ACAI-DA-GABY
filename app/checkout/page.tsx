@@ -136,11 +136,13 @@ function CheckoutPageContent() {
     neighborhood: "",
     number: "",
     complement: "",
+    city: "", // Campo de cidade vazio para preenchimento manual
     paymentMethod: "pix",
     paymentChange: ""
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [deliveryFee, setDeliveryFee] = useState(5.0)
+  const [isMaringa, setIsMaringa] = useState(false) // Por padrão, não considera que é Maringá já que o campo inicia vazio
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null)
   const [storeStatus, setStoreStatus] = useState({ isOpen: true, statusText: "", statusClass: "" })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -152,8 +154,14 @@ function CheckoutPageContent() {
       try {
         const config = await getStoreConfig()
         setStoreConfig(config)
-        if (config && config.deliveryFee !== undefined) {
-          setDeliveryFee(config.deliveryFee)
+        
+        // Aplicar taxa de entrega com base na cidade
+        if (config) {
+          if (isMaringa && config.maringaDeliveryFee !== undefined) {
+            setDeliveryFee(config.maringaDeliveryFee)
+          } else if (config.deliveryFee !== undefined) {
+            setDeliveryFee(config.deliveryFee)
+          }
         }
       } catch (error) {
         console.error("Erro ao carregar configurações da loja:", error)
@@ -223,6 +231,22 @@ function CheckoutPageContent() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    
+    // Verificar se a cidade é Maringá quando o campo city é alterado
+    if (name === 'city') {
+      const cityIsMaringa = value.trim().toLowerCase() === 'maringá' || 
+                           value.trim().toLowerCase() === 'maringa'
+      setIsMaringa(cityIsMaringa)
+      
+      // Atualizar taxa de entrega com base na cidade
+      if (storeConfig) {
+        if (cityIsMaringa && storeConfig.maringaDeliveryFee !== undefined) {
+          setDeliveryFee(storeConfig.maringaDeliveryFee)
+        } else if (storeConfig.deliveryFee !== undefined) {
+          setDeliveryFee(storeConfig.deliveryFee)
+        }
+      }
+    }
   }
 
   // Estado para controlar a exibição da notificação de sucesso
@@ -254,8 +278,8 @@ function CheckoutPageContent() {
           number: formData.number,
           neighborhood: formData.neighborhood,
           complement: formData.complement,
-          city: "BRASIL", // Adicionando cidade padrão
-          state: "BR", // Adicionando estado padrão
+          city: formData.city || "Maringá", // Usando a cidade informada
+          state: "PR", // Estado padrão para Paraná
         },
         items: cart.map((item) => ({
           productId: item.productId || item.id, // Usando productId se disponível, ou id como fallback
@@ -491,6 +515,26 @@ function CheckoutPageContent() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
+              
+              <div>
+                <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+                  Cidade
+                </label>
+                <input
+                  type="text"
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+                {isMaringa && (
+                  <p className="text-xs text-purple-600 mt-1">
+                    Taxa de entrega específica para Maringá: {formatCurrency(deliveryFee)}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -624,7 +668,7 @@ function CheckoutPageContent() {
                   <div className="tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CheckoutPageContent">{formatCurrency(subtotal)}</div>
                 </div>
                 <div className="flex justify-between items-center mt-1">
-                  <div>Taxa de entrega</div>
+                  <div>Taxa de entrega {isMaringa ? "(Maringá)" : ""}</div>
                   <div className="tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CheckoutPageContent">{deliveryFee > 0 ? formatCurrency(deliveryFee) : "Grátis"}</div>
                 </div>
                 <div className="flex justify-between items-center mt-3 pt-2 border-t font-bold text-lg">

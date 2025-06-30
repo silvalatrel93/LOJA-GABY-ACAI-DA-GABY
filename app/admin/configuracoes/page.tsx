@@ -18,6 +18,22 @@ export default function StoreConfigPage() {
       try {
         setIsLoading(true)
         const config = await getStoreConfig()
+        
+        // Preparar os dados para exibição na interface
+        // Criamos uma cópia modificada do objeto para não alterar os tipos originais
+        if (config) {
+          const displayConfig = {
+            ...config,
+            // Usamos um truque para exibir campos vazios quando o valor é zero
+            // Convertemos para string vazia na exibição, mas mantemos o tipo number no objeto
+            _deliveryFee: config.deliveryFee === 0 ? "" : config.deliveryFee,
+            _maringaDeliveryFee: config.maringaDeliveryFee === 0 ? "" : config.maringaDeliveryFee
+          };
+          
+          setStoreConfig(displayConfig as any);
+          return; // Retornamos aqui para evitar o setStoreConfig abaixo
+        }
+        
         setStoreConfig(config)
       } catch (error) {
         console.error("Erro ao carregar configurações da loja:", error)
@@ -196,30 +212,58 @@ export default function StoreConfigPage() {
                 {/* Configuração de PIX removida */}
 
                 {storeConfig?.deliveryFee !== 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Valor da Taxa (R$)</label>
-                    <input
-                      type="number"
-                      value={storeConfig?.deliveryFee || 5.0}
-                      onChange={(e) =>
-                        setStoreConfig({
-                          ...storeConfig!,
-                          deliveryFee: Number.parseFloat(e.target.value) || 5.0,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Taxa de entrega"
-                      step="0.01"
-                      min="0"
-                      inputMode="decimal"
-                    />
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Valor da Taxa Padrão (R$)</label>
+                      <input
+                        type="number"
+                        value={(storeConfig as any)?._deliveryFee || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setStoreConfig({
+                            ...storeConfig!,
+                            deliveryFee: value === "" ? 0 : Number.parseFloat(value) || 0,
+                            _deliveryFee: value
+                          } as any)
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Digite o valor da taxa"
+                        step="0.01"
+                        min="0"
+                        inputMode="decimal"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Taxa de Entrega para Maringá (R$)</label>
+                      <input
+                        type="number"
+                        value={(storeConfig as any)?._maringaDeliveryFee || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setStoreConfig({
+                            ...storeConfig!,
+                            maringaDeliveryFee: value === "" ? 0 : Number.parseFloat(value) || 0,
+                            _maringaDeliveryFee: value
+                          } as any)
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Digite o valor da taxa para Maringá"
+                        step="0.01"
+                        min="0"
+                        inputMode="decimal"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Esta taxa será aplicada automaticamente quando o endereço de entrega for em Maringá.
+                      </p>
+                    </div>
                   </div>
                 )}
 
                 <p className="text-xs text-gray-500 mt-1">
                   {storeConfig?.deliveryFee === 0
                     ? "A entrega será gratuita para todos os pedidos."
-                    : "Este valor será aplicado a todos os pedidos como taxa de entrega."}
+                    : "A taxa padrão será aplicada a todos os pedidos, exceto para endereços em Maringá que usarão a taxa específica."}
                 </p>
               </div>
               <div className="border-t pt-4">

@@ -90,6 +90,7 @@ export interface StoreConfig {
   name: string
   logoUrl: string
   deliveryFee: number
+  maringaDeliveryFee?: number // Taxa de entrega específica para Maringá
   isOpen: boolean
   operatingHours: OperatingHours
   specialDates: SpecialDate[]

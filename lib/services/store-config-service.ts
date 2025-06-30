@@ -9,6 +9,7 @@ interface SupabaseStoreConfig {
   name: string
   logo_url: string | null
   delivery_fee: number
+  maringa_delivery_fee?: number // Taxa de entrega específica para Maringá
   is_open: boolean
   operating_hours: OperatingHours
   special_dates: SpecialDate[]
@@ -24,7 +25,8 @@ const DEFAULT_STORE_CONFIG: StoreConfig = {
   id: "main",
   name: "Açaí Online",
   logoUrl: "/acai-logo.png",
-  deliveryFee: 5.0,
+  deliveryFee: 0,
+  maringaDeliveryFee: 0, // Taxa de entrega específica para Maringá
   isOpen: true,
   carousel_initialized: false,
   operatingHours: {
@@ -78,6 +80,9 @@ export const StoreConfigService = {
         deliveryFee: typeof config.delivery_fee === 'number' 
           ? config.delivery_fee 
           : Number(config.delivery_fee) || 0,
+        maringaDeliveryFee: typeof config.maringa_delivery_fee === 'number'
+          ? config.maringa_delivery_fee
+          : Number(config.maringa_delivery_fee) || 0,
         isOpen: Boolean(config.is_open),
         operatingHours: config.operating_hours && typeof config.operating_hours === 'object'
           ? config.operating_hours 
@@ -124,7 +129,9 @@ export const StoreConfigService = {
         name: typeof config.name === 'string' && config.name.trim() ? config.name : 'Loja',
         logoUrl: typeof config.logoUrl === 'string' ? config.logoUrl : '/acai-logo.png',
         deliveryFee: typeof config.deliveryFee === 'number' ? config.deliveryFee : 0,
+        maringaDeliveryFee: typeof config.maringaDeliveryFee === 'number' ? config.maringaDeliveryFee : 0,
         isOpen: Boolean(config.isOpen),
+        maxPicolesPerOrder: typeof config.maxPicolesPerOrder === 'number' ? config.maxPicolesPerOrder : 20,
         operatingHours: config.operatingHours && typeof config.operatingHours === 'object' 
           ? config.operatingHours 
           : {},
@@ -142,6 +149,7 @@ export const StoreConfigService = {
         name: validatedConfig.name,
         logo_url: validatedConfig.logoUrl || null, // Pode ser undefined no StoreConfig
         delivery_fee: validatedConfig.deliveryFee,
+        maringa_delivery_fee: validatedConfig.maringaDeliveryFee,
         is_open: validatedConfig.isOpen,
         operating_hours: validatedConfig.operatingHours,
         special_dates: validatedConfig.specialDates || [], // Garante um array vazio se for undefined
@@ -190,6 +198,9 @@ export const StoreConfigService = {
         deliveryFee: typeof savedConfig.delivery_fee === 'number' 
           ? savedConfig.delivery_fee 
           : Number(savedConfig.delivery_fee) || 0,
+        maringaDeliveryFee: typeof savedConfig.maringa_delivery_fee === 'number'
+          ? savedConfig.maringa_delivery_fee
+          : Number(savedConfig.maringa_delivery_fee) || 8.0,
         isOpen: Boolean(savedConfig.is_open),
         operatingHours: savedConfig.operating_hours && typeof savedConfig.operating_hours === 'object'
           ? savedConfig.operating_hours 
