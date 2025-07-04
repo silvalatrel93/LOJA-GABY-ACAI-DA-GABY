@@ -76,6 +76,8 @@ export async function getCartItems(): Promise<CartItem[]> {
       // Limpar o tamanho para exibição
       size: cleanSizeDisplay(String(item.size)),
       additionals: Array.isArray(item.additionals) ? item.additionals : [],
+      // Incluir informação se o produto precisa de colher
+      needsSpoon: Boolean(item.needs_spoon),
     }
 
     return displayItem
@@ -84,21 +86,44 @@ export async function getCartItems(): Promise<CartItem[]> {
 
 // Função para verificar se dois arrays de adicionais são iguais
 function areAdditionalsEqual(additionals1: any[] = [], additionals2: any[] = []): boolean {
+  // Garantir que estamos trabalhando com arrays
   if (!Array.isArray(additionals1)) additionals1 = []
   if (!Array.isArray(additionals2)) additionals2 = []
 
+  // Se ambos estiverem vazios, são iguais
+  if (additionals1.length === 0 && additionals2.length === 0) return true
+  
+  // Se apenas um estiver vazio, são diferentes
   if (additionals1.length !== additionals2.length) return false
 
   // Ordenar os arrays para garantir comparação consistente
-  const sorted1 = [...additionals1].sort((a, b) => a.id - b.id)
-  const sorted2 = [...additionals2].sort((a, b) => a.id - b.id)
+  const sorted1 = [...additionals1].sort((a, b) => {
+    // Verificar se os objetos têm a propriedade id
+    const idA = a && typeof a === 'object' && 'id' in a ? a.id : 0
+    const idB = b && typeof b === 'object' && 'id' in b ? b.id : 0
+    return Number(idA) - Number(idB)
+  })
+  
+  const sorted2 = [...additionals2].sort((a, b) => {
+    const idA = a && typeof a === 'object' && 'id' in a ? a.id : 0
+    const idB = b && typeof b === 'object' && 'id' in b ? b.id : 0
+    return Number(idA) - Number(idB)
+  })
 
   // Comparar cada adicional
   for (let i = 0; i < sorted1.length; i++) {
     const a1 = sorted1[i]
     const a2 = sorted2[i]
 
-    if (a1.id !== a2.id || a1.quantity !== a2.quantity) {
+    // Verificar se os objetos são válidos e têm as propriedades necessárias
+    if (!a1 || !a2 || typeof a1 !== 'object' || typeof a2 !== 'object') return false
+    
+    const id1 = 'id' in a1 ? Number(a1.id) : 0
+    const id2 = 'id' in a2 ? Number(a2.id) : 0
+    const qty1 = 'quantity' in a1 ? Number(a1.quantity) : 0
+    const qty2 = 'quantity' in a2 ? Number(a2.quantity) : 0
+
+    if (id1 !== id2 || qty1 !== qty2) {
       return false
     }
   }
@@ -124,26 +149,50 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
     // Log para debug
     console.log("Adicionando item ao carrinho com store_id:", storeId, "tipo:", typeof storeId)
 
-    // Primeiro, vamos buscar todos os itens do carrinho com o mesmo produto e tamanho
+    // Primeiro, vamos buscar todos os itens do carrinho com o mesmo produto
     const { data: existingItems, error: selectError } = await supabase
       .from("cart")
       .select("*")
       .eq("session_id", sessionId)
       .eq("store_id", storeId)
       .eq("product_id", item.productId)
-      .eq("size", item.size)
 
     if (selectError) {
       console.error("Erro ao verificar itens existentes no carrinho:", selectError)
       return null
     }
 
-    // Verificar se existe um item com os mesmos adicionais
-    const matchingItem = existingItems?.find((existingItem: any) =>
-      areAdditionalsEqual(existingItem.additionals, item.additionals),
-    )
+    // Verificar se existe um item com o mesmo tamanho e adicionais
+    console.log("Verificando itens existentes no carrinho:", existingItems?.length || 0, "itens encontrados")
+    
+    // Verificar se existe um item com os mesmos adicionais e tamanho similar
+    // Ignoramos os sufixos únicos que podem ter sido adicionados ao tamanho
+    const matchingItem = existingItems?.find((existingItem: any) => {
+      // Verificar se o tamanho base (sem o sufixo único) é o mesmo
+      const existingSizeBase = String(existingItem.size).split('#')[0]
+      const newSizeBase = String(item.size).split('#')[0]
+      const isSameSizeBase = existingSizeBase === newSizeBase
+      
+      // Verificar se os adicionais são os mesmos
+      const isEqual = areAdditionalsEqual(existingItem.additionals, item.additionals)
+      
+      console.log(
+        `Comparando item - ID: ${existingItem.id}, ` +
+        `Produto: ${existingItem.product_id}, ` +
+        `Tamanho original: ${existingItem.size}, ` +
+        `Tamanho base: ${existingSizeBase}, ` +
+        `Novo tamanho base: ${newSizeBase}, ` +
+        `Tamanhos iguais: ${isSameSizeBase ? 'SIM' : 'NÃO'}, ` +
+        `Adicionais iguais: ${isEqual ? 'SIM' : 'NÃO'}`
+      )
+      
+      // O item é considerado o mesmo se o tamanho base e os adicionais forem iguais
+      return isSameSizeBase && isEqual
+    })
 
     if (matchingItem) {
+      console.log("Item encontrado no carrinho, atualizando quantidade", matchingItem.id)
+      
       // Item com mesmos adicionais existe, atualizar quantidade
       const { data, error: updateError } = await supabase
         .from("cart")
@@ -171,17 +220,35 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
         image: String(typedData.image || ""),
         size: cleanSizeDisplay(String(typedData.size)), // Limpar o tamanho para exibição
         additionals: Array.isArray(typedData.additionals) ? typedData.additionals : [],
+        needsSpoon: Boolean(typedData.needs_spoon), // Incluir informação se o produto precisa de colher
       }
     } else {
       // Não encontramos um item com os mesmos adicionais
       // Vamos gerar um ID único para este item
       const itemId = uuidv4()
 
-      // Vamos criar um novo item com um tamanho modificado para evitar conflitos
-      // Adicionamos um sufixo único ao tamanho
-      const uniqueSize = `${item.size}#${itemId.substring(0, 8)}`
+      // Garantir que o tamanho não ultrapasse o limite do campo no banco de dados
+      // e que o sufixo único seja sempre preservado
+      const maxSizeLength = 20; // Tamanho máximo do campo no banco de dados
+      const suffix = `#${itemId.substring(0, 8)}`; // Sufixo único para o tamanho
+      
+      // Calcular quanto espaço temos para o tamanho original
+      const availableSpace = maxSizeLength - suffix.length;
+      
+      // Truncar o tamanho original se necessário e adicionar o sufixo
+      const originalSize = String(item.size).trim();
+      const truncatedSize = originalSize.substring(0, availableSpace);
+      const uniqueSize = truncatedSize + suffix;
+      
+      console.log("Gerando tamanho único para o item:", {
+        originalSize,
+        truncatedSize,
+        suffix,
+        uniqueSize,
+        length: uniqueSize.length
+      });
 
-      // Inserir novo item
+      // Inserir novo item com o tamanho único
       const { data, error: insertError } = await supabase
         .from("cart")
         .insert({
@@ -192,9 +259,9 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
           price: item.price,
           quantity: item.quantity,
           image: item.image || null,
-          size: item.originalSize || item.size,
-          additionals: item.additionals || []
-          // Removida a tentativa de inserir category_name que não existe na tabela
+          size: uniqueSize, // Usar o tamanho único gerado com sufixo garantido
+          additionals: item.additionals || [],
+          needs_spoon: item.needsSpoon // Incluir informação se o produto precisa de colher
         })
         .select()
         .single()
@@ -210,6 +277,8 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
           name: item.name,
           price: item.price,
           quantity: item.quantity,
+          size: uniqueSize,
+          additionals: item.additionals?.length || 0
         })
         return null
       }
@@ -222,8 +291,10 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
         price: Number(typedInsertData.price),
         quantity: Number(typedInsertData.quantity),
         image: String(typedInsertData.image || ""),
-        size: cleanSizeDisplay(String(typedInsertData.size)), // Limpar o tamanho para exibição
+        size: cleanSizeDisplay(String(originalSize)), // Mostrar o tamanho original para o usuário
+        originalSize: String(typedInsertData.size), // Manter o tamanho com sufixo internamente
         additionals: Array.isArray(typedInsertData.additionals) ? typedInsertData.additionals : [],
+        needsSpoon: Boolean(typedInsertData.needs_spoon), // Incluir informação se o produto precisa de colher
       }
     }
   } catch (error) {
@@ -235,8 +306,8 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
 // Alias para addToCart para compatibilidade
 export const addCartItem = addToCart
 
-// Função para atualizar quantidade de um item
-export async function updateCartItemQuantity(id: number, quantity: number): Promise<boolean> {
+// Função para atualizar quantidade de um item e outros campos opcionais
+export async function updateCartItemQuantity(id: number, quantity: number, updatedFields?: Partial<CartItem>): Promise<boolean> {
   // Verificar se id é um número válido
   if (isNaN(Number(id))) {
     console.error(`Erro: ID inválido ao atualizar quantidade: ${id}`)
@@ -246,16 +317,28 @@ export async function updateCartItemQuantity(id: number, quantity: number): Prom
   const supabase = createSupabaseClient()
   const storeId = getCurrentStoreId()
 
+  // Criar objeto de atualização com os campos básicos
+  const updateData: any = {
+    quantity,
+    store_id: storeId, // Garantir que store_id esteja presente mesmo em atualizações
+  }
+
+  // Adicionar campos adicionais se fornecidos
+  if (updatedFields) {
+    // Adicionar apenas campos permitidos para atualização
+    if (updatedFields.needsSpoon !== undefined) {
+      updateData.needs_spoon = updatedFields.needsSpoon
+    }
+    // Adicionar outros campos conforme necessário no futuro
+  }
+
   const { error } = await supabase
     .from("cart")
-    .update({
-      quantity,
-      store_id: storeId, // Garantir que store_id esteja presente mesmo em atualizações
-    })
+    .update(updateData)
     .eq("id", id)
 
   if (error) {
-    console.error(`Erro ao atualizar quantidade do item ${id}:`, error)
+    console.error(`Erro ao atualizar item ${id}:`, error)
     return false
   }
 

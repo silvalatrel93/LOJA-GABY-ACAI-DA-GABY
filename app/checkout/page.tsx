@@ -209,6 +209,14 @@ function CheckoutPageContent() {
     }
   }, [cart])
 
+  // Verificar se há picolés no carrinho
+  const hasPicoles = cart.some(item => {
+    // Verificar pelo nome do produto ou pela categoria
+    const itemCategory = item.categoryName || productCategories[item.id] || ""
+    return itemCategory.toLowerCase().includes("picol") || 
+           (item.name && item.name.toLowerCase().includes("picol"))
+  })
+
   // Calcular subtotal e total
   const subtotal = cart.reduce((sum, item) => {
     // Usar originalPrice se disponível, senão calcular preço base + adicionais
@@ -226,7 +234,17 @@ function CheckoutPageContent() {
     return sum + (itemTotal + additionalsTotal)
   }, 0)
   
-  const total = subtotal + deliveryFee
+  // Verificar se deve aplicar taxa adicional para picolés abaixo do valor mínimo
+  const minimumPicoleOrder = storeConfig?.minimumPicoleOrder || 20.0
+  const picoleDeliveryFee = storeConfig?.picoleDeliveryFee || 5.0
+  
+  // Aplicar taxa adicional se houver picolés e o valor for abaixo do mínimo
+  const shouldApplyPicoleFee = hasPicoles && subtotal < minimumPicoleOrder
+  
+  // Taxa de entrega final (taxa normal ou taxa para picolés)
+  const finalDeliveryFee = shouldApplyPicoleFee ? picoleDeliveryFee : deliveryFee
+  
+  const total = subtotal + finalDeliveryFee
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -288,6 +306,7 @@ function CheckoutPageContent() {
           price: item.price,
           quantity: item.quantity,
           additionals: item.additionals,
+          needsSpoon: item.needsSpoon, // Preservar a informação de colher
         })),
         subtotal,
         deliveryFee,
@@ -642,7 +661,7 @@ function CheckoutPageContent() {
                       <div className="font-medium">
                         {item.quantity}x {item.name} ({cleanSizeDisplay(item.size)})
                       </div>
-                      <div className="font-medium tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CheckoutPageContent">{formatCurrency(item.price * item.quantity)}</div>
+                      <div className="tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CheckoutPageContent">{formatCurrency(item.price * item.quantity)}</div>
                     </div>
                   </div>
 
@@ -659,6 +678,14 @@ function CheckoutPageContent() {
                               ))}
                             </div>
                   ) : null}
+                  
+                  {/* Exibir informação de colher */}
+                  {item.needsSpoon && (
+                    <div className="ml-4 text-sm text-gray-600 mt-1 flex items-center">
+                      <span className="inline-block w-2.5 h-2.5 bg-gradient-to-r from-green-400 to-green-600 rounded-full mr-1.5"></span>
+                      <span>Com colher</span>
+                    </div>
+                  )}
                 </div>
               ))}
 
@@ -668,8 +695,17 @@ function CheckoutPageContent() {
                   <div className="tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CheckoutPageContent">{formatCurrency(subtotal)}</div>
                 </div>
                 <div className="flex justify-between items-center mt-1">
-                  <div>Taxa de entrega {isMaringa ? "(Maringá)" : ""}</div>
-                  <div className="tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CheckoutPageContent">{deliveryFee > 0 ? formatCurrency(deliveryFee) : "Grátis"}</div>
+                  <div>
+                    Taxa de entrega {isMaringa ? "(Maringá)" : ""}
+                    {shouldApplyPicoleFee && (
+                      <span className="ml-1 text-xs text-orange-500 font-medium">
+                        (Pedido de picolé abaixo de {formatCurrency(minimumPicoleOrder)})
+                      </span>
+                    )}
+                  </div>
+                  <div className="tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CheckoutPageContent">
+                    {finalDeliveryFee > 0 ? formatCurrency(finalDeliveryFee) : "Grátis"}
+                  </div>
                 </div>
                 <div className="flex justify-between items-center mt-3 pt-2 border-t font-bold text-lg">
                   <div>Total</div>
