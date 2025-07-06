@@ -20,6 +20,7 @@ import {
   Clock,
   Bell,
 } from "lucide-react"
+import { ProductVisibilityToggle } from "@/components/admin/product-visibility-toggle"
 import SocialShare from "@/components/social-share"
 import {
   getAllProducts,
@@ -136,6 +137,8 @@ export default function AdminPage() {
       allowedAdditionals: [], // Inicialmente sem adicionais permitidos
       additionalsLimit: 5, // Limite padrão de 5 adicionais
       active: true, // Adicionar a propriedade active que estava faltando
+      hidden: false, // Por padrão, o produto é visível
+      needsSpoon: false, // Por padrão, o produto não precisa de colher
     })
     setIsModalOpen(true)
   }
@@ -515,6 +518,33 @@ export default function AdminPage() {
           </Link>
 
           <Link
+            href="/admin/relatorios"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-emerald-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-emerald-200"
+          >
+            <div className="bg-emerald-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-emerald-600"
+              >
+                <path d="M3 3v18h18"></path>
+                <path d="m19 9-5 5-4-4-3 3"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-emerald-600 mb-0.5">Dashboard de Relatórios</h2>
+              <p className="text-sm text-gray-600">Análise de vendas e histórico de pedidos</p>
+            </div>
+          </Link>
+
+          <Link
             href="/admin/paginas"
             className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-purple-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-purple-200"
           >
@@ -666,12 +696,31 @@ export default function AdminPage() {
                             <div className="p-4 flex-1">
                               <div className="flex justify-between flex-wrap gap-2">
                                 <div>
-                                  <h3 className="font-semibold text-purple-900">{product.name}</h3>
+                                  <h3 className="font-semibold text-purple-900">
+                                    {product.name}
+                                    {product.hidden && (
+                                      <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full inline-block border border-gray-200">
+                                        Oculto
+                                      </span>
+                                    )}
+                                  </h3>
                                   <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full inline-block mt-1 border border-blue-100">
                                     Adicionais: {getAdditionalCount(product)}
                                   </span>
                                 </div>
                                 <div className="flex space-x-1">
+                                  {/* Botão de visibilidade */}
+                                  <ProductVisibilityToggle
+                                    productId={product.id}
+                                    initialHidden={product.hidden}
+                                    onToggle={(newHidden: boolean) => {
+                                      // Atualizar o estado local após alternar a visibilidade
+                                      const updatedProducts = products.map(p => 
+                                        p.id === product.id ? {...p, hidden: newHidden} : p
+                                      );
+                                      setProducts(updatedProducts);
+                                    }}
+                                  />
                                   <button 
                                     onClick={() => handleEditProduct(product)} 
                                     className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 transition-colors"
@@ -739,7 +788,7 @@ export default function AdminPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
                 <select
                   value={editingProduct.categoryId}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, categoryId: Number(e.target.value) })}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, categoryId: parseInt(e.target.value) })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {categories.map((category) => (
@@ -748,6 +797,32 @@ export default function AdminPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="product-visibility"
+                  checked={!editingProduct.hidden}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, hidden: !e.target.checked })}
+                  className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <label htmlFor="product-visibility" className="text-sm font-medium text-gray-700">
+                  Produto visível para clientes
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-2 mt-3">
+                <input
+                  type="checkbox"
+                  id="product-needs-spoon"
+                  checked={editingProduct.needsSpoon}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, needsSpoon: e.target.checked })}
+                  className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <label htmlFor="product-needs-spoon" className="text-sm font-medium text-gray-700">
+                  Precisa de Colher? (Pergunta ao cliente)
+                </label>
               </div>
 
               <div>
