@@ -1,205 +1,181 @@
-import { createSupabaseClient } from "@/lib/supabase-client"
-import * as ProductService from "./product-service"
-import * as CategoryService from "./category-service"
-import * as AdditionalService from "./additional-service"
-import * as CarouselService from "./carousel-service"
-import { safelyGetRecordById } from "../supabase-utils"
-import * as PhraseService from "./phrase-service"
-import * as StoreConfigService from "./store-config-service"
-import * as OrderService from "./order-service"
-import * as PageContentService from "./page-content-service"
-import * as NotificationService from "./notification-service"
-import { DEFAULT_STORE_ID } from "../constants"
+import { createSupabaseClient } from "../supabase-client"
+import type { Product, Category, Additional, Order } from "../types"
+import { ProductService } from "./product-service"
+import { CategoryService } from "./category-service"
+import { AdditionalService } from "./additional-service"
 
-// Função para fazer backup de todos os dados
-export async function backupAllData() {
-  try {
-    const supabase = createSupabaseClient()
+// Interface para backup de dados
+interface BackupData {
+  products: Product[]
+  categories: Category[]
+  additionals: Additional[]
+  orders?: Order[]
+  timestamp: string
+  version: string
+}
 
-    // Obter todos os dados do Supabase
-    const [products, categories, additionals, slides, phrases, orders, storeConfig, pageContents, notifications] =
-      await Promise.all([
+export const BackupService = {
+  // Criar backup completo dos dados
+  async createBackup(includeOrders = false): Promise<BackupData | null> {
+    try {
+      console.log("Iniciando backup dos dados...")
+
+      // Buscar todos os dados
+      const [products, categories, additionals] = await Promise.all([
         ProductService.getAllProducts(),
         CategoryService.getAllCategories(),
         AdditionalService.getAllAdditionals(),
-        CarouselService.getAllSlides(),
-        PhraseService.getAllPhrases(),
-        OrderService.getAllOrders(),
-        StoreConfigService.getStoreConfig(),
-        PageContentService.getAllPageContents(),
-        NotificationService.getAllNotifications(),
       ])
 
-    // Criar objeto de backup
-    const backupData = {
-      timestamp: new Date().toISOString(),
-      products,
-      categories,
-      additionals,
-      slides,
-      phrases,
-      orders,
-      storeConfig,
-      pageContents,
-      notifications,
-    }
+      const backupData: BackupData = {
+        products,
+        categories,
+        additionals,
+        timestamp: new Date().toISOString(),
+        version: "1.0",
+      }
 
-    // Salvar backup na tabela backups
-    const { data, error } = await supabase
-      .from("backups")
-      .insert({
-        data: backupData,
-        created_at: new Date().toISOString(),
-        store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
+      // Incluir pedidos se solicitado
+      if (includeOrders) {
+        // Implementar busca de pedidos quando necessário
+        backupData.orders = []
+      }
+
+      console.log("Backup criado com sucesso:", {
+        products: products.length,
+        categories: categories.length,
+        additionals: additionals.length,
       })
-      .select()
 
-    if (error) {
-      console.error("Erro ao salvar backup no Supabase:", error)
+      return backupData
+    } catch (error) {
+      console.error("Erro ao criar backup:", error)
+      return null
+    }
+  },
+
+  // Restaurar dados do backup
+  async restoreBackup(backupData: BackupData): Promise<boolean> {
+    try {
+      console.log("Iniciando restauração do backup...")
+
+      // Validar dados do backup
+      if (!backupData.products || !backupData.categories || !backupData.additionals) {
+        throw new Error("Dados de backup inválidos")
+      }
+
+      // Limpar dados existentes (opcional - implementar se necessário)
+      // await this.clearAllData()
+
+      // Restaurar categorias primeiro (dependência dos produtos)
+      for (const category of backupData.categories) {
+        await CategoryService.saveCategory(category)
+      }
+
+      // Restaurar produtos
+      for (const product of backupData.products) {
+        await ProductService.saveProduct(product)
+      }
+
+      // Restaurar adicionais
+      for (const additional of backupData.additionals) {
+        await AdditionalService.saveAdditional(additional)
+      }
+
+      console.log("Backup restaurado com sucesso")
+      return true
+    } catch (error) {
+      console.error("Erro ao restaurar backup:", error)
       return false
     }
+  },
 
-    return true
-  } catch (error) {
-    console.error("Erro ao fazer backup dos dados:", error)
-    return false
-  }
-}
+  // Exportar dados para JSON
+  async exportToJson(): Promise<string | null> {
+    try {
+      const backup = await this.createBackup(false)
+      if (!backup) {
+        throw new Error("Falha ao criar backup para exportação")
+      }
 
-// Função para obter todos os backups
-export async function getAllBackups() {
-  try {
-    const supabase = createSupabaseClient()
-    const { data, error } = await supabase.from("backups").select("*").order("created_at", { ascending: false })
-
-    if (error) {
-      console.error("Erro ao obter backups:", error)
-      return []
+      return JSON.stringify(backup, null, 2)
+    } catch (error) {
+      console.error("Erro ao exportar dados:", error)
+      return null
     }
+  },
 
-    return data || []
-  } catch (error) {
-    console.error("Erro ao obter backups:", error)
-    return []
-  }
-}
-
-// Função para restaurar um backup específico
-export async function restoreBackup(backupId: number) {
-  try {
-    const supabase = createSupabaseClient()
-    // Obter o backup usando a função segura
-    console.log(`Buscando backup com ID ${backupId}`)
-    const { data, error } = await safelyGetRecordById<any>(supabase, "backups", "id", backupId)
-
-    if (error) {
-      console.error("Erro ao obter backup para restauração:", error)
+  // Importar dados do JSON
+  async importFromJson(jsonData: string): Promise<boolean> {
+    try {
+      const backupData = JSON.parse(jsonData) as BackupData
+      return await this.restoreBackup(backupData)
+    } catch (error) {
+      console.error("Erro ao importar dados:", error)
       return false
     }
-    
-    if (!data) {
-      console.error(`Backup com ID ${backupId} não encontrado`)
+  },
+
+  // Limpar todos os dados (cuidado!)
+  async clearAllData(): Promise<boolean> {
+    try {
+      console.warn("ATENÇÃO: Limpando todos os dados!")
+
+      const supabase = createSupabaseClient()
+
+      // Limpar na ordem correta para evitar problemas de referência
+      await supabase.from("additionals").delete().neq("id", 0)
+      await supabase.from("products").delete().neq("id", 0)
+      await supabase.from("categories").delete().neq("id", 0)
+
+      console.log("Todos os dados foram limpos")
+      return true
+    } catch (error) {
+      console.error("Erro ao limpar dados:", error)
       return false
     }
+  },
 
-    const backupData = data.data
+  // Verificar integridade dos dados
+  async checkDataIntegrity(): Promise<{
+    valid: boolean
+    issues: string[]
+  }> {
+    try {
+      const issues: string[] = []
 
-    // Restaurar dados
-    await restoreData(backupData)
+      // Buscar dados
+      const [products, categories, additionals] = await Promise.all([
+        ProductService.getAllProducts(),
+        CategoryService.getAllCategories(),
+        AdditionalService.getAllAdditionals(),
+      ])
 
-    return true
-  } catch (error) {
-    console.error("Erro ao restaurar backup:", error)
-    return false
-  }
-}
+      // Verificar se produtos têm categorias válidas
+      const categoryIds = new Set(categories.map(c => c.id))
+      for (const product of products) {
+        if (!categoryIds.has(product.categoryId)) {
+          issues.push(`Produto "${product.name}" tem categoria inválida (ID: ${product.categoryId})`)
+        }
+      }
 
-// Função para restaurar dados
-export async function restoreData(data: any) {
-  // Limpar tabelas existentes (opcional, dependendo da estratégia de restauração)
-  // await clearAllTables()
+      // Verificar se adicionais têm categorias válidas
+      for (const additional of additionals) {
+        if (!categoryIds.has(additional.categoryId)) {
+          issues.push(`Adicional "${additional.name}" tem categoria inválida (ID: ${additional.categoryId})`)
+        }
+      }
 
-  // Importar dados para o Supabase
-  const importPromises = []
-
-  if (data.categories && Array.isArray(data.categories)) {
-    importPromises.push(Promise.all(data.categories.map((category: any) => CategoryService.saveCategory(category))))
-  }
-
-  if (data.additionals && Array.isArray(data.additionals)) {
-    importPromises.push(
-      Promise.all(data.additionals.map((additional: any) => AdditionalService.saveAdditional(additional))),
-    )
-  }
-
-  if (data.products && Array.isArray(data.products)) {
-    importPromises.push(Promise.all(data.products.map((product: any) => ProductService.saveProduct(product))))
-  }
-
-  if (data.slides && Array.isArray(data.slides)) {
-    importPromises.push(Promise.all(data.slides.map((slide: any) => CarouselService.saveSlide(slide))))
-  }
-
-  if (data.phrases && Array.isArray(data.phrases)) {
-    importPromises.push(Promise.all(data.phrases.map((phrase: any) => PhraseService.savePhrase(phrase))))
-  }
-
-  if (data.storeConfig) {
-    importPromises.push(StoreConfigService.saveStoreConfig(data.storeConfig))
-  }
-
-  if (data.pageContents && Array.isArray(data.pageContents)) {
-    importPromises.push(
-      Promise.all(data.pageContents.map((content: any) => PageContentService.savePageContent(content))),
-    )
-  }
-
-  if (data.notifications && Array.isArray(data.notifications)) {
-    importPromises.push(
-      Promise.all(data.notifications.map((notification: any) => NotificationService.saveNotification(notification))),
-    )
-  }
-
-  // Não restauramos pedidos para evitar duplicações
-
-  await Promise.all(importPromises)
-}
-
-// Função para excluir um backup
-export async function deleteBackup(backupId: number) {
-  try {
-    const supabase = createSupabaseClient()
-    const { error } = await supabase.from("backups").delete().eq("id", backupId)
-
-    if (error) {
-      console.error("Erro ao excluir backup:", error)
-      return false
+      return {
+        valid: issues.length === 0,
+        issues,
+      }
+    } catch (error) {
+      console.error("Erro ao verificar integridade:", error)
+      return {
+        valid: false,
+        issues: ["Erro ao verificar integridade dos dados"],
+      }
     }
-
-    return true
-  } catch (error) {
-    console.error("Erro ao excluir backup:", error)
-    return false
-  }
-}
-
-// Função para limpar todas as tabelas (use com cuidado!)
-async function clearAllTables() {
-  try {
-    const supabase = createSupabaseClient()
-    await Promise.all([
-      supabase.from("products").delete().neq("id", 0),
-      supabase.from("categories").delete().neq("id", 0),
-      supabase.from("additionals").delete().neq("id", 0),
-      supabase.from("carousel_slides").delete().neq("id", 0),
-      supabase.from("phrases").delete().neq("id", 0),
-      supabase.from("store_config").delete().neq("id", 0),
-      supabase.from("page_contents").delete().neq("id", 0),
-      supabase.from("notifications").delete().neq("id", 0),
-    ])
-    return true
-  } catch (error) {
-    console.error("Erro ao limpar tabelas:", error)
-    return false
-  }
+  },
 }

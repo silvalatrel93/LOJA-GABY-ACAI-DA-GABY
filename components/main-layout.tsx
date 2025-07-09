@@ -94,13 +94,15 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
               <Link href="/" className="flex items-center">
                 {storeConfig?.logoUrl && (
                   <div className="relative w-10 h-10 mr-2 transition-all duration-300 ease-in-out transform hover:scale-110">
-                    <Image
-                      src={storeConfig.logoUrl || "/placeholder.svg"}
-                      alt={`Logo ${storeConfig.name || "Açaí Online"}`}
-                      fill
-                      className="object-contain"
-                      priority
-                    />
+                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white/20 shadow-sm">
+                      <Image
+                        src={storeConfig.logoUrl || "/placeholder.svg"}
+                        alt={`Logo ${storeConfig.name || "Açaí Online"}`}
+                        fill
+                        className="object-cover rounded-full"
+                        priority
+                      />
+                    </div>
                   </div>
                 )}
                 <span className="text-xl font-bold transition-all duration-300">

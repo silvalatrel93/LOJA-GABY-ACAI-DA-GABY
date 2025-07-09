@@ -19,6 +19,10 @@ import {
   Settings,
   Clock,
   Bell,
+  ChevronDown,
+  ChevronRight,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 import { ProductVisibilityToggle } from "@/components/admin/product-visibility-toggle"
 import SocialShare from "@/components/social-share"
@@ -43,7 +47,7 @@ export default function AdminPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [additionals, setAdditionals] = useState<Additional[]>([])
   const [additionalCategories, setAdditionalCategories] = useState<AdditionalCategory[]>([])
-  const [additionalsByCategory, setAdditionalsByCategory] = useState<{[key: number]: Additional[]}>({})
+  const [additionalsByCategory, setAdditionalsByCategory] = useState<{ [key: number]: Additional[] }>({})
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isAdditionalsModalOpen, setIsAdditionalsModalOpen] = useState(false)
@@ -51,6 +55,10 @@ export default function AdminPage() {
   const [deleteStatus, setDeleteStatus] = useState<{ id: number; status: "pending" | "success" | "error" } | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  
+  // Estados para controlar collapse/expand das categorias
+  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
+  const [allExpanded, setAllExpanded] = useState(false)
 
   // Função para carregar produtos, categorias e adicionais
   const loadData = async () => {
@@ -66,7 +74,7 @@ export default function AdminPage() {
       console.log("Categorias carregadas no admin:", categoriesList.length)
       console.log("Adicionais carregados no admin:", additionalsList.length)
       console.log("Categorias de adicionais carregadas no admin:", additionalCategoriesList.length)
-      
+
       // Associar o nome da categoria a cada adicional
       const additionalsWithCategoryName = additionalsList.map(additional => {
         const category = additionalCategoriesList.find(cat => cat.id === additional.categoryId);
@@ -76,7 +84,7 @@ export default function AdminPage() {
           categoryOrder: category ? category.order : 999 // Usar um valor alto para itens sem categoria
         };
       });
-      
+
       // Ordenar adicionais por ordem de categoria e depois por nome
       const sortedAdditionals = [...additionalsWithCategoryName].sort((a, b) => {
         // Primeiro ordenar por ordem de categoria
@@ -86,11 +94,13 @@ export default function AdminPage() {
         // Se mesma categoria, ordenar por nome
         return a.name.localeCompare(b.name);
       });
-      
+
       setProducts(productsList)
       setCategories(categoriesList)
       setAdditionals(sortedAdditionals)
       setAdditionalCategories(additionalCategoriesList)
+      
+      // Inicializar todas as categorias como colapsadas (padrão)
     } catch (error) {
       console.error("Erro ao carregar dados:", error)
     } finally {
@@ -102,17 +112,48 @@ export default function AdminPage() {
   useEffect(() => {
     // Verificar se o usuário está autenticado
     const isAuthenticated = localStorage.getItem("admin_authenticated") === "true"
-    
+
     if (!isAuthenticated) {
       // Redirecionar para a página de login se não estiver autenticado
       window.location.href = "/admin/login"
       return
     }
-    
+
     // Se estiver autenticado, carregar os dados
     setIsAuthenticated(true)
     loadData()
   }, [])
+
+  // Função para toggle de uma categoria específica
+  const toggleCategory = (categoryId: number) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId)
+      } else {
+        newSet.add(categoryId)
+      }
+      
+      // Atualizar estado de "todas expandidas"
+      setAllExpanded(newSet.size === categories.length)
+      
+      return newSet
+    })
+  }
+
+  // Função para expandir/colapsar todas as categorias
+  const toggleAllCategories = () => {
+    if (allExpanded) {
+      // Colapsar todas
+      setExpandedCategories(new Set())
+      setAllExpanded(false)
+    } else {
+      // Expandir todas
+      const allCategoryIds = new Set(categories.map(cat => cat.id))
+      setExpandedCategories(allCategoryIds)
+      setAllExpanded(true)
+    }
+  }
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct({ ...product })
@@ -126,7 +167,7 @@ export default function AdminPage() {
     const defaultCategoryId = categories.length > 0 ? categories[0].id : 1
 
     setEditingProduct({
-      id: Math.floor(Math.random() * 1000000) + 1, // Gerar um ID seguro dentro do intervalo do PostgreSQL
+      id: 0, // ID 0 indica um produto novo (não existe no banco)
       name: "",
       description: "",
       image: "/placeholder.svg?key=5xlcq",
@@ -139,6 +180,7 @@ export default function AdminPage() {
       active: true, // Adicionar a propriedade active que estava faltando
       hidden: false, // Por padrão, o produto é visível
       needsSpoon: false, // Por padrão, o produto não precisa de colher
+
     })
     setIsModalOpen(true)
   }
@@ -193,104 +235,85 @@ export default function AdminPage() {
 
   const handleSizeChange = (index: number, field: string, value: string) => {
     if (!editingProduct) return;
-    
+
     const updatedSizes = [...editingProduct.sizes];
     if (field === "size") {
       updatedSizes[index].size = value;
     } else if (field === "price") {
       updatedSizes[index].price = parseFloat(value) || 0;
     } else if (field === "additionalsLimit") {
-      const numValue = parseInt(value) || undefined;
-      updatedSizes[index].additionalsLimit = numValue && numValue > 0 ? numValue : undefined;
+      updatedSizes[index].additionalsLimit = parseInt(value) || 5;
     }
+
     setEditingProduct({ ...editingProduct, sizes: updatedSizes });
   };
 
-  // Função para adicionar um novo tamanho
   const handleAddSize = () => {
     if (!editingProduct) return;
-    
-    const updatedSizes = [...editingProduct.sizes, { size: "", price: 0, additionalsLimit: undefined }];
-    setEditingProduct({ ...editingProduct, sizes: updatedSizes });
-  };
-
-  // Função para remover um tamanho
-  const handleRemoveSize = (index: number) => {
-    if (!editingProduct) return;
-    
-    // Não permitir remover se só houver um tamanho
-    if (editingProduct.sizes.length <= 1) {
-      return;
-    }
-    
-    const updatedSizes = editingProduct.sizes.filter((_, i) => i !== index);
-    setEditingProduct({ ...editingProduct, sizes: updatedSizes });
-  };
-
-  // Função para abrir o modal de seleção de adicionais
-  const handleManageAdditionals = () => {
-    // Agrupar adicionais por categoria
-    const groupedAdditionals: {[key: number]: Additional[]} = {};
-    
-    // Primeiro, garantir que todas as categorias tenham uma entrada, mesmo que vazia
-    additionalCategories.forEach(category => {
-      groupedAdditionals[category.id] = [];
-    });
-    
-    // Adicionar categoria "Sem categoria" com ID 0 se houver adicionais sem categoria
-    if (additionals.some(add => !add.categoryId)) {
-      groupedAdditionals[0] = [];
-    }
-    
-    // Agrupar os adicionais por categoria
-    additionals.forEach(additional => {
-      const categoryId = additional.categoryId || 0;
-      if (!groupedAdditionals[categoryId]) {
-        groupedAdditionals[categoryId] = [];
-      }
-      groupedAdditionals[categoryId].push(additional);
-    });
-    
-    setAdditionalsByCategory(groupedAdditionals);
-    setIsAdditionalsModalOpen(true);
-  }
-
-  // Função para alternar a seleção de um adicional
-  const toggleAdditionalSelection = (additionalId: number) => {
-    if (!editingProduct) return
-
-    const allowedAdditionals = editingProduct.allowedAdditionals || []
-
-    // Verificar se o adicional já está selecionado
-    const isSelected = allowedAdditionals.includes(additionalId)
-
-    // Atualizar a lista de adicionais permitidos
-    if (isSelected) {
-      // Remover o adicional da lista
-      setEditingProduct({
-        ...editingProduct,
-        allowedAdditionals: allowedAdditionals.filter((id) => id !== additionalId),
-      })
-    } else {
-      // Adicionar o adicional à lista
-      setEditingProduct({
-        ...editingProduct,
-        allowedAdditionals: [...allowedAdditionals, additionalId],
-      })
-    }
-  }
-
-  // Função para selecionar todos os adicionais
-  const selectAllAdditionals = () => {
-    if (!editingProduct) return
 
     setEditingProduct({
       ...editingProduct,
-      allowedAdditionals: additionals.map((a) => a.id),
+      sizes: [...editingProduct.sizes, { size: "", price: 0, additionalsLimit: 5 }],
+    });
+  };
+
+  const handleRemoveSize = (index: number) => {
+    if (!editingProduct) return;
+
+    const updatedSizes = editingProduct.sizes.filter((_, i) => i !== index);
+    // Garantir que sempre haja pelo menos um tamanho
+    if (updatedSizes.length === 0) {
+      updatedSizes.push({ size: "300ml", price: 0, additionalsLimit: 5 });
+    }
+    setEditingProduct({ ...editingProduct, sizes: updatedSizes });
+  };
+
+  const handleManageAdditionals = () => {
+    setIsAdditionalsModalOpen(true)
+
+    // Agrupar adicionais por categoria para o modal
+    const grouped = additionals.reduce((acc, additional) => {
+      const categoryId = additional.categoryId
+      if (!acc[categoryId]) {
+        acc[categoryId] = []
+      }
+      acc[categoryId].push(additional)
+      return acc
+    }, {} as { [key: number]: Additional[] })
+
+    setAdditionalsByCategory(grouped)
+  }
+
+  const toggleAdditionalSelection = (additionalId: number) => {
+    if (!editingProduct) return
+
+    const isSelected = editingProduct.allowedAdditionals.includes(additionalId)
+
+    if (isSelected) {
+      // Remover adicional
+      setEditingProduct({
+        ...editingProduct,
+        allowedAdditionals: editingProduct.allowedAdditionals.filter((id) => id !== additionalId),
+      })
+    } else {
+      // Adicionar adicional
+      setEditingProduct({
+        ...editingProduct,
+        allowedAdditionals: [...editingProduct.allowedAdditionals, additionalId],
+      })
+    }
+  }
+
+  const selectAllAdditionals = () => {
+    if (!editingProduct) return
+
+    const allAdditionalIds = additionals.map((additional) => additional.id)
+    setEditingProduct({
+      ...editingProduct,
+      allowedAdditionals: allAdditionalIds,
     })
   }
 
-  // Função para desselecionar todos os adicionais
   const deselectAllAdditionals = () => {
     if (!editingProduct) return
 
@@ -300,23 +323,22 @@ export default function AdminPage() {
     })
   }
 
-  // Função para obter o nome da categoria pelo ID
   const getCategoryName = (categoryId: number): string => {
     const category = categories.find((c) => c.id === categoryId)
-    return category ? category.name : "Sem categoria"
+    return category ? category.name : "Categoria desconhecida"
   }
 
-  // Função para verificar quantos adicionais estão permitidos para um produto
   const getAdditionalCount = (product: Product): string => {
-    if (!product.allowedAdditionals || product.allowedAdditionals.length === 0) {
+    const totalAdditionals = additionals.length
+    const allowedCount = product.allowedAdditionals.length
+    
+    if (allowedCount === 0) {
       return "Nenhum"
-    }
-
-    if (product.allowedAdditionals.length === additionals.length) {
+    } else if (allowedCount === totalAdditionals) {
       return "Todos"
+    } else {
+      return `${allowedCount} de ${totalAdditionals}`
     }
-
-    return `${product.allowedAdditionals.length} selecionados`
   }
 
   if (isLoading) {
@@ -327,7 +349,7 @@ export default function AdminPage() {
             <Link href="/" className="mr-4">
               <ArrowLeft size={24} />
             </Link>
-            <h1 className="text-xl font-bold">Painel Administrativo</h1>
+            <h1 className="text-xl font-bold">Admin - Gerenciar Produtos</h1>
           </div>
         </header>
         <div className="flex-1 flex justify-center items-center">
@@ -337,166 +359,135 @@ export default function AdminPage() {
     )
   }
 
+  if (!isAuthenticated) {
+    return null // Será redirecionado pelo useEffect
+  }
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="bg-gradient-to-r from-purple-800 to-purple-900 text-white p-3 sm:p-4 sticky top-0 z-10 shadow-lg">
-        <div className="container mx-auto px-2 sm:px-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <Link 
-                href="/" 
-                className="p-1.5 rounded-full hover:bg-purple-700 transition-colors duration-200 flex-shrink-0"
-                aria-label="Voltar para a página inicial"
-              >
-                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-              </Link>
-              <h1 className="text-lg sm:text-xl font-bold whitespace-nowrap">
-                Painel Administrativo
-              </h1>
-            </div>
-            
-            <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-              {/* Botão Novo Produto */}
-              <button
-                onClick={handleAddProduct}
-                className="flex-1 bg-white hover:bg-gray-50 text-purple-900 px-3 py-2 rounded-lg font-medium flex items-center justify-center space-x-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-              >
-                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">Novo Produto</span>
-                <span className="sm:hidden">Novo</span>
-              </button>
-              
-              {/* Botão Sair */}
-              <button
-                onClick={() => {
-                  localStorage.removeItem("admin_authenticated")
-                  window.location.href = "/admin/login"
-                }}
-                className="flex-1 sm:flex-none bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg font-medium flex items-center justify-center space-x-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-                title="Sair do painel"
-              >
-                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>Sair</span>
-              </button>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-green-50">
+      <header className="bg-gradient-to-r from-purple-700 via-purple-800 to-purple-900 text-white p-4 sticky top-0 z-40 shadow-lg">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center">
+            <Link href="/" className="mr-4 hover:bg-white/10 p-2 rounded-lg transition-colors">
+              <ArrowLeft size={24} />
+            </Link>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">
+              Admin - Painel de Controle
+            </h1>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition-colors"
+              title="Atualizar dados"
+            >
+              <RefreshCw size={20} />
+            </button>
+            <SocialShare />
           </div>
         </div>
       </header>
 
-      <div className="flex-1 container mx-auto p-3 sm:p-4">
-        {/* Cards de navegação */}
-        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      <div className="container mx-auto p-4">
+        {/* Dashboard Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <Link
             href="/admin/pedidos"
-            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-[#f0f7e6] transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-[#e8f5d3]"
-          >
-            <div className="bg-[#e8f5d3] p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
-              <ShoppingBag size={22} className="text-[#5a7c1e]" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-[#5a7c1e] mb-0.5">Gerenciar Pedidos</h2>
-              <p className="text-sm text-gray-600">Visualize, atualize status e imprima etiquetas</p>
-            </div>
-          </Link>
-
-          <Link
-            href="/admin/carrossel"
             className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-blue-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-blue-200"
           >
             <div className="bg-blue-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
-              <ImageIcon size={22} className="text-blue-600" />
+              <ShoppingBag size={22} className="text-blue-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-blue-600 mb-0.5">Gerenciar Carrossel</h2>
-              <p className="text-sm text-gray-600">Adicione e edite imagens do carrossel da página inicial</p>
+              <h2 className="text-lg font-semibold text-blue-600 mb-0.5">Pedidos</h2>
+              <p className="text-sm text-gray-600">Gerenciar pedidos dos clientes</p>
             </div>
           </Link>
 
           <Link
             href="/admin/categorias"
-            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-orange-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-orange-200"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-green-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-green-200"
           >
-            <div className="bg-orange-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
-              <Layers size={22} className="text-orange-600" />
+            <div className="bg-green-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <Layers size={22} className="text-green-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-orange-600 mb-0.5">Gerenciar Categorias</h2>
-              <p className="text-sm text-gray-600">Organize seus produtos em categorias</p>
+              <h2 className="text-lg font-semibold text-green-600 mb-0.5">✅ Categorias</h2>
+              <p className="text-sm text-gray-600">Organizar categorias de produtos</p>
             </div>
           </Link>
 
           <Link
             href="/admin/adicionais"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-orange-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-orange-200"
+          >
+            <div className="bg-orange-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <PlusCircle size={22} className="text-orange-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-orange-600 mb-0.5">🚧 Adicionais</h2>
+              <p className="text-sm text-gray-600">Gerenciar ingredientes extras</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/categorias-adicionais"
             className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-pink-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-pink-200"
           >
             <div className="bg-pink-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
-              <PlusCircle size={22} className="text-pink-600" />
+              <Layers size={22} className="text-pink-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-pink-600 mb-0.5">Gerenciar Adicionais</h2>
-              <p className="text-sm text-gray-600">Configure adicionais para os açaís</p>
+              <h2 className="text-lg font-semibold text-pink-600 mb-0.5">🚧 Categorias de Adicionais</h2>
+              <p className="text-sm text-gray-600">Organizar grupos de adicionais</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/carrossel"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-indigo-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-indigo-200"
+          >
+            <div className="bg-indigo-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <ImageIcon size={22} className="text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-indigo-600 mb-0.5">🚧 Carrossel</h2>
+              <p className="text-sm text-gray-600">Gerenciar imagens em destaque</p>
             </div>
           </Link>
 
           <Link
             href="/admin/frases"
-            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-indigo-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-indigo-200"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-cyan-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-cyan-200"
           >
-            <div className="bg-indigo-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
-              <MessageSquare size={22} className="text-indigo-600" />
+            <div className="bg-cyan-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <MessageSquare size={22} className="text-cyan-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-indigo-600 mb-0.5">Gerenciar Frases</h2>
-              <p className="text-sm text-gray-600">Edite as frases promocionais do carrossel</p>
+              <h2 className="text-lg font-semibold text-cyan-600 mb-0.5">🚧 Frases</h2>
+              <p className="text-sm text-gray-600">Gerenciar frases motivacionais</p>
             </div>
           </Link>
 
           <Link
             href="/admin/notificacoes"
-            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-red-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-red-200"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-yellow-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-yellow-200"
           >
-            <div className="bg-red-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
-              <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 transition-all duration-200 group-hover:animate-[wiggle_0.5s_ease-in-out]" />
+            <div className="bg-yellow-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <Bell size={22} className="text-yellow-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-red-600 mb-0.5">Gerenciar Notificações</h2>
-              <p className="text-sm text-gray-600">Configure avisos e notificações para os clientes</p>
+              <h2 className="text-lg font-semibold text-yellow-600 mb-0.5">🚧 Notificações</h2>
+              <p className="text-sm text-gray-600">Sistema de notificações push</p>
             </div>
           </Link>
 
           <Link
             href="/admin/configuracoes"
-            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-teal-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-teal-200"
-          >
-            <div className="bg-teal-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
-              <Settings size={22} className="text-teal-600 animate-spin-slow" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-teal-600 mb-0.5">Configurações da Loja</h2>
-              <p className="text-sm text-gray-600">Personalize o logo e o nome da sua loja</p>
-            </div>
-          </Link>
-
-          <Link
-            href="/admin/configuracoes/senha"
             className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-gray-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-gray-200"
           >
             <div className="bg-gray-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-gray-600"
-              >
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-              </svg>
+              <Settings size={22} className="text-gray-600" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-600 mb-0.5">Configuração de Senha</h2>
@@ -539,7 +530,7 @@ export default function AdminPage() {
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-emerald-600 mb-0.5">Dashboard de Relatórios</h2>
+              <h2 className="text-lg font-semibold text-emerald-600 mb-0.5">🚧 Dashboard de Relatórios</h2>
               <p className="text-sm text-gray-600">Análise de vendas e histórico de pedidos</p>
             </div>
           </Link>
@@ -581,7 +572,7 @@ export default function AdminPage() {
           <div className="absolute -top-16 sm:-top-20 -right-16 sm:-right-20 w-32 sm:w-40 h-32 sm:h-40 bg-gradient-to-br from-purple-200/20 to-transparent rounded-full blur-xl sm:blur-2xl group-hover/container:scale-110 transition-transform duration-1000"></div>
           <div className="absolute -bottom-16 sm:-bottom-20 -left-16 sm:-left-20 w-32 sm:w-40 h-32 sm:h-40 bg-gradient-to-tr from-[#92c730]/10 to-transparent rounded-full blur-xl sm:blur-2xl group-hover/container:scale-110 transition-transform duration-1000 group-hover/container:rotate-12"></div>
           <div className="absolute top-1/2 -right-8 sm:right-0 w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-tl from-purple-100/5 to-transparent rounded-full blur-lg sm:blur-xl opacity-0 group-hover/container:opacity-100 transition-opacity duration-700 group-hover/container:translate-x-3 sm:group-hover/container:translate-x-6"></div>
-          
+
           {/* Cabeçalho */}
           <div className="relative z-10">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-4">
@@ -601,33 +592,58 @@ export default function AdminPage() {
               </div>
             </div>
             <div className="w-full h-0.5 bg-gradient-to-r from-purple-100 via-[#e8f5d3] to-transparent mb-3 sm:mb-4"></div>
-          
-          {/* Barra de pesquisa */}
-          <div className="relative mb-4">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <svg className="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
-              </svg>
+
+            {/* Barra de pesquisa e controles */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              {/* Pesquisa */}
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <svg className="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  className="block w-full p-2.5 pl-10 text-sm text-gray-900 border border-purple-200 rounded-lg bg-white focus:ring-purple-500 focus:border-purple-500 transition-all duration-300"
+                  placeholder="Pesquisar produtos..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {searchTerm && (
+                  <button
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                    onClick={() => setSearchTerm("")}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              {/* Controles de collapse/expand */}
+              <div className="flex gap-2">
+                <button
+                  onClick={toggleAllCategories}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-lg transition-colors duration-200"
+                  title={allExpanded ? "Colapsar todas" : "Expandir todas"}
+                >
+                  {allExpanded ? <EyeOff size={16} /> : <Eye size={16} />}
+                  <span className="hidden sm:inline">
+                    {allExpanded ? "Colapsar todas" : "Expandir todas"}
+                  </span>
+                </button>
+
+                <button
+                  onClick={handleAddProduct}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  <Plus size={16} />
+                  <span className="hidden sm:inline">Novo Produto</span>
+                </button>
+              </div>
             </div>
-            <input 
-              type="text" 
-              className="block w-full p-2.5 pl-10 text-sm text-gray-900 border border-purple-200 rounded-lg bg-white focus:ring-purple-500 focus:border-purple-500 transition-all duration-300" 
-              placeholder="Pesquisar produtos..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button 
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
-                onClick={() => setSearchTerm("")}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            )}
-          </div>
           </div>
 
           {products.length === 0 ? (
@@ -641,118 +657,143 @@ export default function AdminPage() {
                 .sort((a, b) => a.order - b.order) // Ordenar categorias pela ordem definida
                 .map((category) => {
                   // Filtrar produtos desta categoria e aplicar filtro de pesquisa
-                  const categoryProducts = products.filter(product => 
-                    product.categoryId === category.id && 
-                    (searchTerm === "" || 
-                     product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                     product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                     product.sizes.some(size => size.size.toLowerCase().includes(searchTerm.toLowerCase()))
+                  const categoryProducts = products.filter(product =>
+                    product.categoryId === category.id &&
+                    (searchTerm === "" ||
+                      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      product.sizes.some(size => size.size.toLowerCase().includes(searchTerm.toLowerCase()))
                     )
                   );
-                  
+
                   // Não mostrar categorias vazias
                   if (categoryProducts.length === 0) return null;
-                  
+
+                  const isExpanded = expandedCategories.has(category.id);
+
                   return (
                     <div key={category.id} className="mb-6">
-                      <h3 className="text-lg font-medium mb-4 pb-2 flex items-center relative">
-                        <span className="bg-gradient-to-r from-purple-400 to-[#92c730] w-1.5 h-6 rounded-full mr-3"></span>
-                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-[#5a7c1e] font-semibold">
-                          {category.name}
-                        </span> 
-                        <span className="text-xs bg-gradient-to-r from-purple-50 to-[#f0f7e6] text-purple-700 px-2 py-0.5 rounded-full ml-2 font-normal border border-purple-100/30 shadow-sm">
-                          {categoryProducts.length} {categoryProducts.length === 1 ? 'produto' : 'produtos'}
-                        </span>
-                        <div className="absolute -bottom-1 left-6 right-0 h-px bg-gradient-to-r from-purple-200/50 to-transparent"></div>
-                      </h3>
-                      
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-                        {categoryProducts.map((product) => (
-                          <div 
-                            key={product.id} 
-                            className="border border-gray-100 rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-sm hover:shadow-md transition-all duration-300 hover:translate-y-[-2px] group bg-white max-w-full"
-                          >
-                            <div className="w-full h-48 xs:h-40 sm:h-28 sm:w-28 md:w-32 md:h-32 lg:w-36 lg:h-36 relative overflow-hidden sm:rounded-l-xl rounded-t-xl sm:rounded-tr-none">
-                              <Image 
-                                src={product.image || "/placeholder.svg"} 
-                                alt={product.name} 
-                                fill 
-                                sizes="(max-width: 480px) 100vw, (max-width: 640px) 40vw, (max-width: 768px) 28rem, (max-width: 1024px) 32rem, 36rem"
-                                priority={true}
-                                className="object-cover transition-transform duration-500 group-hover:scale-110" 
-                                loading="eager"
-                                onError={(e) => {
-                                  // Fallback para imagem padrão em caso de erro
-                                  const target = e.target as HTMLImageElement;
-                                  target.src = '/placeholder.svg';
-                                }}
-                              />
-                              {!product.image && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg>
-                                </div>
-                              )}
-                            </div>
-                            <div className="p-4 flex-1">
-                              <div className="flex justify-between flex-wrap gap-2">
-                                <div>
-                                  <h3 className="font-semibold text-purple-900">
-                                    {product.name}
-                                    {product.hidden && (
-                                      <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full inline-block border border-gray-200">
-                                        Oculto
-                                      </span>
-                                    )}
-                                  </h3>
-                                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full inline-block mt-1 border border-blue-100">
-                                    Adicionais: {getAdditionalCount(product)}
-                                  </span>
-                                </div>
-                                <div className="flex space-x-1">
-                                  {/* Botão de visibilidade */}
-                                  <ProductVisibilityToggle
-                                    productId={product.id}
-                                    initialHidden={product.hidden}
-                                    onToggle={(newHidden: boolean) => {
-                                      // Atualizar o estado local após alternar a visibilidade
-                                      const updatedProducts = products.map(p => 
-                                        p.id === product.id ? {...p, hidden: newHidden} : p
-                                      );
-                                      setProducts(updatedProducts);
-                                    }}
-                                  />
-                                  <button 
-                                    onClick={() => handleEditProduct(product)} 
-                                    className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 transition-colors"
-                                    aria-label="Editar produto"
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteProduct(product.id)}
-                                    className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
-                                    disabled={deleteStatus?.id === product.id && deleteStatus.status === "pending"}
-                                    aria-label="Excluir produto"
-                                  >
-                                    {deleteStatus?.id === product.id && deleteStatus.status === "pending" ? (
-                                      <span className="animate-pulse">...</span>
-                                    ) : (
-                                      <Trash2 size={18} />
-                                    )}
-                                  </button>
-                                </div>
-                              </div>
-                              <p className="text-sm text-gray-500 line-clamp-2 mt-2">{product.description}</p>
-                              <div className="mt-2 text-sm flex flex-wrap gap-2">
-                                {product.sizes.map((size) => (
-                                  <span key={size.size} className="mr-3 bg-gray-50 px-2 py-1 rounded-md text-gray-700 border border-gray-100">
-                                    {size.size}: <span className="font-medium text-purple-700">{formatCurrency(size.price)}</span>
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
+                      {/* Cabeçalho da categoria com botão de toggle */}
+                      <button
+                        onClick={() => toggleCategory(category.id)}
+                        className="w-full text-left group"
+                      >
+                        <h3 className="text-lg font-medium mb-4 pb-2 flex items-center relative hover:bg-purple-50/50 rounded-lg p-2 -m-2 transition-colors duration-200">
+                          <span className="bg-gradient-to-r from-purple-400 to-[#92c730] w-1.5 h-6 rounded-full mr-3"></span>
+                          
+                          {/* Ícone de expand/collapse */}
+                          <div className="mr-3 transition-transform duration-200 text-purple-600">
+                            {isExpanded ? (
+                              <ChevronDown size={20} />
+                            ) : (
+                              <ChevronRight size={20} />
+                            )}
                           </div>
-                        ))}
+                          
+                          <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-[#5a7c1e] font-semibold">
+                            {category.name}
+                          </span>
+                          <span className="text-xs bg-gradient-to-r from-purple-50 to-[#f0f7e6] text-purple-700 px-2 py-0.5 rounded-full ml-2 font-normal border border-purple-100/30 shadow-sm">
+                            {categoryProducts.length} {categoryProducts.length === 1 ? 'produto' : 'produtos'}
+                          </span>
+                          <div className="absolute -bottom-1 left-6 right-0 h-px bg-gradient-to-r from-purple-200/50 to-transparent"></div>
+                        </h3>
+                      </button>
+
+                      {/* Lista de produtos com animação */}
+                      <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                        isExpanded 
+                          ? 'max-h-[5000px] opacity-100' 
+                          : 'max-h-0 opacity-0'
+                      }`}>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+                          {categoryProducts.map((product) => (
+                            <div
+                              key={product.id}
+                              className="border border-gray-100 rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-sm hover:shadow-md transition-all duration-300 hover:translate-y-[-2px] group bg-white max-w-full"
+                            >
+                              <div className="w-full h-48 xs:h-40 sm:h-28 sm:w-28 md:w-32 md:h-32 lg:w-36 lg:h-36 relative overflow-hidden sm:rounded-l-xl rounded-t-xl sm:rounded-tr-none">
+                                <Image
+                                  src={product.image || "/placeholder.svg"}
+                                  alt={product.name}
+                                  fill
+                                  sizes="(max-width: 480px) 100vw, (max-width: 640px) 40vw, (max-width: 768px) 28rem, (max-width: 1024px) 32rem, 36rem"
+                                  priority={true}
+                                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                  loading="eager"
+                                  onError={(e) => {
+                                    // Fallback para imagem padrão em caso de erro
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = '/placeholder.svg';
+                                  }}
+                                />
+                                {!product.image && (
+                                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="p-4 flex-1">
+                                <div className="flex justify-between flex-wrap gap-2">
+                                  <div>
+                                    <h3 className="font-semibold text-purple-900">
+                                      {product.name}
+                                      {product.hidden && (
+                                        <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full inline-block border border-gray-200">
+                                          Oculto
+                                        </span>
+                                      )}
+                                    </h3>
+                                    <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full inline-block mt-1 border border-blue-100">
+                                      Adicionais: {getAdditionalCount(product)}
+                                    </span>
+                                  </div>
+                                  <div className="flex space-x-1">
+                                    {/* Botão de visibilidade */}
+                                    <ProductVisibilityToggle
+                                      productId={product.id}
+                                      initialHidden={product.hidden}
+                                      onToggle={(newHidden: boolean) => {
+                                        // Atualizar o estado local após alternar a visibilidade
+                                        const updatedProducts = products.map(p =>
+                                          p.id === product.id ? { ...p, hidden: newHidden } : p
+                                        );
+                                        setProducts(updatedProducts);
+                                      }}
+                                    />
+                                    <button
+                                      onClick={() => handleEditProduct(product)}
+                                      className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 transition-colors"
+                                      aria-label="Editar produto"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteProduct(product.id)}
+                                      className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
+                                      disabled={deleteStatus?.id === product.id && deleteStatus.status === "pending"}
+                                      aria-label="Excluir produto"
+                                    >
+                                      {deleteStatus?.id === product.id && deleteStatus.status === "pending" ? (
+                                        <span className="animate-pulse">...</span>
+                                      ) : (
+                                        <Trash2 size={18} />
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                                <p className="text-sm text-gray-500 line-clamp-2 mt-2">{product.description}</p>
+                                <div className="mt-2 text-sm flex flex-wrap gap-2">
+                                  {product.sizes.map((size, index) => (
+                                    <span key={createSafeKey(`${product.id}-${index}-${size.size}-${size.price}`, 'size-display')} className="mr-3 bg-gray-50 px-2 py-1 rounded-md text-gray-700 border border-gray-100">
+                                      {size.size}: <span className="font-medium text-purple-700">{formatCurrency(size.price)}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   );
@@ -798,7 +839,7 @@ export default function AdminPage() {
                   ))}
                 </select>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -811,7 +852,7 @@ export default function AdminPage() {
                   Produto visível para clientes
                 </label>
               </div>
-              
+
               <div className="flex items-center space-x-2 mt-3">
                 <input
                   type="checkbox"
@@ -850,7 +891,7 @@ export default function AdminPage() {
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <label className="block text-sm font-medium text-gray-700">Tamanhos e Preços</label>
-                  <button 
+                  <button
                     type="button"
                     onClick={handleAddSize}
                     className="text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded-md flex items-center"
@@ -874,7 +915,7 @@ export default function AdminPage() {
                           placeholder="Ex: 500ml"
                         />
                       </div>
-                      
+
                       {/* Preço */}
                       <div className="w-full md:w-1/4 lg:w-1/5">
                         <label className="block text-xs text-gray-500 mb-1 font-medium">Preço</label>
@@ -894,7 +935,7 @@ export default function AdminPage() {
                           />
                         </div>
                       </div>
-                      
+
                       {/* Limite de adicionais */}
                       <div className="w-full md:w-1/3 lg:w-2/5">
                         <label className="block text-xs text-gray-500 mb-1 font-medium">Limite de adicionais</label>
@@ -913,10 +954,10 @@ export default function AdminPage() {
                           </span>
                         </div>
                       </div>
-                      
+
                       {/* Botão remover */}
                       <div className="w-auto md:w-auto flex items-end justify-end md:justify-center md:pb-0.5 md:ml-auto">
-                        <button 
+                        <button
                           type="button"
                           onClick={() => handleRemoveSize(index)}
                           disabled={editingProduct.sizes.length <= 1}
@@ -928,7 +969,7 @@ export default function AdminPage() {
                         </button>
                       </div>
                     </div>
-                    
+
                     {/* Mensagem para telas pequenas */}
                     <div className="mt-1 md:hidden">
                       <span className="text-xs text-gray-500">
@@ -969,7 +1010,7 @@ export default function AdminPage() {
                   <h4 className="text-sm font-medium text-blue-800">Sistema de Limites por Tamanho</h4>
                 </div>
                 <p className="text-xs text-blue-700">
-                  Configure o limite de adicionais individualmente para cada tamanho acima. 
+                  Configure o limite de adicionais individualmente para cada tamanho acima.
                   Deixe vazio para permitir adicionais ilimitados naquele tamanho.
                 </p>
               </div>
@@ -1035,23 +1076,22 @@ export default function AdminPage() {
                     .map((category) => {
                       // Obter adicionais desta categoria
                       const categoryAdditionals = additionalsByCategory[category.id] || [];
-                      
+
                       // Não mostrar categorias vazias
                       if (categoryAdditionals.length === 0) return null;
-                      
+
                       return (
                         <div key={createSafeKey(category.id, 'admin-additional-category')} className="mb-4">
                           <h3 className="text-md font-medium text-purple-800 mb-2 pb-1 border-b border-purple-200">
                             {category.name} <span className="text-xs text-gray-500">({categoryAdditionals.length})</span>
                           </h3>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                             {categoryAdditionals.map((additional, index) => (
                               <div
                                 key={createSafeKey(additional.id, 'admin-additional-option', index)}
-                                className={`flex items-center justify-between p-3 border rounded-md ${
-                                  editingProduct.allowedAdditionals?.includes(additional.id) ? "border-purple-500 bg-purple-50" : "border-gray-200"
-                                }`}
+                                className={`flex items-center justify-between p-3 border rounded-md ${editingProduct.allowedAdditionals?.includes(additional.id) ? "border-purple-500 bg-purple-50" : "border-gray-200"
+                                  }`}
                               >
                                 <div className="flex items-center">
                                   <div className="w-10 h-10 relative mr-3 bg-purple-100 rounded-md overflow-hidden">
@@ -1076,9 +1116,8 @@ export default function AdminPage() {
 
                                 <button
                                   onClick={() => toggleAdditionalSelection(additional.id)}
-                                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                    editingProduct.allowedAdditionals?.includes(additional.id) ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-600"
-                                  }`}
+                                  className={`w-8 h-8 rounded-full flex items-center justify-center ${editingProduct.allowedAdditionals?.includes(additional.id) ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-600"
+                                    }`}
                                 >
                                   {editingProduct.allowedAdditionals?.includes(additional.id) ? <Check size={16} /> : <Plus size={16} />}
                                 </button>
@@ -1088,21 +1127,20 @@ export default function AdminPage() {
                         </div>
                       );
                     })}
-                    
+
                   {/* Renderizar adicionais sem categoria */}
                   {additionalsByCategory[0] && additionalsByCategory[0].length > 0 && (
                     <div className="mb-4">
                       <h3 className="text-md font-medium text-gray-600 mb-2 pb-1 border-b border-gray-200">
                         Sem categoria <span className="text-xs text-gray-500">({additionalsByCategory[0].length})</span>
                       </h3>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {additionalsByCategory[0].map((additional, index) => (
                           <div
                             key={createSafeKey(additional.id, 'admin-additional-option-no-category', index)}
-                            className={`flex items-center justify-between p-3 border rounded-md ${
-                              editingProduct.allowedAdditionals?.includes(additional.id) ? "border-purple-500 bg-purple-50" : "border-gray-200"
-                            }`}
+                            className={`flex items-center justify-between p-3 border rounded-md ${editingProduct.allowedAdditionals?.includes(additional.id) ? "border-purple-500 bg-purple-50" : "border-gray-200"
+                              }`}
                           >
                             <div className="flex items-center">
                               <div className="w-10 h-10 relative mr-3 bg-purple-100 rounded-md overflow-hidden">
@@ -1127,9 +1165,8 @@ export default function AdminPage() {
 
                             <button
                               onClick={() => toggleAdditionalSelection(additional.id)}
-                              className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                editingProduct.allowedAdditionals?.includes(additional.id) ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-600"
-                              }`}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center ${editingProduct.allowedAdditionals?.includes(additional.id) ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-600"
+                                }`}
                             >
                               {editingProduct.allowedAdditionals?.includes(additional.id) ? <Check size={16} /> : <Plus size={16} />}
                             </button>
@@ -1153,7 +1190,7 @@ export default function AdminPage() {
           </div>
         </div>
       )}
-      
+
       {/* Botão de compartilhamento social para o PWA */}
       <SocialShare title="Heai Açaí e Sorvetes - Admin" message="Acesse o painel administrativo da Heai Açaí e Sorvetes!" />
     </div>

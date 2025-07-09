@@ -23,11 +23,17 @@ function ItemRow({ name, value, className }: { name: string; value: string; clas
 
 // Componente interno que usa o hook useCart
 function CartPageContent() {
-  const { cart, removeFromCart, updateQuantity, isLoading } = useCart()
+  const { cart, removeFromCart, updateQuantity, updateNotes, isLoading } = useCart()
   const router = useRouter()
   const [deliveryFee, setDeliveryFee] = useState(5.0)
+  const [picoleDeliveryFee, setPicoleDeliveryFee] = useState(5.0)
+  const [minimumPicoleOrder, setMinimumPicoleOrder] = useState(20.0)
+  const [moreninhaDeliveryFee, setMoreninhaDeliveryFee] = useState(5.0)
+  const [minimumMoreninhaOrder, setMinimumMoreninhaOrder] = useState(17.0)
   const [isUpdating, setIsUpdating] = useState<Record<number, boolean>>({})
   const [productCategories, setProductCategories] = useState<Record<number, string>>({})
+  const [expandedNotes, setExpandedNotes] = useState<Record<number, boolean>>({})
+  const [notesValues, setNotesValues] = useState<Record<number, string>>({})
 
   // Calcular subtotal e total
   const subtotal = cart.reduce((sum, item) => {
@@ -45,22 +51,118 @@ function CartPageContent() {
     
     return sum + (itemTotal + additionalsTotal)
   }, 0)
-  const total = subtotal + deliveryFee
+  
+  // Função para verificar se o produto é da categoria Picolé (mesma lógica do ProductCard)
+  const isPicolé = (categoryName: string | null | undefined): boolean => {
+    if (!categoryName) return false
+    
+    const picoléTerms = [
+      "PICOLÉ", 
+      "PICOLÉ AO LEITE", 
+      "PICOLE", 
+      "PICOLE AO LEITE", 
+      "PICOLÉ AO LEITÉ", 
+      "PICOLE AO LEITÉ"
+    ]
+    
+    return picoléTerms.some(term => 
+      categoryName.toUpperCase().includes(term)
+    )
+  }
 
-  // Carregar taxa de entrega da configuração da loja
+  // Função para verificar se o produto é da categoria Moreninha
+  const isMoreninha = (categoryName: string | null | undefined): boolean => {
+    if (!categoryName) return false
+    
+    return categoryName.toUpperCase().includes("MORENINHA")
+  }
+  
+  // Calcular subtotal apenas para produtos da categoria PICOLE
+  const picoleSubtotal = cart.reduce((sum, item) => {
+    // Verificar se o item é da categoria PICOLE
+    const isPicole = isPicolé(item.categoryName) || isPicolé(productCategories[item.id])
+    if (!isPicole) return sum
+    
+    // Calcular valor do item
+    if (item.originalPrice) {
+      return sum + (item.originalPrice * item.quantity)
+    }
+    
+    const itemTotal = item.price * item.quantity
+    const additionalsTotal = (item.additionals || []).reduce(
+      (sum, additional) => sum + additional.price * (additional.quantity || 1), 
+      0
+    )
+    
+    return sum + (itemTotal + additionalsTotal)
+  }, 0)
+  
+  // Verificar se há produtos da categoria PICOLE no carrinho
+  const hasPicoleProducts = cart.some(item => 
+    isPicolé(item.categoryName) || isPicolé(productCategories[item.id])
+  )
+  
+  // Verificar se TODOS os produtos no carrinho são da categoria PICOLE
+  const hasOnlyPicoleProducts = cart.length > 0 && cart.every(item => 
+    isPicolé(item.categoryName) || isPicolé(productCategories[item.id])
+  )
+
+  // Verificar se TODOS os produtos no carrinho são da categoria MORENINHA
+  const hasOnlyMoreninhaProducts = cart.length > 0 && cart.every(item => 
+    isMoreninha(item.categoryName) || isMoreninha(productCategories[item.id])
+  )
+  
+  // Determinar se deve aplicar taxa de entrega para PICOLE
+  // Taxa só se aplica se tem SOMENTE picolés e o valor total é menor que o mínimo
+  const shouldApplyPicoleFee = hasOnlyPicoleProducts && subtotal < minimumPicoleOrder
+  
+  // Determinar se deve aplicar taxa de entrega para MORENINHA
+  // Taxa só se aplica se tem SOMENTE moreninha e o valor total é menor que o mínimo
+  const shouldApplyMoreninhaFee = hasOnlyMoreninhaProducts && subtotal < minimumMoreninhaOrder
+  
+  // Calcular taxa de entrega final (prioridade: picolé > moreninha > normal)
+  const finalDeliveryFee = shouldApplyPicoleFee 
+    ? picoleDeliveryFee 
+    : shouldApplyMoreninhaFee 
+      ? moreninhaDeliveryFee 
+      : deliveryFee
+  
+  const total = subtotal + finalDeliveryFee
+
+  // Carregar taxa de entrega e configurações de picolés da loja
   useEffect(() => {
-    const loadDeliveryFee = async () => {
+    const loadStoreConfig = async () => {
       try {
         const storeConfig = await getStoreConfig()
-        if (storeConfig && storeConfig.deliveryFee !== undefined) {
-          setDeliveryFee(storeConfig.deliveryFee)
+        if (storeConfig) {
+          if (storeConfig.deliveryFee !== undefined) {
+            setDeliveryFee(storeConfig.deliveryFee)
+          }
+          
+          // Carregar configurações específicas para picolés
+          if (storeConfig.picoleDeliveryFee !== undefined) {
+            setPicoleDeliveryFee(storeConfig.picoleDeliveryFee)
+          }
+          
+          if (storeConfig.minimumPicoleOrder !== undefined) {
+            setMinimumPicoleOrder(storeConfig.minimumPicoleOrder)
+          }
+
+          // Carregar configurações específicas para moreninha
+          if (storeConfig.moreninhaDeliveryFee !== undefined) {
+            setMoreninhaDeliveryFee(storeConfig.moreninhaDeliveryFee)
+          }
+          
+          if (storeConfig.minimumMoreninhaOrder !== undefined) {
+            setMinimumMoreninhaOrder(storeConfig.minimumMoreninhaOrder)
+          }
         }
       } catch (error) {
-        console.error("Erro ao carregar taxa de entrega:", error)
+        console.error("Erro ao carregar configurações da loja:", error)
       }
     }
 
-    loadDeliveryFee()
+    loadStoreConfig()
   }, [])
   
   // Carregar categorias dos produtos no carrinho
@@ -95,6 +197,15 @@ function CartPageContent() {
     }
   }, [cart])
 
+  // Sincronizar as notas do carrinho com o estado local
+  useEffect(() => {
+    const newNotesValues: Record<number, string> = {}
+    cart.forEach(item => {
+      newNotesValues[item.id] = item.notes || ""
+    })
+    setNotesValues(newNotesValues)
+  }, [cart])
+
   const handleQuantityChange = async (id: number, newQuantity: number) => {
     if (newQuantity < 1) return
 
@@ -111,6 +222,23 @@ function CartPageContent() {
 
   const handleRemoveItem = async (id: number) => {
     await removeFromCart(id)
+  }
+
+  const handleToggleNotes = (id: number) => {
+    setExpandedNotes(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  const handleNotesChange = (id: number, value: string) => {
+    setNotesValues(prev => ({ ...prev, [id]: value }))
+  }
+
+  const handleSaveNotes = async (id: number) => {
+    try {
+      await updateNotes(id, notesValues[id] || "")
+      setExpandedNotes(prev => ({ ...prev, [id]: false }))
+    } catch (error) {
+      console.error("Erro ao salvar observações:", error)
+    }
   }
 
   if (isLoading) {
@@ -208,30 +336,188 @@ function CartPageContent() {
                             </span>
                           )}
                           
-                          {/* Nome e preço do produto */}
+                          {/* Nome, preço e controles do produto */}
                           <div className="flex justify-between items-start">
-                            <span className="font-medium text-sm sm:text-base truncate pr-2 leading-tight">
-                              {item.quantity}x {item.name} <span className="text-xs text-gray-500 block sm:inline mt-0.5 sm:mt-0">({item.size})</span>
-                            </span>
-                            <span className="text-sm sm:text-base whitespace-nowrap ml-2 mt-0.5 bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CartPageContent">{formatCurrency(item.price)}</span>
+                            <div className="flex-1 min-w-0 pr-2">
+                              <span className="font-medium text-sm sm:text-base truncate pr-2 leading-tight">
+                                {item.quantity}x {item.name} <span className="text-xs text-gray-500 block sm:inline mt-0.5 sm:mt-0">({item.size})</span>
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <span className="text-sm sm:text-base whitespace-nowrap bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CartPageContent">{formatCurrency(item.price)}</span>
+                              
+                              {/* Botões de controle para MILK-SHAKE'S */}
+                              {(() => {
+                                const isMilkShake = item.categoryName?.toUpperCase().includes("MILK-SHAKE");
+                                return isMilkShake ? (
+                                  <div className="flex items-center gap-1">
+                                    {/* Controles de quantidade */}
+                                    <div className="flex items-center bg-gray-50 border border-purple-200 rounded-full h-7 shadow-sm transition-all duration-200 hover:shadow-md touch-manipulation">
+                                      <button
+                                        onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                                        className="px-1 py-0.5 text-purple-700 hover:bg-purple-100 h-full w-7 flex items-center justify-center rounded-l-full transition-colors duration-200 active:bg-purple-200 touch-manipulation"
+                                        disabled={isUpdating[item.id]}
+                                        aria-label="Diminuir quantidade"
+                                      >
+                                        <Minus size={12} className={`${isUpdating[item.id] ? 'opacity-50' : ''}`} />
+                                      </button>
+                                      <div className="relative px-1.5 min-w-[1.5rem] text-center">
+                                        <span className="text-xs font-medium">{item.quantity}</span>
+                                        {isUpdating[item.id] && (
+                                          <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="w-2 h-2 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                                          </div>
+                                        )}
+                                      </div>
+                                      <button
+                                        onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                                        className="px-1 py-0.5 text-purple-700 hover:bg-purple-100 h-full w-7 flex items-center justify-center rounded-r-full transition-colors duration-200 active:bg-purple-200 touch-manipulation"
+                                        disabled={isUpdating[item.id]}
+                                        aria-label="Aumentar quantidade"
+                                      >
+                                        <Plus size={12} className={`${isUpdating[item.id] ? 'opacity-50' : ''}`} />
+                                      </button>
+                                    </div>
+                                    
+                                    {/* Botão remover */}
+                                    <button
+                                      onClick={() => handleRemoveItem(item.id)}
+                                      className={`
+                                        group relative overflow-hidden text-red-500 flex items-center justify-center
+                                        bg-white border border-red-200 p-1 rounded-full shadow-sm
+                                        transition-all duration-300 hover:shadow-md hover:bg-red-50 hover:border-red-300
+                                        active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-opacity-50
+                                        touch-manipulation w-7 h-7
+                                        ${isUpdating[item.id] ? 'opacity-70 cursor-not-allowed' : ''}
+                                      `}
+                                      disabled={isUpdating[item.id]}
+                                      aria-label="Remover item"
+                                      title="Remover do carrinho"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                ) : null;
+                              })()}
+                            </div>
                           </div>
                         </div>
                         
                         {/* Lista de adicionais */}
                         {item.additionals && item.additionals.length > 0 && (
                           <div className="ml-2 sm:ml-4 mt-2">
-                                  <ul className="text-xs text-gray-600 space-y-1.5" data-component-name="CartPageContent">
-                              {item.additionals.map((additional, index) => (
-                                      <li key={index} className="flex justify-between items-baseline" data-component-name="CartPageContent">
-                                        <span className="truncate pr-2 leading-tight" data-component-name="CartPageContent">
-                                          + {additional.quantity}x {additional.name}
-                                        </span>
-                                        <span className="whitespace-nowrap ml-1">{additional.price === 0 ? "Grátis" : `+ ${formatCurrency(additional.price * (additional.quantity || 1))}`}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
+                            {(() => {
+                              // Verificar se é produto da categoria MILK-SHAKE'S
+                              const isMilkShake = item.categoryName?.toUpperCase().includes("MILK-SHAKE");
+                              
+                              return (
+                                <ul className={`text-xs text-gray-600 space-y-1.5 ${isMilkShake ? 'space-y-2' : ''}`} data-component-name="CartPageContent">
+                                  {item.additionals.map((additional, index) => (
+                                    <li 
+                                      key={index} 
+                                      className={`${isMilkShake ? 'flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1 sm:gap-0' : 'flex justify-between items-baseline'}`} 
+                                      data-component-name="CartPageContent"
+                                    >
+                                      <span 
+                                        className={`${isMilkShake ? 'break-words leading-tight text-left' : 'truncate'} pr-2 leading-tight`} 
+                                        data-component-name="CartPageContent"
+                                      >
+                                        + {additional.quantity}x {additional.name}
+                                      </span>
+                                      <span 
+                                        className={`whitespace-nowrap ${isMilkShake ? 'text-right' : 'ml-1'}`}
+                                      >
+                                        {additional.price === 0 ? "Grátis" : `+ ${formatCurrency(additional.price * (additional.quantity || 1))}`}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              );
+                            })()}
                           </div>
                         )}
+                        
+                        {/* Exibir informação de colher */}
+                        {item.needsSpoon !== undefined && (
+                          <div className="ml-2 sm:ml-4 mt-2">
+                            <div className={`${item.needsSpoon ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'} border-l-4 p-2 rounded-r-md`}>
+                              <div className="flex items-start">
+                                <span className={`inline-block w-2.5 h-2.5 ${item.needsSpoon ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-red-400 to-red-600'} rounded-full mr-1.5 mt-0.5 flex-shrink-0`}></span>
+                                <div className="text-xs">
+                                  <span className={`font-semibold ${item.needsSpoon ? 'text-green-800' : 'text-red-800'}`}>
+                                    Precisa de colher: {item.needsSpoon ? (
+                                      item.spoonQuantity && item.spoonQuantity > 1 ? 
+                                        `Sim (${item.spoonQuantity} colheres)` : 
+                                        'Sim (1 colher)'
+                                    ) : 'Não'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Observações do cliente */}
+                        <div className="ml-2 sm:ml-4 mt-2">
+                          {/* Botão para expandir/colapsar observações */}
+                          <button
+                            onClick={() => handleToggleNotes(item.id)}
+                            className="text-xs text-purple-600 hover:text-purple-800 flex items-center"
+                          >
+                            <svg 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              className={`h-3 w-3 mr-1 transform transition-transform ${expandedNotes[item.id] ? 'rotate-90' : ''}`} 
+                              fill="none" 
+                              viewBox="0 0 24 24" 
+                              stroke="currentColor"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                            {item.notes && item.notes.trim() !== "" 
+                              ? "Editar observações" 
+                              : "Adicionar observações"
+                            }
+                          </button>
+
+                          {/* Exibir observações salvas se existirem */}
+                          {item.notes && item.notes.trim() !== "" && !expandedNotes[item.id] && (
+                            <p className="text-xs text-gray-600 mt-1 italic bg-gray-50 p-1 rounded">
+                              "{item.notes}"
+                            </p>
+                          )}
+
+                          {/* Campo de entrada para observações */}
+                          {expandedNotes[item.id] && (
+                            <div className="mt-2 space-y-2">
+                              <textarea
+                                value={notesValues[item.id] || ""}
+                                onChange={(e) => handleNotesChange(item.id, e.target.value)}
+                                placeholder="Ex: remover banana, sem açúcar, etc."
+                                className="w-full text-xs border border-gray-300 rounded p-2 resize-none"
+                                rows={2}
+                                maxLength={200}
+                              />
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => handleSaveNotes(item.id)}
+                                  className="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700"
+                                >
+                                  Salvar
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setExpandedNotes(prev => ({ ...prev, [item.id]: false }))
+                                    setNotesValues(prev => ({ ...prev, [item.id]: item.notes || "" }))
+                                  }}
+                                  className="text-xs bg-gray-300 text-gray-700 px-2 py-1 rounded hover:bg-gray-400"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                         
                         {/* Espaço para separação visual */}
                         <div className="mt-1"></div>
@@ -239,61 +525,66 @@ function CartPageContent() {
                     </div>
                   </div>
 
-                  {/* Segunda linha: controles de quantidade e botão remover */}
-                  <div className="flex justify-end items-center gap-2 mt-3 w-full">
-                    {/* Controles de quantidade */}
-                    <div className="flex" data-component-name="CartPageContent">
-                      <div className="flex items-center bg-gray-50 border border-purple-200 rounded-full h-8 shadow-sm transition-all duration-200 hover:shadow-md touch-manipulation scale-90 origin-right" data-component-name="CartPageContent">
-                        <button
-                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                          className="px-1.5 py-0.5 text-purple-700 hover:bg-purple-100 h-full w-9 sm:w-8 flex items-center justify-center rounded-l-full transition-colors duration-200 active:bg-purple-200 touch-manipulation"
-                          disabled={isUpdating[item.id]}
-                          aria-label="Diminuir quantidade"
-                          data-component-name="CartPageContent"
-                        >
-                          <Minus size={14} className={`${isUpdating[item.id] ? 'opacity-50' : ''}`} />
-                        </button>
-                        <div className="relative px-2 min-w-[2rem] text-center">
-                          <span className="text-xs font-medium">{item.quantity}</span>
-                          {isUpdating[item.id] && (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-2.5 h-2.5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                  {/* Segunda linha: controles de quantidade e botão remover (apenas para produtos que NÃO são MILK-SHAKE'S) */}
+                  {(() => {
+                    const isMilkShake = item.categoryName?.toUpperCase().includes("MILK-SHAKE");
+                    return !isMilkShake ? (
+                      <div className="flex justify-end items-center gap-2 mt-3 w-full">
+                        {/* Controles de quantidade */}
+                        <div className="flex" data-component-name="CartPageContent">
+                          <div className="flex items-center bg-gray-50 border border-purple-200 rounded-full h-8 shadow-sm transition-all duration-200 hover:shadow-md touch-manipulation scale-90 origin-right" data-component-name="CartPageContent">
+                            <button
+                              onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                              className="px-1.5 py-0.5 text-purple-700 hover:bg-purple-100 h-full w-9 sm:w-8 flex items-center justify-center rounded-l-full transition-colors duration-200 active:bg-purple-200 touch-manipulation"
+                              disabled={isUpdating[item.id]}
+                              aria-label="Diminuir quantidade"
+                              data-component-name="CartPageContent"
+                            >
+                              <Minus size={14} className={`${isUpdating[item.id] ? 'opacity-50' : ''}`} />
+                            </button>
+                            <div className="relative px-2 min-w-[2rem] text-center">
+                              <span className="text-xs font-medium">{item.quantity}</span>
+                              {isUpdating[item.id] && (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-2.5 h-2.5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                              )}
                             </div>
-                          )}
+                            <button
+                              onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                              className="px-1.5 py-0.5 text-purple-700 hover:bg-purple-100 h-full w-9 sm:w-8 flex items-center justify-center rounded-r-full transition-colors duration-200 active:bg-purple-200 touch-manipulation"
+                              disabled={isUpdating[item.id]}
+                              aria-label="Aumentar quantidade"
+                            >
+                              <Plus size={14} className={`${isUpdating[item.id] ? 'opacity-50' : ''}`} />
+                            </button>
+                          </div>
                         </div>
+                        
+                        {/* Botão remover */}
                         <button
-                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                          className="px-1.5 py-0.5 text-purple-700 hover:bg-purple-100 h-full w-9 sm:w-8 flex items-center justify-center rounded-r-full transition-colors duration-200 active:bg-purple-200 touch-manipulation"
+                          onClick={() => handleRemoveItem(item.id)}
+                          className={`
+                            group relative overflow-hidden text-red-500 flex items-center justify-center
+                            bg-white border border-red-200 p-1.5 rounded-full shadow-sm
+                            transition-all duration-300 hover:shadow-md hover:bg-red-50 hover:border-red-300
+                            active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-opacity-50
+                            touch-manipulation w-8 h-8 scale-90 origin-right
+                            ${isUpdating[item.id] ? 'opacity-70 cursor-not-allowed' : ''}
+                          `}
                           disabled={isUpdating[item.id]}
-                          aria-label="Aumentar quantidade"
+                          aria-label="Remover item"
+                          data-component-name="CartPageContent"
+                          title="Remover do carrinho"
                         >
-                          <Plus size={14} className={`${isUpdating[item.id] ? 'opacity-50' : ''}`} />
+                          <span className="relative z-10 flex items-center justify-center">
+                            <Trash2 size={15} />
+                          </span>
+                          <span className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-700 transform scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100 group-hover:opacity-20" data-component-name="CartPageContent"></span>
                         </button>
                       </div>
-                    </div>
-                    
-                    {/* Botão remover */}
-                    <button
-                      onClick={() => handleRemoveItem(item.id)}
-                      className={`
-                        group relative overflow-hidden text-red-500 flex items-center justify-center
-                        bg-white border border-red-200 p-1.5 rounded-full shadow-sm
-                        transition-all duration-300 hover:shadow-md hover:bg-red-50 hover:border-red-300
-                        active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-opacity-50
-                        touch-manipulation w-8 h-8 scale-90 origin-right
-                        ${isUpdating[item.id] ? 'opacity-70 cursor-not-allowed' : ''}
-                      `}
-                      disabled={isUpdating[item.id]}
-                      aria-label="Remover item"
-                      data-component-name="CartPageContent"
-                      title="Remover do carrinho"
-                    >
-                      <span className="relative z-10 flex items-center justify-center">
-                        <Trash2 size={15} />
-                      </span>
-                      <span className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-700 transform scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100 group-hover:opacity-20" data-component-name="CartPageContent"></span>
-                    </button>
-                  </div>
+                    ) : null;
+                  })()}
                 </div>
               </li>
             ))}
@@ -305,7 +596,71 @@ function CartPageContent() {
 
           <div className="space-y-3">
             <ItemRow name="Subtotal" value={formatCurrency(subtotal)} />
-            <ItemRow name="Taxa de entrega" value={formatCurrency(deliveryFee)} />
+            
+            {/* Taxa de entrega com mensagem condicional */}
+            <div>
+              <ItemRow 
+                name="Taxa de entrega" 
+                value={formatCurrency(finalDeliveryFee)} 
+              />
+              
+              {/* Mensagem de taxa especial para picolés - Versão ultra compacta para mobile */}
+              {shouldApplyPicoleFee && (
+                <div className="mt-1 bg-red-50 border border-red-100 rounded-sm p-1 max-w-full overflow-hidden">
+                  <div className="flex items-start gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mt-0.5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-[10px] leading-tight text-red-600 font-medium">
+                      Taxa aplicada. Compre <span className="font-semibold">R$ {minimumPicoleOrder.toFixed(2).replace('.', ',')}</span> em picolés para frete grátis.
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Mensagem de taxa especial para moreninha */}
+              {shouldApplyMoreninhaFee && (
+                <div className="mt-1 bg-red-50 border border-red-100 rounded-sm p-1 max-w-full overflow-hidden">
+                  <div className="flex items-start gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mt-0.5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-[10px] leading-tight text-red-600 font-medium">
+                      Taxa aplicada. Compre <span className="font-semibold">R$ {minimumMoreninhaOrder.toFixed(2).replace('.', ',')}</span> em moreninha para frete grátis.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Mensagem de taxa grátis para picolés - Versão ultra compacta para mobile */}
+              {hasPicoleProducts && !shouldApplyPicoleFee && (
+                <div className="mt-1 bg-green-50 border border-green-100 rounded-sm p-1 max-w-full overflow-hidden">
+                  <div className="flex items-start gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mt-0.5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-[10px] leading-tight text-green-600 font-medium">
+                      Frete grátis para picolés aplicado!
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Mensagem de taxa grátis para moreninha */}
+              {hasOnlyMoreninhaProducts && !shouldApplyMoreninhaFee && (
+                <div className="mt-1 bg-green-50 border border-green-100 rounded-sm p-1 max-w-full overflow-hidden">
+                  <div className="flex items-start gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mt-0.5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-[10px] leading-tight text-green-600 font-medium">
+                      Frete grátis para moreninha aplicado!
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <div className="pt-3 mt-1 border-t">
               <ItemRow 
                 name="Total" 

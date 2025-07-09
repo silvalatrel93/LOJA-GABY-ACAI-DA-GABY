@@ -1,261 +1,411 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Product } from "../types"
 
-interface Category {
-  name: string
-}
-import { DEFAULT_STORE_ID } from "../constants"
-import { safelyGetRecordById } from "../supabase-utils"
-
-// Serviço para gerenciar produtos
 export const ProductService = {
   // Obter todos os produtos
   async getAllProducts(): Promise<Product[]> {
-    const supabase = createSupabaseClient()
-    const { data, error } = await supabase.from("products").select("*, category:categories(name)")
+    try {
+      const supabase = createSupabaseClient()
+      const { data, error } = await supabase
+        .from("products")
+        .select(`
+          id,
+          name,
+          description,
+          image,
+          sizes,
+          category_id,
+          categories!products_category_id_fkey(name),
+          active,
+          hidden,
+          allowed_additionals,
+          additionals_limit,
+          needs_spoon
+        `)
+        .order("id")
 
-    if (error) {
-      console.error("Erro ao buscar produtos:", error)
-      return []
-    }
-    
-    if (!data || !Array.isArray(data)) {
-      console.log("Nenhum produto encontrado ou data não é um array")
-      return []
-    }
+      if (error) {
+        console.error("Erro ao buscar produtos:", error)
+        return []
+      }
 
-    return data.map((item: any) => {
-      const allowedAdditionals = Array.isArray(item.allowed_additionals) ? item.allowed_additionals : []
-      return {
+      return data.map((item: any) => ({
         id: Number(item.id),
-        name: String(item.name || ""),
+        name: String(item.name),
         description: String(item.description || ""),
         image: String(item.image || ""),
         sizes: Array.isArray(item.sizes) ? item.sizes : [],
         categoryId: Number(item.category_id),
-        categoryName: item.category?.name ? String(item.category.name) : "",
+        categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories 
+          ? String((item.categories as any).name) 
+          : "",
         active: Boolean(item.active),
-        allowedAdditionals,
-        hasAdditionals: allowedAdditionals.length > 0,
-        additionalsLimit: Number(item.additionals_limit || 5)
-      }
-    })
+        hidden: Boolean(item.hidden || false),
+        allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
+        hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
+        additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
+        needsSpoon: typeof item.needs_spoon === 'boolean' ? item.needs_spoon : undefined,
+      }))
+    } catch (error) {
+      console.error("Erro ao buscar produtos:", error)
+      return []
+    }
   },
 
   // Obter produtos ativos
   async getActiveProducts(): Promise<Product[]> {
-    const supabase = createSupabaseClient()
-    const { data, error } = await supabase
-      .from("products")
-      .select("*, category:categories(name)")
-      .eq("active", true)
-      .order("name")
+    try {
+      const supabase = createSupabaseClient()
+      const { data, error } = await supabase
+        .from("products")
+        .select(`
+          id,
+          name,
+          description,
+          image,
+          sizes,
+          category_id,
+          categories!products_category_id_fkey(name),
+          active,
+          hidden,
+          allowed_additionals,
+          additionals_limit,
+          needs_spoon
+        `)
+        .eq("active", true)
+        .order("id")
 
-    if (error) {
+      if (error) {
+        console.error("Erro ao buscar produtos ativos:", error)
+        return []
+      }
+
+      return data.map((item: any) => ({
+        id: Number(item.id),
+        name: String(item.name),
+        description: String(item.description || ""),
+        image: String(item.image || ""),
+        sizes: Array.isArray(item.sizes) ? item.sizes : [],
+        categoryId: Number(item.category_id),
+        categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories 
+          ? String((item.categories as any).name) 
+          : "",
+        active: Boolean(item.active),
+        hidden: Boolean(item.hidden || false),
+        allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
+        hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
+        additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
+        needsSpoon: typeof item.needs_spoon === 'boolean' ? item.needs_spoon : undefined,
+      }))
+    } catch (error) {
       console.error("Erro ao buscar produtos ativos:", error)
       return []
     }
+  },
 
-    return data.map((item: any) => {
-      const allowedAdditionals = Array.isArray(item.allowed_additionals) ? item.allowed_additionals : []
-      return {
-      id: Number(item.id),
-      name: String(item.name || ""),
-      description: String(item.description || ""),
-      image: String(item.image || ""),
-      sizes: Array.isArray(item.sizes) ? item.sizes : [],
-      categoryId: Number(item.category_id),
-      categoryName: item.category?.name ? String(item.category.name) : "",
-      active: Boolean(item.active),
-      allowedAdditionals,
-      hasAdditionals: allowedAdditionals.length > 0,
-      additionalsLimit: Number(item.additionals_limit || 5)
+  // Obter produtos visíveis (ativos e não ocultos)
+  async getVisibleProducts(): Promise<Product[]> {
+    try {
+      const supabase = createSupabaseClient()
+      const { data, error } = await supabase
+        .from("products")
+        .select(`
+          id,
+          name,
+          description,
+          image,
+          sizes,
+          category_id,
+          categories!products_category_id_fkey(name),
+          active,
+          hidden,
+          allowed_additionals,
+          additionals_limit,
+          needs_spoon
+        `)
+        .eq("active", true)
+        .eq("hidden", false)
+        .order("id")
+
+      if (error) {
+        console.error("Erro ao buscar produtos visíveis:", error)
+        return []
       }
-    })
-  },
 
-  // Alias para getActiveProducts para compatibilidade
-  async getAllActiveProducts(): Promise<Product[]> {
-    return this.getActiveProducts()
-  },
-
-  // Obter produtos por categoria
-  async getProductsByCategory(categoryId: number): Promise<Product[]> {
-    const supabase = createSupabaseClient()
-    const { data, error } = await supabase
-      .from("products")
-      .select("*, category:categories(name)")
-      .eq("category_id", categoryId)
-      .eq("active", true)
-      .order("name")
-
-    if (error) {
-      console.error(`Erro ao buscar produtos da categoria ${categoryId}:`, error)
+      return data.map((item: any) => ({
+        id: Number(item.id),
+        name: String(item.name),
+        description: String(item.description || ""),
+        image: String(item.image || ""),
+        sizes: Array.isArray(item.sizes) ? item.sizes : [],
+        categoryId: Number(item.category_id),
+        categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories 
+          ? String((item.categories as any).name) 
+          : "",
+        active: Boolean(item.active),
+        hidden: Boolean(item.hidden || false),
+        allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
+        hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
+        additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
+        needsSpoon: typeof item.needs_spoon === 'boolean' ? item.needs_spoon : undefined,
+      }))
+    } catch (error) {
+      console.error("Erro ao buscar produtos visíveis:", error)
       return []
     }
-
-    return data.map((item: any) => {
-      const allowedAdditionals = Array.isArray(item.allowed_additionals) ? item.allowed_additionals : []
-      return {
-      id: Number(item.id),
-      name: String(item.name || ""),
-      description: String(item.description || ""),
-      image: String(item.image || ""),
-      sizes: Array.isArray(item.sizes) ? item.sizes : [],
-      categoryId: Number(item.category_id),
-      categoryName: item.category?.name ? String(item.category.name) : "",
-      active: Boolean(item.active),
-      allowedAdditionals,
-      hasAdditionals: allowedAdditionals.length > 0,
-      additionalsLimit: Number(item.additionals_limit || 5)
-      }
-    })
   },
 
   // Obter produto por ID
   async getProductById(id: number): Promise<Product | null> {
-    if (!id || isNaN(id)) {
-      console.error(`ID inválido para busca de produto: ${id}`)
-      return null
-    }
-    
-    const supabase = createSupabaseClient()
-    // Usar a função segura para evitar o erro PGRST116
-    const { data, error } = await safelyGetRecordById<any>(
-      supabase, 
-      "products", 
-      "id", 
-      id, 
-      "*, category:categories(name)"
-    )
-
-    if (error) {
-      console.error(`Erro ao buscar produto ${id}:`, error)
-      return null
-    }
-    
-    if (!data) {
-      console.log(`Produto com ID ${id} não encontrado`)
-      return null
-    }
-
-    const allowedAdditionals = Array.isArray(data.allowed_additionals) ? data.allowed_additionals : []
-    return {
-      id: Number(data.id),
-      name: String(data.name || ""),
-      description: String(data.description || ""),
-      image: String(data.image || ""),
-      sizes: data.sizes || [],
-      categoryId: Number(data.category_id),
-      categoryName: String(data.category?.name || ""),
-      active: Boolean(data.active),
-      allowedAdditionals,
-      hasAdditionals: allowedAdditionals.length > 0,
-      additionalsLimit: Number(data.additionals_limit || 5)
-    }
-  },
-
-  // Salvar produto
-  async saveProduct(product: Product): Promise<Product | null> {
-    const supabase = createSupabaseClient()
-
-    const productData = {
-      name: product.name,
-      description: product.description,
-      image: product.image,
-      sizes: product.sizes,
-      category_id: product.categoryId,
-      active: product.active !== undefined ? product.active : true,
-      allowed_additionals: product.allowedAdditionals || [],
-      additionals_limit: product.additionalsLimit || 5,
-      store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
-    }
-
     try {
-      let result
+      const supabase = createSupabaseClient()
+      const { data, error } = await supabase
+        .from("products")
+        .select(`
+          id,
+          name,
+          description,
+          image,
+          sizes,
+          category_id,
+          categories!products_category_id_fkey(name),
+          active,
+          hidden,
+          allowed_additionals,
+          additionals_limit,
+          needs_spoon
+        `)
+        .eq("id", id)
+        .single()
 
-      // Verificar se o produto existe antes de tentar atualizar
-      if (product.id) {
-        const { data: existingProduct } = await supabase
-          .from("products")
-          .select("id")
-          .eq("id", product.id)
-          .maybeSingle()
-
-        if (existingProduct) {
-          // Produto existe, atualizar
-          console.log(`Atualizando produto existente com ID: ${product.id}`)
-          result = await supabase
-            .from("products")
-            .update(productData)
-            .eq("id", product.id)
-            .select("*, category:categories(name)")
-        } else {
-          // Produto não existe, criar novo
-          console.log(`Produto com ID ${product.id} não encontrado. Criando novo produto.`)
-          result = await supabase.from("products").insert(productData).select("*, category:categories(name)")
-        }
-      } else {
-        // Criar novo produto
-        console.log("Criando novo produto")
-        result = await supabase.from("products").insert(productData).select("*, category:categories(name)")
+      if (error) {
+        console.error(`Erro ao buscar produto ${id}:`, error)
+        return null
       }
 
-      if (result.error) {
-        console.error("Erro ao salvar produto:", result.error)
-        throw new Error(`Erro ao salvar produto: ${result.error.message}`)
+      if (!data) {
+        return null
       }
 
-      if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
-        console.error("Falha ao salvar produto, nenhum dado retornado")
-        throw new Error("Falha ao salvar produto, nenhum dado retornado")
-      }
-
-      // Usar o primeiro item do array de resultados
-      const data = result.data[0] as any
-
-      const allowedAdditionals = Array.isArray(data.allowed_additionals) ? data.allowed_additionals : []
       return {
         id: Number(data.id),
-        name: String(data.name || ""),
+        name: String(data.name),
         description: String(data.description || ""),
         image: String(data.image || ""),
         sizes: Array.isArray(data.sizes) ? data.sizes : [],
         categoryId: Number(data.category_id),
-        categoryName: data.category && typeof data.category === 'object' && data.category !== null && 'name' in data.category ? String(data.category.name) : "",
+        categoryName: data.categories && typeof data.categories === 'object' && data.categories !== null && 'name' in data.categories 
+          ? String((data.categories as any).name) 
+          : "",
         active: Boolean(data.active),
-        allowedAdditionals,
-        hasAdditionals: allowedAdditionals.length > 0,
-        additionalsLimit: Number(data.additionals_limit || 5)
+        hidden: Boolean(data.hidden || false),
+        allowedAdditionals: Array.isArray(data.allowed_additionals) ? data.allowed_additionals : [],
+        hasAdditionals: Array.isArray(data.allowed_additionals) && data.allowed_additionals.length > 0,
+        additionalsLimit: typeof data.additionals_limit === 'number' ? data.additionals_limit : undefined,
+        needsSpoon: typeof data.needs_spoon === 'boolean' ? data.needs_spoon : undefined,
+      }
+    } catch (error) {
+      console.error(`Erro ao buscar produto ${id}:`, error)
+      return null
+    }
+  },
+
+  // Salvar produto
+  async saveProduct(product: Product): Promise<{ data: Product | null; error: Error | null }> {
+    try {
+      const supabase = createSupabaseClient()
+
+      // Determinar se é uma atualização (produto já existe no banco) ou criação (produto novo)
+      const isUpdate = product.id && product.id > 0
+
+      if (isUpdate) {
+        // Preparar dados para atualização com validação
+        const updateData = {
+          name: product.name,
+          description: product.description || "",
+          image: product.image || "",
+          sizes: product.sizes || [],
+          category_id: product.categoryId,
+          active: Boolean(product.active),
+          hidden: Boolean(product.hidden || false),
+          allowed_additionals: product.allowedAdditionals || [],
+          additionals_limit: product.additionalsLimit || 5,
+          needs_spoon: product.needsSpoon || false,
+          store_id: "00000000-0000-0000-0000-000000000000", // Store ID padrão
+        }
+
+        console.log("Dados para atualização:", updateData)
+
+        // Atualizar produto existente
+        const { data, error } = await supabase
+          .from("products")
+          .update(updateData)
+          .eq("id", product.id)
+          .select()
+          .single()
+
+        if (error) {
+          console.error("Erro ao atualizar produto:", {
+            error,
+            errorMessage: error.message,
+            errorCode: error.code,
+            errorDetails: error.details,
+            errorHint: error.hint,
+            productData: {
+              id: product.id,
+              name: product.name,
+              hidden: product.hidden
+            }
+          })
+          return { data: null, error: new Error(error.message || 'Erro desconhecido ao atualizar produto') }
+        }
+
+        const result: Product = {
+          id: Number(data.id),
+          name: String(data.name),
+          description: String(data.description || ""),
+          image: String(data.image || ""),
+          sizes: Array.isArray(data.sizes) ? data.sizes : [],
+          categoryId: Number(data.category_id),
+          active: Boolean(data.active),
+          hidden: Boolean(data.hidden || false),
+          allowedAdditionals: Array.isArray(data.allowed_additionals) ? data.allowed_additionals : [],
+          hasAdditionals: Array.isArray(data.allowed_additionals) && data.allowed_additionals.length > 0,
+          additionalsLimit: typeof data.additionals_limit === 'number' ? data.additionals_limit : undefined,
+          needsSpoon: typeof data.needs_spoon === 'boolean' ? data.needs_spoon : undefined,
+        }
+
+        return { data: result, error: null }
+      } else {
+        // Preparar dados para criação com validação
+        const insertData = {
+          name: product.name,
+          description: product.description || "",
+          image: product.image || "",
+          sizes: product.sizes || [],
+          category_id: product.categoryId,
+          active: Boolean(product.active !== undefined ? product.active : true),
+          hidden: Boolean(product.hidden || false),
+          allowed_additionals: product.allowedAdditionals || [],
+          additionals_limit: product.additionalsLimit || 5,
+          needs_spoon: product.needsSpoon || false,
+          store_id: "00000000-0000-0000-0000-000000000000", // Store ID padrão
+        }
+
+        console.log("Dados para criação:", insertData)
+
+        // Criar novo produto
+        const { data, error } = await supabase
+          .from("products")
+          .insert(insertData)
+          .select()
+          .single()
+
+        if (error) {
+          console.error("Erro ao criar produto:", {
+            error,
+            errorMessage: error.message,
+            errorCode: error.code,
+            errorDetails: error.details,
+            errorHint: error.hint,
+            productData: {
+              name: product.name,
+              hidden: product.hidden
+            }
+          })
+          return { data: null, error: new Error(error.message || 'Erro desconhecido ao criar produto') }
+        }
+
+        const result: Product = {
+          id: Number(data.id),
+          name: String(data.name),
+          description: String(data.description || ""),
+          image: String(data.image || ""),
+          sizes: Array.isArray(data.sizes) ? data.sizes : [],
+          categoryId: Number(data.category_id),
+          active: Boolean(data.active),
+          hidden: Boolean(data.hidden || false),
+          allowedAdditionals: Array.isArray(data.allowed_additionals) ? data.allowed_additionals : [],
+          hasAdditionals: Array.isArray(data.allowed_additionals) && data.allowed_additionals.length > 0,
+          additionalsLimit: typeof data.additionals_limit === 'number' ? data.additionals_limit : undefined,
+          needsSpoon: typeof data.needs_spoon === 'boolean' ? data.needs_spoon : undefined,
+        }
+
+        return { data: result, error: null }
       }
     } catch (error) {
       console.error("Erro ao salvar produto:", error)
-      throw error
+      return { data: null, error: error instanceof Error ? error : new Error(String(error)) }
     }
   },
 
   // Excluir produto
   async deleteProduct(id: number): Promise<boolean> {
-    const supabase = createSupabaseClient()
-    const { error } = await supabase.from("products").delete().eq("id", id)
+    try {
+      const supabase = createSupabaseClient()
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", id)
 
-    if (error) {
-      console.error(`Erro ao excluir produto ${id}:`, error)
+      if (error) {
+        console.error(`Erro ao deletar produto ${id}:`, error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error(`Erro ao deletar produto ${id}:`, error)
       return false
     }
+  },
 
-    return true
+  // Alternar visibilidade do produto
+  async toggleProductVisibility(id: number): Promise<boolean> {
+    try {
+      const supabase = createSupabaseClient()
+      
+      // Primeiro buscar o produto atual
+      const { data: currentProduct, error: fetchError } = await supabase
+        .from("products")
+        .select("hidden")
+        .eq("id", id)
+        .single()
+
+      if (fetchError) {
+        console.error(`Erro ao buscar produto ${id}:`, fetchError)
+        return false
+      }
+
+      // Inverter o valor de hidden
+      const newHiddenValue = !currentProduct.hidden
+
+      const { error } = await supabase
+        .from("products")
+        .update({ hidden: newHiddenValue })
+        .eq("id", id)
+
+      if (error) {
+        console.error(`Erro ao alterar visibilidade do produto ${id}:`, error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error(`Erro ao alterar visibilidade do produto ${id}:`, error)
+      return false
+    }
   },
 }
 
 // Exportar funções individuais para facilitar o uso
 export const getAllProducts = ProductService.getAllProducts.bind(ProductService)
 export const getActiveProducts = ProductService.getActiveProducts.bind(ProductService)
-export const getAllActiveProducts = ProductService.getAllActiveProducts.bind(ProductService)
-export const getProductsByCategory = ProductService.getProductsByCategory.bind(ProductService)
+export const getVisibleProducts = ProductService.getVisibleProducts.bind(ProductService)
 export const getProductById = ProductService.getProductById.bind(ProductService)
 export const saveProduct = ProductService.saveProduct.bind(ProductService)
 export const deleteProduct = ProductService.deleteProduct.bind(ProductService)
+export const toggleProductVisibility = ProductService.toggleProductVisibility.bind(ProductService)
 
 // Exportar tipos
 export type { Product } from "../types"

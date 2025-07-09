@@ -257,6 +257,13 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                   margin-bottom: 1mm;
                   font-size: 9pt;
                 }
+                .spoon-info {
+                  font-weight: bold;
+                  margin-left: 4mm;
+                  margin-top: 1mm;
+                  margin-bottom: 1mm;
+                  font-size: 9pt;
+                }
                 .additional {
                   font-family: 'Courier New', 'Liberation Mono', 'DejaVu Sans Mono', 'Consolas', monospace;
                   font-size: 8pt;
@@ -453,6 +460,27 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       doc.text("ENDEREÇO", margin, yPos)
       yPos += 5
       doc.setFont("courier", "normal")
+      
+      // Tipo de endereço
+      if (order.address.addressType) {
+        let addressTypeText = ""
+        switch (order.address.addressType) {
+          case 'casa':
+            addressTypeText = "Casa"
+            break
+          case 'apto':
+            addressTypeText = "Apartamento"
+            break
+          case 'condominio':
+            addressTypeText = "Condomínio"
+            break
+          default:
+            addressTypeText = order.address.addressType
+        }
+        doc.text(`Tipo: ${addressTypeText}`, margin, yPos)
+        yPos += 5
+      }
+      
       doc.text(`${normalizeForThermalPrint(order.address.street)}, ${order.address.number}`, margin, yPos)
       yPos += 5
       doc.text(`Bairro: ${normalizeForThermalPrint(order.address.neighborhood)}`, margin, yPos)
@@ -493,6 +521,41 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           })
         }
 
+        // Adicionar informação da colher
+        if (item.needsSpoon !== undefined) {
+          doc.setFont("courier", "bold")
+          let spoonText = "Precisa de colher: "
+          if (item.needsSpoon) {
+            spoonText += item.spoonQuantity && item.spoonQuantity > 1 ? 
+              `Sim (${item.spoonQuantity} colheres)` : 
+              'Sim (1 colher)'
+          } else {
+            spoonText += "Não"
+          }
+          doc.text(spoonText, margin + 3, yPos)
+          yPos += 5
+          doc.setFont("courier", "normal")
+        }
+
+        // Adicionar observações do cliente
+        if (item.notes && item.notes.trim() !== "") {
+          doc.setFont("courier", "bold")
+          doc.text("Obs:", margin + 3, yPos)
+          yPos += 4
+          doc.setFont("courier", "normal")
+          
+          // Quebrar o texto das observações em múltiplas linhas se necessário
+          const normalizedNotes = normalizeForThermalPrint(item.notes)
+          const notesLines = doc.splitTextToSize(normalizedNotes, availableWidth - 10)
+          
+          notesLines.forEach((line: string) => {
+            doc.text(line, margin + 8, yPos)
+            yPos += 4
+          })
+          
+          yPos += 2 // Espaço extra após observações
+        }
+
         yPos += 3 // Espaço extra após cada item
       })
 
@@ -516,6 +579,39 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       doc.text(formatCurrency(order.deliveryFee), LABEL_WIDTH_MM - margin, yPos, { align: "right" })
       yPos += 5
 
+      // Explicação da taxa de entrega para picolés
+      const isPicoleOnlyOrder = order.items.every(item => {
+        const picoléTerms = ["PICOLÉ", "PICOLÉ AO LEITE", "PICOLE", "PICOLE AO LEITE", "PICOLÉ AO LEITÉ", "PICOLE AO LEITÉ"]
+        const itemCategory = item.name || ""
+        return picoléTerms.some(term => itemCategory.toUpperCase().includes(term))
+      })
+      
+      if (isPicoleOnlyOrder && order.deliveryFee > 0 && order.subtotal < 20) {
+        doc.setFont("courier", "italic")
+        doc.setFontSize(8)
+        const explicacao = "* Taxa aplicada para picoles abaixo de R$ 20,00"
+        doc.text(normalizeForThermalPrint(explicacao), margin, yPos)
+        yPos += 5
+        doc.setFont("courier", "normal")
+        doc.setFontSize(10)
+      }
+
+      // Explicação da taxa de entrega para moreninha
+      const isMoreninhaOnlyOrder = order.items.every(item => {
+        const itemCategory = item.name || ""
+        return itemCategory.toUpperCase().includes("MORENINHA")
+      })
+      
+      if (isMoreninhaOnlyOrder && order.deliveryFee > 0 && order.subtotal < 17) {
+        doc.setFont("courier", "italic")
+        doc.setFontSize(8)
+        const explicacao = "* Taxa aplicada para moreninha abaixo de R$ 17,00"
+        doc.text(normalizeForThermalPrint(explicacao), margin, yPos)
+        yPos += 5
+        doc.setFont("courier", "normal")
+        doc.setFontSize(10)
+      }
+
       doc.setFont("courier", "bold")
       doc.text("TOTAL:", margin, yPos)
       doc.text(formatCurrency(order.total), LABEL_WIDTH_MM - margin, yPos, { align: "right" })
@@ -525,13 +621,14 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       doc.setFont("courier", "normal")
       let paymentText = "Forma de pagamento: "
       if (order.paymentMethod === "pix") {
-        paymentText += "PIX"
+        paymentText += "Pix na Entrega"
       } else if (order.paymentMethod === "card") {
         paymentText += "Cartão na Entrega"
       } else if (order.paymentMethod === "money") {
         paymentText += "Dinheiro"
         if (order.paymentChange && parseFloat(order.paymentChange) > 0) {
-          paymentText += ` (Troco para R$ ${parseFloat(order.paymentChange).toFixed(2).replace('.', ',')})`
+          const troco = Math.round((parseFloat(order.paymentChange) - order.total) * 100) / 100
+          paymentText += ` (Troco: R$ ${troco.toFixed(2).replace('.', ',')})`
         } else {
           paymentText += " (Sem troco)"
         }
@@ -636,6 +733,15 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
           <div className="section">
             <div className="section-title" style={{ fontFamily: 'Arial, sans-serif' }}>ENDEREÇO</div>
+            {/* Tipo de endereço */}
+            {order.address.addressType && (
+              <div>
+                Tipo: {order.address.addressType === 'casa' ? 'Casa' : 
+                      order.address.addressType === 'apto' ? 'Apartamento' : 
+                      order.address.addressType === 'condominio' ? 'Condomínio' : 
+                      order.address.addressType}
+              </div>
+            )}
             <div>
               {normalizeForThermalPrint(order.address.street)}, {order.address.number}
             </div>
@@ -668,6 +774,24 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                     ))}
                   </div>
                 ) : null}
+
+                {/* Indicar se precisa de colher */}
+                {item.needsSpoon !== undefined && (
+                  <div className="spoon-info">
+                    Precisa de colher: {item.needsSpoon ? (
+                      item.spoonQuantity && item.spoonQuantity > 1 ? 
+                        `Sim (${item.spoonQuantity} colheres)` : 
+                        'Sim (1 colher)'
+                    ) : 'Não'}
+                  </div>
+                )}
+
+                {/* Observações do cliente */}
+                {item.notes && item.notes.trim() !== "" && (
+                  <div className="additional-status">
+                    <strong>Obs:</strong> {normalizeForThermalPrint(item.notes)}
+                  </div>
+                )}
               </div>
             ))}
             {/* Espaçamento adicional de 1 linha após todos os itens */}
@@ -688,6 +812,54 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
               <div>Taxa de entrega:</div>
               <div style={{ fontWeight: "bold" }}>{formatCurrency(order.deliveryFee)}</div>
             </div>
+            
+            {/* Explicação da taxa de entrega para picolés */}
+            {(() => {
+              const isPicoleOnlyOrder = order.items.every(item => {
+                const picoléTerms = ["PICOLÉ", "PICOLÉ AO LEITE", "PICOLE", "PICOLE AO LEITE", "PICOLÉ AO LEITÉ", "PICOLE AO LEITÉ"]
+                const itemCategory = item.name || ""
+                return picoléTerms.some(term => itemCategory.toUpperCase().includes(term))
+              })
+              
+              if (isPicoleOnlyOrder && order.deliveryFee > 0 && order.subtotal < 20) {
+                return (
+                  <div style={{ 
+                    fontSize: "9px", 
+                    fontStyle: "italic", 
+                    color: "#666", 
+                    marginTop: "2px",
+                    textAlign: "center"
+                  }}>
+                    * Taxa aplicada para picolés abaixo de R$ 20,00
+                  </div>
+                )
+              }
+              return null
+            })()}
+
+            {/* Explicação da taxa de entrega para moreninha */}
+            {(() => {
+              const isMoreninhaOnlyOrder = order.items.every(item => {
+                const itemCategory = item.name || ""
+                return itemCategory.toUpperCase().includes("MORENINHA")
+              })
+              
+              if (isMoreninhaOnlyOrder && order.deliveryFee > 0 && order.subtotal < 17) {
+                return (
+                  <div style={{ 
+                    fontSize: "9px", 
+                    fontStyle: "italic", 
+                    color: "#666", 
+                    marginTop: "2px",
+                    textAlign: "center"
+                  }}>
+                    * Taxa aplicada para moreninha abaixo de R$ 17,00
+                  </div>
+                )
+              }
+              return null
+            })()}
+            
             <div className="item total flex justify-between">
               <div>TOTAL:</div>
               <div>{formatCurrency(order.total)}</div>
@@ -697,7 +869,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           <div className="section">
             <div className="mb-1">
               <span className="font-medium">Forma de pagamento:</span> {
-                order.paymentMethod === "pix" ? "PIX" :
+                order.paymentMethod === "pix" ? "Pix na Entrega" :
                 order.paymentMethod === "card" ? "Cartão na Entrega" :
                 "Dinheiro"
               }
@@ -708,7 +880,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                 <div className="text-right font-medium">{formatCurrency(parseFloat(order.paymentChange))}</div>
                 <div className="text-green-700 font-semibold">Troco:</div>
                 <div className="text-right font-bold text-green-700">
-                  {formatCurrency(parseFloat(order.paymentChange) - order.total)}
+                  {formatCurrency(Math.round((parseFloat(order.paymentChange) - order.total) * 100) / 100)}
                 </div>
               </div>
             )}

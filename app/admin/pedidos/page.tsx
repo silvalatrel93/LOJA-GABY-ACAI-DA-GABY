@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
-import { ArrowLeft, Printer, RefreshCw, Bell, BellOff, X, MessageSquare } from "lucide-react"
+import { ArrowLeft, Printer, RefreshCw, Bell, BellOff, X, MessageSquare, Trash2 } from "lucide-react"
 import { getAllOrders, markOrderAsPrinted, updateOrderStatus, type Order } from "@/lib/db"
 import { OrderService } from "@/lib/services/order-service"
 import { WhatsAppService } from "@/lib/services/whatsapp-service"
@@ -282,6 +282,39 @@ export default function OrdersPage() {
     setSelectedOrder(order);
     setIsPrinterModalOpen(true);
   }, []);
+
+  const handleDeleteOrder = React.useCallback(async (order: Order, event: React.MouseEvent) => {
+    event.stopPropagation(); // Impedir que o clique abra o modal do pedido
+    
+    // Confirmar com o usuário antes de excluir
+    const confirmDelete = window.confirm(
+      `Tem certeza que deseja excluir o Pedido #${order.id}?\n\n` +
+      `Cliente: ${order.customerName}\n` +
+      `Total: ${formatCurrency(order.total)}\n\n` +
+      `Esta ação não pode ser desfeita.`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      console.log(`Excluindo pedido #${order.id}...`);
+      const success = await OrderService.deleteOrder(order.id);
+      
+      if (success) {
+        console.log(`Pedido #${order.id} excluído com sucesso`);
+        // Recarregar a lista de pedidos
+        await loadOrders(true);
+        
+        // Mostrar mensagem de sucesso
+        alert(`Pedido #${order.id} excluído com sucesso!`);
+      } else {
+        throw new Error('Falha ao excluir pedido');
+      }
+    } catch (error) {
+      console.error(`Erro ao excluir pedido #${order.id}:`, error);
+      alert(`Erro ao excluir o pedido #${order.id}. Tente novamente.`);
+    }
+  }, [loadOrders]);
 
   const handlePrintComplete = React.useCallback(async () => {
     if (selectedOrder?.id) {
@@ -632,11 +665,21 @@ export default function OrdersPage() {
                           <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full mr-2">Impresso</span>
                         )}
                         <button
-                          onClick={() => handlePrintLabel(order)}
-                          className="bg-purple-100 text-purple-800 p-1 rounded-full"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Impedir que o clique abra o modal do pedido
+                            handlePrintLabel(order);
+                          }}
+                          className="bg-purple-100 text-purple-800 p-1 rounded-full hover:bg-purple-200 transition-colors"
                           title="Imprimir Etiqueta"
                         >
                           <Printer size={16} />
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteOrder(order, e)}
+                          className="bg-red-100 text-red-800 p-1 rounded-full hover:bg-red-200 transition-colors"
+                          title="Excluir Pedido"
+                        >
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </div>
@@ -686,6 +729,14 @@ export default function OrdersPage() {
                     <div className="mt-3">
                       <h4 className="font-medium text-sm text-gray-700">Endereço</h4>
                       <div className="flex flex-col">
+                        {/* Tipo de endereço */}
+                        {order.address.addressType && (
+                          <p className="text-xs text-purple-600 font-medium mb-1 flex items-center">
+                            {order.address.addressType === 'casa' && '🏠 Casa'}
+                            {order.address.addressType === 'apto' && '🏢 Apartamento'}
+                            {order.address.addressType === 'condominio' && '🏘️ Condomínio'}
+                          </p>
+                        )}
                         <p className="font-medium">
                           {order.address.street}, {order.address.number}
                         </p>
@@ -725,6 +776,37 @@ export default function OrdersPage() {
                                 </ul>
                               </div>
                             ) : null}
+                            
+                            {/* Exibir informação de colher */}
+                            {item.needsSpoon !== undefined && (
+                              <div className={`mt-2 ${item.needsSpoon ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'} border-l-4 p-2 rounded-r-md`}>
+                                <div className="flex items-start">
+                                  <span className={`inline-block w-2.5 h-2.5 ${item.needsSpoon ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-red-400 to-red-600'} rounded-full mr-1.5 mt-0.5 flex-shrink-0`}></span>
+                                  <div className="text-sm">
+                                    <span className={`font-semibold ${item.needsSpoon ? 'text-green-800' : 'text-red-800'}`}>
+                                      Precisa de colher: {item.needsSpoon ? (
+                                        item.spoonQuantity && item.spoonQuantity > 1 ? 
+                                          `Sim (${item.spoonQuantity} colheres)` : 
+                                          'Sim (1 colher)'
+                                      ) : 'Não'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Exibir observações do cliente */}
+                            {item.notes && item.notes.trim() !== "" && (
+                              <div className="mt-1 bg-yellow-50 border-l-4 border-yellow-400 p-2 rounded-r-md">
+                                <div className="flex items-start">
+                                  <span className="inline-block w-2.5 h-2.5 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full mr-1.5 mt-1 flex-shrink-0"></span>
+                                  <div className="text-sm">
+                                    <span className="font-semibold text-yellow-800">Obs:</span>
+                                    <span className="text-yellow-700 ml-1">{item.notes}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -738,6 +820,45 @@ export default function OrdersPage() {
                         <span className="text-gray-700">Taxa de entrega</span>
                         <span className="text-right font-medium">{formatCurrency(order.deliveryFee)}</span>
                         
+                        {/* Explicação da taxa de entrega para picolés */}
+                        {(() => {
+                          const isPicoleOnlyOrder = order.items.every(item => {
+                            const picoléTerms = ["PICOLÉ", "PICOLÉ AO LEITE", "PICOLE", "PICOLE AO LEITE", "PICOLÉ AO LEITÉ", "PICOLE AO LEITÉ"]
+                            const itemCategory = item.name || ""
+                            return picoléTerms.some(term => itemCategory.toUpperCase().includes(term))
+                          })
+                          
+                          if (isPicoleOnlyOrder && order.deliveryFee > 0 && order.subtotal < 20) {
+                            return (
+                              <div className="col-span-2 text-center">
+                                <span className="text-xs italic text-gray-500">
+                                  * Taxa aplicada para picolés abaixo de R$ 20,00
+                                </span>
+                              </div>
+                            )
+                          }
+                          return null
+                        })()}
+
+                        {/* Explicação da taxa de entrega para moreninha */}
+                        {(() => {
+                          const isMoreninhaOnlyOrder = order.items.every(item => {
+                            const itemCategory = item.name || ""
+                            return itemCategory.toUpperCase().includes("MORENINHA")
+                          })
+                          
+                          if (isMoreninhaOnlyOrder && order.deliveryFee > 0 && order.subtotal < 17) {
+                            return (
+                              <div className="col-span-2 text-center">
+                                <span className="text-xs italic text-gray-500">
+                                  * Taxa aplicada para moreninha abaixo de R$ 17,00
+                                </span>
+                              </div>
+                            )
+                          }
+                          return null
+                        })()}
+                        
                         <span className="text-gray-900 font-bold">Total</span>
                         <span className="text-right font-bold text-purple-700">{formatCurrency(order.total)}</span>
                       </div>
@@ -747,7 +868,7 @@ export default function OrdersPage() {
                           <span className="text-gray-700">Forma de pagamento</span>
                           <span className="text-right font-medium">
                             {order.paymentMethod === "pix" 
-                              ? "PIX" 
+                              ? "Pix na Entrega" 
                               : order.paymentMethod === "card" 
                                 ? "Cartão na Entrega" 
                                 : "Dinheiro"
@@ -762,7 +883,7 @@ export default function OrdersPage() {
                               </span>
                               <span className="text-sm text-green-700 font-semibold">Troco</span>
                               <span className="text-sm text-right text-green-700 font-semibold">
-                                {formatCurrency(parseFloat(order.paymentChange) - order.total)}
+                                {formatCurrency(Math.round((parseFloat(order.paymentChange) - order.total) * 100) / 100)}
                               </span>
                             </>
                           )}

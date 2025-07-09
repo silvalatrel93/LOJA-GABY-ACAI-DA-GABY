@@ -1,11 +1,10 @@
 "use client"
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import { getAllActiveProducts } from "@/lib/services/product-service"
+import { getVisibleProducts } from "@/lib/services/product-service"
 import { getActiveCategories } from "@/lib/services/category-service"
 import ProductCard from "@/components/product-card"
-import type { Product } from "@/lib/services/product-service"
-import type { Category } from "@/lib/services/category-service"
+import type { Product, Category } from "@/lib/types"
 import { createSafeKey } from "@/lib/key-utils"
 
 interface ProductListProps {
@@ -161,7 +160,7 @@ export default function ProductList({ products: _initialProducts = [], categorie
         setCategories(categoriesWithAll)
 
         // Carregar todos os produtos de uma vez
-        const allProductsList = await getAllActiveProducts()
+        const allProductsList = await getVisibleProducts()
         setAllProducts(allProductsList)
 
         // Selecionar a primeira categoria por padrão

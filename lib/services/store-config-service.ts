@@ -10,6 +10,10 @@ interface SupabaseStoreConfig {
   logo_url: string | null
   delivery_fee: number
   maringa_delivery_fee?: number // Taxa de entrega específica para Maringá
+  picole_delivery_fee?: number // Taxa de entrega específica para picolés
+  minimum_picole_order?: number // Valor mínimo para isenção da taxa de entrega de picolés
+  moreninha_delivery_fee?: number // Taxa de entrega específica para moreninha
+  minimum_moreninha_order?: number // Valor mínimo para isenção da taxa de entrega de moreninha
   is_open: boolean
   operating_hours: OperatingHours
   special_dates: SpecialDate[]
@@ -27,6 +31,10 @@ const DEFAULT_STORE_CONFIG: StoreConfig = {
   logoUrl: "/acai-logo.png",
   deliveryFee: 0,
   maringaDeliveryFee: 0, // Taxa de entrega específica para Maringá
+  picoleDeliveryFee: 5.0, // Taxa de entrega específica para picolés
+  minimumPicoleOrder: 20.0, // Valor mínimo para isenção da taxa de entrega de picolés
+  moreninhaDeliveryFee: 5.0, // Taxa de entrega específica para moreninha
+  minimumMoreninhaOrder: 17.0, // Valor mínimo para isenção da taxa de entrega de moreninha
   isOpen: true,
   carousel_initialized: false,
   operatingHours: {
@@ -83,6 +91,18 @@ export const StoreConfigService = {
         maringaDeliveryFee: typeof config.maringa_delivery_fee === 'number'
           ? config.maringa_delivery_fee
           : Number(config.maringa_delivery_fee) || 0,
+        picoleDeliveryFee: typeof config.picole_delivery_fee === 'number'
+          ? config.picole_delivery_fee
+          : Number(config.picole_delivery_fee) || 5.0,
+        minimumPicoleOrder: typeof config.minimum_picole_order === 'number'
+          ? config.minimum_picole_order
+          : Number(config.minimum_picole_order) || 20.0,
+        moreninhaDeliveryFee: typeof config.moreninha_delivery_fee === 'number'
+          ? config.moreninha_delivery_fee
+          : Number(config.moreninha_delivery_fee) || 5.0,
+        minimumMoreninhaOrder: typeof config.minimum_moreninha_order === 'number'
+          ? config.minimum_moreninha_order
+          : Number(config.minimum_moreninha_order) || 17.0,
         isOpen: Boolean(config.is_open),
         operatingHours: config.operating_hours && typeof config.operating_hours === 'object'
           ? config.operating_hours 
@@ -130,6 +150,10 @@ export const StoreConfigService = {
         logoUrl: typeof config.logoUrl === 'string' ? config.logoUrl : '/acai-logo.png',
         deliveryFee: typeof config.deliveryFee === 'number' ? config.deliveryFee : 0,
         maringaDeliveryFee: typeof config.maringaDeliveryFee === 'number' ? config.maringaDeliveryFee : 0,
+        picoleDeliveryFee: typeof config.picoleDeliveryFee === 'number' ? config.picoleDeliveryFee : 5.0,
+        minimumPicoleOrder: typeof config.minimumPicoleOrder === 'number' ? config.minimumPicoleOrder : 20.0,
+        moreninhaDeliveryFee: typeof config.moreninhaDeliveryFee === 'number' ? config.moreninhaDeliveryFee : 5.0,
+        minimumMoreninhaOrder: typeof config.minimumMoreninhaOrder === 'number' ? config.minimumMoreninhaOrder : 17.0,
         isOpen: Boolean(config.isOpen),
         maxPicolesPerOrder: typeof config.maxPicolesPerOrder === 'number' ? config.maxPicolesPerOrder : 20,
         operatingHours: config.operatingHours && typeof config.operatingHours === 'object' 
@@ -150,6 +174,10 @@ export const StoreConfigService = {
         logo_url: validatedConfig.logoUrl || null, // Pode ser undefined no StoreConfig
         delivery_fee: validatedConfig.deliveryFee,
         maringa_delivery_fee: validatedConfig.maringaDeliveryFee,
+        picole_delivery_fee: validatedConfig.picoleDeliveryFee,
+        minimum_picole_order: validatedConfig.minimumPicoleOrder,
+        moreninha_delivery_fee: validatedConfig.moreninhaDeliveryFee,
+        minimum_moreninha_order: validatedConfig.minimumMoreninhaOrder,
         is_open: validatedConfig.isOpen,
         operating_hours: validatedConfig.operatingHours,
         special_dates: validatedConfig.specialDates || [], // Garante um array vazio se for undefined
@@ -201,6 +229,18 @@ export const StoreConfigService = {
         maringaDeliveryFee: typeof savedConfig.maringa_delivery_fee === 'number'
           ? savedConfig.maringa_delivery_fee
           : Number(savedConfig.maringa_delivery_fee) || 8.0,
+        picoleDeliveryFee: typeof savedConfig.picole_delivery_fee === 'number'
+          ? savedConfig.picole_delivery_fee
+          : Number(savedConfig.picole_delivery_fee) || 5.0,
+        minimumPicoleOrder: typeof savedConfig.minimum_picole_order === 'number'
+          ? savedConfig.minimum_picole_order
+          : Number(savedConfig.minimum_picole_order) || 20.0,
+        moreninhaDeliveryFee: typeof savedConfig.moreninha_delivery_fee === 'number'
+          ? savedConfig.moreninha_delivery_fee
+          : Number(savedConfig.moreninha_delivery_fee) || 5.0,
+        minimumMoreninhaOrder: typeof savedConfig.minimum_moreninha_order === 'number'
+          ? savedConfig.minimum_moreninha_order
+          : Number(savedConfig.minimum_moreninha_order) || 17.0,
         isOpen: Boolean(savedConfig.is_open),
         operatingHours: savedConfig.operating_hours && typeof savedConfig.operating_hours === 'object'
           ? savedConfig.operating_hours 

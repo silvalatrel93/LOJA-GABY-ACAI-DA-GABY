@@ -9,7 +9,8 @@ import type { CartItem } from "@/lib/types"
 interface CartContextType {
   cart: CartItem[]
   addToCart: (item: Omit<CartItem, "id">) => Promise<void>
-  updateQuantity: (id: number, quantity: number) => Promise<void>
+  updateQuantity: (id: number, quantity: number, updatedFields?: Partial<CartItem>) => Promise<void>
+  updateNotes: (id: number, notes: string) => Promise<void>
   removeFromCart: (id: number) => Promise<void>
   clearCart: () => Promise<void>
   isLoading: boolean
@@ -55,14 +56,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [loadCart],
   )
 
-  // Atualizar quantidade de um item (com atualização otimista da UI)
+  // Atualizar quantidade e outros campos de um item (com atualização otimista da UI)
   const handleUpdateQuantity = useCallback(
-    async (id: number, quantity: number) => {
+    async (id: number, quantity: number, updatedFields?: Partial<CartItem>) => {
       try {
         // Atualização otimista da UI
         setCart((prevCart) => {
           const newCart = prevCart.map((item) => {
             if (item.id === id) {
+              // Aplicar atualizações adicionais se fornecidas
+              if (updatedFields) {
+                return { ...item, quantity, ...updatedFields }
+              }
               return { ...item, quantity }
             }
             return item
@@ -76,9 +81,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         })
 
         // Atualizar no banco de dados
-        await updateCartItemQuantity(id, quantity)
+        await updateCartItemQuantity(id, quantity, updatedFields)
       } catch (error) {
-        console.error("Erro ao atualizar quantidade:", error)
+        console.error("Erro ao atualizar item do carrinho:", error)
         // Em caso de erro, recarregar o carrinho para garantir consistência
         await loadCart()
       }
@@ -112,6 +117,34 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [loadCart],
   )
 
+  // Atualizar observações de um item
+  const handleUpdateNotes = useCallback(
+    async (id: number, notes: string) => {
+      try {
+        // Atualização otimista da UI
+        setCart((prevCart) => {
+          return prevCart.map((item) => {
+            if (item.id === id) {
+              return { ...item, notes }
+            }
+            return item
+          })
+        })
+
+        // Atualizar no banco de dados - passar a quantidade atual do item
+        const currentItem = cart.find(item => item.id === id)
+        if (currentItem) {
+          await updateCartItemQuantity(id, currentItem.quantity, { notes })
+        }
+      } catch (error) {
+        console.error("Erro ao atualizar observações do item:", error)
+        // Em caso de erro, recarregar o carrinho para garantir consistência
+        await loadCart()
+      }
+    },
+    [loadCart, cart],
+  )
+
   // Limpar carrinho
   const handleClearCart = useCallback(async () => {
     try {
@@ -130,6 +163,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         cart,
         addToCart: handleAddToCart,
         updateQuantity: handleUpdateQuantity,
+        updateNotes: handleUpdateNotes,
         removeFromCart: handleRemoveFromCart,
         clearCart: handleClearCart,
         isLoading,

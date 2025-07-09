@@ -1,181 +1,173 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Category } from "../types"
-export type { Category } from "../types"; 
-import { DEFAULT_STORE_ID } from "../constants"
-import { safelyGetRecordById } from "../supabase-utils"
 
 // Serviço para gerenciar categorias
 export const CategoryService = {
   // Obter todas as categorias
   async getAllCategories(): Promise<Category[]> {
-    const supabase = createSupabaseClient()
-    const { data, error } = await supabase.from("categories").select("*").order("order", { ascending: true })
+    try {
+      const supabase = createSupabaseClient()
+      let query = supabase.from("categories").select("*").order("order")
 
-    if (error) {
+      const { data, error } = await query
+
+      if (error) {
+        console.error("Erro ao buscar categorias:", error)
+        return []
+      }
+
+      return (data || []).map((category: any) => ({
+        id: Number(category.id),
+        name: String(category.name),
+        order: Number(category.order),
+        active: Boolean(category.active),
+      }))
+    } catch (error) {
       console.error("Erro ao buscar categorias:", error)
       return []
-    }
-
-    return data.map((category: any) => ({
-      id: category.id as number,
-      name: category.name as string,
-      order: category.order as number,
-      active: category.active as boolean,
-    }))
-  },
-  
-  // Obter categoria por ID
-  async getCategoryById(id: number): Promise<Category | null> {
-    if (!id || isNaN(id)) {
-      console.error(`ID inválido para busca de categoria: ${id}`)
-      return null
-    }
-    
-    const supabase = createSupabaseClient()
-    // Usar a função segura para evitar o erro PGRST116
-    const { data, error } = await safelyGetRecordById<any>(supabase, "categories", "id", id)
-
-    if (error) {
-      console.error("Erro ao buscar categoria por ID:", error)
-      return null
-    }
-
-    if (!data) {
-      console.log(`Categoria com ID ${id} não encontrada`)
-      return null
-    }
-
-    // Converter os dados para o formato Category
-    return {
-      id: Number(data.id),
-      name: String(data.name || ""),
-      order: Number(data.order || 0),
-      active: Boolean(data.active),
     }
   },
 
   // Obter categorias ativas
   async getActiveCategories(): Promise<Category[]> {
-    const supabase = createSupabaseClient()
-    const { data, error } = await supabase
-      .from("categories")
-      .select("*")
-      .eq("active", true)
-      .order("order", { ascending: true })
+    try {
+      const supabase = createSupabaseClient()
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .eq("active", true)
+        .order("order")
 
-    if (error) {
+      if (error) {
+        console.error("Erro ao buscar categorias ativas:", error)
+        return []
+      }
+
+      return (data || []).map((category: any) => ({
+        id: Number(category.id),
+        name: String(category.name),
+        order: Number(category.order),
+        active: Boolean(category.active),
+      }))
+    } catch (error) {
       console.error("Erro ao buscar categorias ativas:", error)
       return []
     }
-
-    return data.map((category: any) => ({
-      id: category.id as number,
-      name: category.name as string,
-      order: category.order as number,
-      active: category.active as boolean,
-    }))
   },
 
-  // Salvar categoria (criar ou atualizar)
-  async saveCategory(category: Category): Promise<Category | null> {
-    const supabase = createSupabaseClient()
+  // Obter categoria por ID
+  async getCategoryById(id: number): Promise<Category | null> {
+    try {
+      const supabase = createSupabaseClient()
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .eq("id", id)
+        .single()
 
-    const categoryData = {
-      id: category.id,
-      name: category.name,
-      order: category.order,
-      active: category.active,
-      store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
-    }
+      if (error) {
+        console.error(`Erro ao buscar categoria ${id}:`, error)
+        return null
+      }
 
-    // Verificar se a categoria já existe
-    const { data: existingCategory, error: checkError } = await supabase
-      .from("categories")
-      .select("id")
-      .eq("id", category.id)
-      .maybeSingle()
+      if (!data) {
+        return null
+      }
 
-    if (checkError) {
-      console.error("Erro ao verificar categoria:", checkError)
+      return {
+        id: Number(data.id),
+        name: String(data.name),
+        order: Number(data.order),
+        active: Boolean(data.active),
+      }
+    } catch (error) {
+      console.error(`Erro ao buscar categoria ${id}:`, error)
       return null
     }
+  },
 
-    if (existingCategory) {
-      // Atualizar categoria existente
-      const { error: updateError } = await supabase
-        .from("categories")
-        .update(categoryData)
-        .eq("id", category.id)
-        .eq("store_id", DEFAULT_STORE_ID)
-      
-      if (updateError) {
-        console.error("Erro ao atualizar categoria:", updateError)
-        return null
-      }
-      
-      // Buscar a categoria atualizada usando a função segura
-      const { data, error } = await safelyGetRecordById<any>(supabase, "categories", "id", category.id)
-      
-      if (error) {
-        console.error("Erro ao buscar categoria atualizada:", error)
-        return null
-      }
-      
-      if (!data) {
-        console.error(`Categoria atualizada com ID ${category.id} não encontrada`)
-        return null
-      }
+  // Salvar categoria
+  async saveCategory(category: Category): Promise<{ data: Category | null; error: Error | null }> {
+    try {
+      const supabase = createSupabaseClient()
 
-      return {
-        id: Number(data.id),
-        name: String(data.name || ""),
-        order: Number(data.order || 0),
-        active: Boolean(data.active),
-      }
-    } else {
-      // Criar nova categoria
-      const { error: insertError } = await supabase
-        .from("categories")
-        .insert(categoryData)
-      
-      if (insertError) {
-        console.error("Erro ao criar categoria:", insertError)
-        return null
-      }
-      
-      // Buscar a categoria recém-criada usando a função segura
-      const { data, error } = await safelyGetRecordById<any>(supabase, "categories", "id", category.id)
-      
-      if (error) {
-        console.error("Erro ao buscar categoria recém-criada:", error)
-        return null
-      }
-      
-      if (!data) {
-        console.error(`Categoria recém-criada com ID ${category.id} não encontrada`)
-        return null
-      }
+      if (category.id && category.id > 0) {
+        // Atualizar categoria existente
+        const { data, error } = await supabase
+          .from("categories")
+          .update({
+            name: category.name,
+            order: category.order,
+            active: category.active,
+          })
+          .eq("id", category.id)
+          .select()
+          .single()
 
-      return {
-        id: Number(data.id),
-        name: String(data.name || ""),
-        order: Number(data.order || 0),
-        active: Boolean(data.active),
+        if (error) {
+          console.error("Erro ao atualizar categoria:", error)
+          return { data: null, error: new Error(error.message) }
+        }
+
+        const result: Category = {
+          id: Number(data.id),
+          name: String(data.name),
+          order: Number(data.order),
+          active: Boolean(data.active),
+        }
+
+        return { data: result, error: null }
+      } else {
+        // Criar nova categoria
+        const { data, error } = await supabase
+          .from("categories")
+          .insert({
+            name: category.name,
+            order: category.order,
+            active: category.active !== undefined ? category.active : true,
+          })
+          .select()
+          .single()
+
+        if (error) {
+          console.error("Erro ao criar categoria:", error)
+          return { data: null, error: new Error(error.message) }
+        }
+
+        const result: Category = {
+          id: Number(data.id),
+          name: String(data.name),
+          order: Number(data.order),
+          active: Boolean(data.active),
+        }
+
+        return { data: result, error: null }
       }
+    } catch (error) {
+      console.error("Erro ao salvar categoria:", error)
+      return { data: null, error: error instanceof Error ? error : new Error(String(error)) }
     }
   },
 
   // Excluir categoria
   async deleteCategory(id: number): Promise<boolean> {
-    const supabase = createSupabaseClient()
-    const { error } = await supabase.from("categories").delete().eq("id", id)
+    try {
+      const supabase = createSupabaseClient()
+      const { error } = await supabase
+        .from("categories")
+        .delete()
+        .eq("id", id)
 
-    if (error) {
-      console.error("Erro ao excluir categoria:", error)
+      if (error) {
+        console.error(`Erro ao deletar categoria ${id}:`, error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error(`Erro ao deletar categoria ${id}:`, error)
       return false
     }
-
-    return true
   },
 }
 

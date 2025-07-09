@@ -76,8 +76,11 @@ export async function getCartItems(): Promise<CartItem[]> {
       // Limpar o tamanho para exibição
       size: cleanSizeDisplay(String(item.size)),
       additionals: Array.isArray(item.additionals) ? item.additionals : [],
-      // Incluir informação se o produto precisa de colher
-      needsSpoon: Boolean(item.needs_spoon),
+      // Incluir informação sobre colheres
+      needsSpoon: item.needs_spoon !== null ? Boolean(item.needs_spoon) : undefined,
+      spoonQuantity: Number(item.spoon_quantity) || undefined,
+      // Incluir observações do cliente (se a coluna existir)
+      notes: String(item.notes || ""),
     }
 
     return displayItem
@@ -165,7 +168,7 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
     // Verificar se existe um item com o mesmo tamanho e adicionais
     console.log("Verificando itens existentes no carrinho:", existingItems?.length || 0, "itens encontrados")
     
-    // Verificar se existe um item com os mesmos adicionais e tamanho similar
+    // Verificar se existe um item com os mesmos adicionais, tamanho e escolha de colher
     // Ignoramos os sufixos únicos que podem ter sido adicionados ao tamanho
     const matchingItem = existingItems?.find((existingItem: any) => {
       // Verificar se o tamanho base (sem o sufixo único) é o mesmo
@@ -174,7 +177,17 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
       const isSameSizeBase = existingSizeBase === newSizeBase
       
       // Verificar se os adicionais são os mesmos
-      const isEqual = areAdditionalsEqual(existingItem.additionals, item.additionals)
+      const areAdditionalsEquivalent = areAdditionalsEqual(existingItem.additionals, item.additionals)
+      
+      // Verificar se a escolha de colher é a mesma
+      const existingNeedsSpoon = existingItem.needs_spoon
+      const newNeedsSpoon = item.needsSpoon
+      const isSameSpoonChoice = existingNeedsSpoon === newNeedsSpoon
+      
+      // Verificar se a quantidade de colheres é a mesma (se ambos precisam de colher)
+      const existingSpoonQty = existingItem.spoon_quantity || 1
+      const newSpoonQty = item.spoonQuantity || 1
+      const isSameSpoonQuantity = (existingNeedsSpoon !== true && newNeedsSpoon !== true) || existingSpoonQty === newSpoonQty
       
       console.log(
         `Comparando item - ID: ${existingItem.id}, ` +
@@ -183,11 +196,15 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
         `Tamanho base: ${existingSizeBase}, ` +
         `Novo tamanho base: ${newSizeBase}, ` +
         `Tamanhos iguais: ${isSameSizeBase ? 'SIM' : 'NÃO'}, ` +
-        `Adicionais iguais: ${isEqual ? 'SIM' : 'NÃO'}`
+        `Adicionais iguais: ${areAdditionalsEquivalent ? 'SIM' : 'NÃO'}, ` +
+        `Colher existente: ${existingNeedsSpoon}, ` +
+        `Colher nova: ${newNeedsSpoon}, ` +
+        `Escolha colher igual: ${isSameSpoonChoice ? 'SIM' : 'NÃO'}, ` +
+        `Qtd colher igual: ${isSameSpoonQuantity ? 'SIM' : 'NÃO'}`
       )
       
-      // O item é considerado o mesmo se o tamanho base e os adicionais forem iguais
-      return isSameSizeBase && isEqual
+      // O item é considerado o mesmo se tamanho base, adicionais, escolha de colher e quantidade de colheres forem iguais
+      return isSameSizeBase && areAdditionalsEquivalent && isSameSpoonChoice && isSameSpoonQuantity
     })
 
     if (matchingItem) {
@@ -220,7 +237,9 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
         image: String(typedData.image || ""),
         size: cleanSizeDisplay(String(typedData.size)), // Limpar o tamanho para exibição
         additionals: Array.isArray(typedData.additionals) ? typedData.additionals : [],
-        needsSpoon: Boolean(typedData.needs_spoon), // Incluir informação se o produto precisa de colher
+        needsSpoon: typedData.needs_spoon !== null ? Boolean(typedData.needs_spoon) : undefined,
+        spoonQuantity: Number(typedData.spoon_quantity) || undefined,
+        notes: String(typedData.notes || ""), // Incluir observações do cliente
       }
     } else {
       // Não encontramos um item com os mesmos adicionais
@@ -249,37 +268,74 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
       });
 
       // Inserir novo item com o tamanho único
+      const insertData: any = {
+        session_id: sessionId,
+        store_id: storeId,
+        product_id: item.productId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image || null,
+        size: uniqueSize, // Usar o tamanho único gerado com sufixo garantido
+        additionals: item.additionals || [],
+        needs_spoon: item.needsSpoon,
+        spoon_quantity: item.needsSpoon === true ? (item.spoonQuantity || 1) : null,
+      }
+
+      // Incluir notes apenas se a propriedade existir no item (para compatibilidade)
+      if (item.notes !== undefined) {
+        insertData.notes = item.notes || ""
+      }
+
       const { data, error: insertError } = await supabase
         .from("cart")
-        .insert({
-          session_id: sessionId,
-          store_id: storeId,
-          product_id: item.productId,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image || null,
-          size: uniqueSize, // Usar o tamanho único gerado com sufixo garantido
-          additionals: item.additionals || [],
-          needs_spoon: item.needsSpoon // Incluir informação se o produto precisa de colher
-        })
+        .insert(insertData)
         .select()
         .single()
 
       if (insertError) {
-        console.error("Erro ao adicionar item ao carrinho:", insertError)
-        console.error("Detalhes do erro:", insertError.details)
-        console.error("Hint:", insertError.hint)
-        console.error("Dados tentando inserir:", {
-          session_id: sessionId,
-          store_id: storeId,
-          product_id: item.productId,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          size: uniqueSize,
-          additionals: item.additionals?.length || 0
+        console.error("Erro ao adicionar item ao carrinho:", {
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+          code: insertError.code
         })
+        console.error("Dados tentando inserir:", insertData)
+        
+        // Se o erro for sobre coluna inexistente (notes), tenta sem a coluna
+        if (insertError.message?.includes('column "notes" of relation "cart" does not exist')) {
+          console.log("Tentando inserir sem a coluna notes...")
+          const { notes, ...insertDataWithoutNotes } = insertData
+          
+          const { data: retryData, error: retryError } = await supabase
+            .from("cart")
+            .insert(insertDataWithoutNotes)
+            .select()
+            .single()
+            
+          if (retryError) {
+            console.error("Erro na segunda tentativa:", retryError)
+            return null
+          }
+          
+          // Usar os dados da segunda tentativa
+          const typedRetryData = retryData as any
+          return {
+            id: Number(typedRetryData.id),
+            productId: Number(typedRetryData.product_id),
+            name: String(typedRetryData.name),
+            price: Number(typedRetryData.price),
+            quantity: Number(typedRetryData.quantity),
+            image: String(typedRetryData.image || ""),
+            size: cleanSizeDisplay(String(originalSize)),
+            originalSize: String(typedRetryData.size),
+            additionals: Array.isArray(typedRetryData.additionals) ? typedRetryData.additionals : [],
+            needsSpoon: typedRetryData.needs_spoon !== null ? Boolean(typedRetryData.needs_spoon) : undefined,
+            spoonQuantity: Number(typedRetryData.spoon_quantity) || undefined,
+            notes: "", // Usar string vazia se a coluna não existir
+          }
+        }
+        
         return null
       }
 
@@ -294,7 +350,9 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
         size: cleanSizeDisplay(String(originalSize)), // Mostrar o tamanho original para o usuário
         originalSize: String(typedInsertData.size), // Manter o tamanho com sufixo internamente
         additionals: Array.isArray(typedInsertData.additionals) ? typedInsertData.additionals : [],
-        needsSpoon: Boolean(typedInsertData.needs_spoon), // Incluir informação se o produto precisa de colher
+        needsSpoon: typedInsertData.needs_spoon !== null ? Boolean(typedInsertData.needs_spoon) : undefined,
+        spoonQuantity: Number(typedInsertData.spoon_quantity) || undefined,
+        notes: String(typedInsertData.notes || ""), // Incluir observações do cliente
       }
     }
   } catch (error) {
@@ -329,6 +387,12 @@ export async function updateCartItemQuantity(id: number, quantity: number, updat
     if (updatedFields.needsSpoon !== undefined) {
       updateData.needs_spoon = updatedFields.needsSpoon
     }
+    if (updatedFields.spoonQuantity !== undefined) {
+      updateData.spoon_quantity = updatedFields.needsSpoon === true ? updatedFields.spoonQuantity : null
+    }
+    if (updatedFields.notes !== undefined) {
+      updateData.notes = updatedFields.notes
+    }
     // Adicionar outros campos conforme necessário no futuro
   }
 
@@ -338,7 +402,32 @@ export async function updateCartItemQuantity(id: number, quantity: number, updat
     .eq("id", id)
 
   if (error) {
-    console.error(`Erro ao atualizar item ${id}:`, error)
+    console.error(`Erro ao atualizar item ${id}:`, {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+      updateData
+    })
+    
+    // Se o erro for sobre coluna inexistente (notes), tenta sem a coluna
+    if (error.message?.includes('column "notes" of relation "cart" does not exist')) {
+      console.log("Tentando atualizar sem a coluna notes...")
+      const { notes, ...updateDataWithoutNotes } = updateData
+      
+      const { error: retryError } = await supabase
+        .from("cart")
+        .update(updateDataWithoutNotes)
+        .eq("id", id)
+        
+      if (retryError) {
+        console.error(`Erro na segunda tentativa ao atualizar item ${id}:`, retryError)
+        return false
+      }
+      
+      return true
+    }
+    
     return false
   }
 

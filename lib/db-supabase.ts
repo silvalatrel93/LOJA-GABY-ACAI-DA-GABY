@@ -1,875 +1,328 @@
 import { createSupabaseClient } from "./supabase-client"
-import type {
-  Product,
-  Order,
-  CarouselSlide,
-  Category,
-  Additional,
-  Phrase,
-  StoreConfig,
-  PageContent,
-  Notification,
-  CartItem,
-} from "./db"
-import { DEFAULT_STORE_ID } from "./constants"
-import {
-  getTableWithStoreFilter,
-  getActiveOrderedRecordsWithStoreFilter,
-  getActiveRecordsWithStoreFilter,
-  getOrderedRecordsWithStoreFilter,
-  getRecordByIdWithStoreFilter,
-  insertWithStoreId,
-  updateWithStoreFilter,
-  deleteWithStoreFilter,
-  clearCartWithStoreFilter
-} from "./supabase-utils"
+import type { Product, Category, Additional, Order, CarouselSlide, Phrase, OrderStatus, StoreConfig, PageContent, Notification } from "./types"
 
-// Funções para o carrinho
-export async function getCartFromSupabase(): Promise<CartItem[]> {
+// Configurações de produtos base (açaí, sorvete, picolé)
+const baseProducts: Product[] = [
+  {
+    id: 1,
+    name: "Açaí 300ml",
+    description: "Delicioso açaí cremoso servido em copo de 300ml",
+    image: "https://images.unsplash.com/photo-1591034856923-c87b5f3e6e2e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
+    sizes: [
+      { size: "300ml", price: 8.00 },
+    ],
+    categoryId: 1,
+    categoryName: "Açaí",
+    active: true,
+    allowedAdditionals: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    hasAdditionals: true,
+    additionalsLimit: 10,
+    needsSpoon: true,
+  },
+  {
+    id: 2,
+    name: "Açaí 500ml",
+    description: "Açaí cremoso e delicioso servido em copo de 500ml",
+    image: "https://images.unsplash.com/photo-1591034856923-c87b5f3e6e2e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
+    sizes: [
+      { size: "500ml", price: 12.00 },
+    ],
+    categoryId: 1,
+    categoryName: "Açaí",
+    active: true,
+    allowedAdditionals: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    hasAdditionals: true,
+    additionalsLimit: 15,
+    needsSpoon: true,
+  },
+  {
+    id: 3,
+    name: "Açaí 700ml",
+    description: "Grande porção de açaí cremoso servido em copo de 700ml",
+    image: "https://images.unsplash.com/photo-1591034856923-c87b5f3e6e2e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
+    sizes: [
+      { size: "700ml", price: 16.00 },
+    ],
+    categoryId: 1,
+    categoryName: "Açaí",
+    active: true,
+    allowedAdditionals: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    hasAdditionals: true,
+    additionalsLimit: 20,
+    needsSpoon: true,
+  },
+]
+
+// Configurações de categorias base
+const baseCategories: Category[] = [
+  {
+    id: 1,
+    name: "Açaí",
+    order: 1,
+    active: true,
+  },
+  {
+    id: 2,
+    name: "Sorvetes",
+    order: 2,
+    active: true,
+  },
+  {
+    id: 3,
+    name: "Picolés",
+    order: 3,
+    active: true,
+  },
+]
+
+// Configurações de adicionais base
+const baseAdditionals: Additional[] = [
+  {
+    id: 1,
+    name: "Banana",
+    price: 1.50,
+    categoryId: 1,
+    categoryName: "Frutas",
+    active: true,
+    image: "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    hasPricing: true,
+  },
+  {
+    id: 2,
+    name: "Morango",
+    price: 2.00,
+    categoryId: 1,
+    categoryName: "Frutas",
+    active: true,
+    image: "https://images.unsplash.com/photo-1518635017498-87f514b751ba?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    hasPricing: true,
+  },
+  {
+    id: 3,
+    name: "Granola",
+    price: 1.00,
+    categoryId: 2,
+    categoryName: "Complementos",
+    active: true,
+    image: "https://images.unsplash.com/photo-1571068316344-75bc76f77890?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    hasPricing: true,
+  },
+  {
+    id: 4,
+    name: "Condensado",
+    price: 1.50,
+    categoryId: 2,
+    categoryName: "Complementos",
+    active: true,
+    image: "https://images.unsplash.com/photo-1520170350707-b2da59970118?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    hasPricing: true,
+  },
+  {
+    id: 5,
+    name: "Chocolate",
+    price: 2.50,
+    categoryId: 2,
+    categoryName: "Complementos",
+    active: true,
+    image: "https://images.unsplash.com/photo-1549007174-ab74efb5d5dc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    hasPricing: true,
+  },
+]
+
+// Interface para configuração inicial
+interface InitialConfig {
+  products: Product[]
+  categories: Category[]
+  additionals: Additional[]
+  carouselSlides: CarouselSlide[]
+  phrases: Phrase[]
+  storeConfig: StoreConfig
+  pageContents: PageContent[]
+  notifications: Notification[]
+}
+
+// Função principal para inicializar o banco de dados
+export async function initializeDatabase(): Promise<boolean> {
   try {
     const supabase = createSupabaseClient()
 
-    // Obter o ID do usuário atual (ou usar um ID de sessão)
-    const sessionId = getSessionId()
-
-    const { data, error } = await supabase.from("cart")
-      .select("*")
-      .eq("session_id", sessionId)
-      .eq("store_id", DEFAULT_STORE_ID) // Filtrar pelo ID da loja padrão
-
-    if (error) {
-      console.error("Erro ao obter carrinho do Supabase:", error)
-      return []
+    console.log("🚀 Iniciando inicialização do banco de dados...")
+    
+    // Verificar se já existem dados
+    const { data: existingProducts } = await supabase
+      .from("products")
+      .select("id")
+      .limit(1)
+    
+    if (existingProducts && existingProducts.length > 0) {
+      console.log("✅ Banco de dados já contém dados, pulando inicialização")
+      return true
     }
-
-    // Converter os dados do formato do banco para o formato da aplicação
-    return data.map((item: any) => ({
-      id: item.product_id,
-      productId: item.product_id, // Adicionar productId para satisfazer o tipo CartItem
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity,
-      image: item.image,
-      size: item.size,
-      additionals: item.additionals,
-    }))
-  } catch (error) {
-    console.error("Erro ao obter carrinho do Supabase:", error)
-    return []
-  }
-}
-
-export async function addToCartInSupabase(item: CartItem): Promise<void> {
-  try {
-    const supabase = createSupabaseClient()
-
-    // Obter o ID do usuário atual (ou usar um ID de sessão)
-    const sessionId = getSessionId()
-
-    // Verificar se o item já existe no carrinho
-    const { data, error: selectError } = await supabase
-      .from("cart")
-      .select("*")
-      .eq("session_id", sessionId)
-      .eq("product_id", item.id)
-      .eq("size", item.size)
-      .single()
-
-    if (selectError && selectError.code !== "PGRST116") {
-      console.error("Erro ao verificar item no carrinho:", selectError)
+    
+    // Inicializar categorias primeiro (dependência dos produtos)
+    console.log("📂 Inserindo categorias...")
+    const { error: categoriesError } = await supabase
+      .from("categories")
+      .insert(baseCategories.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        order: cat.order,
+        active: cat.active,
+      })))
+    
+    if (categoriesError) {
+      console.error("Erro ao inserir categorias:", categoriesError)
+      return false
     }
-
-    if (data) {
-      // Item já existe, atualizar quantidade
-      const { error: updateError } = await supabase
-        .from("cart")
-        .update({
-          quantity: (data.quantity as number) + item.quantity,
-        })
-        .eq("session_id", sessionId)
-        .eq("product_id", item.id)
-        .eq("size", item.size)
-
-      if (updateError) {
-        console.error("Erro ao atualizar item no carrinho:", updateError)
-      }
-    } else {
-      // Item não existe, inserir novo
-      const { error: insertError } = await supabase.from("cart").insert({
-        session_id: sessionId,
-        product_id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        image: item.image,
-        size: item.size,
-        additionals: item.additionals || [],
-        store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
-      })
-
-      if (insertError) {
-        console.error("Erro ao adicionar item ao carrinho:", insertError)
-      }
-    }
-  } catch (error) {
-    console.error("Erro ao adicionar ao carrinho no Supabase:", error)
-  }
-}
-
-export async function removeFromCartInSupabase(id: number, size: string): Promise<void> {
-  try {
-    const supabase = createSupabaseClient()
-
-    // Obter o ID do usuário atual (ou usar um ID de sessão)
-    const sessionId = getSessionId()
-
-    const { error } = await supabase
-      .from("cart")
-      .delete()
-      .eq("session_id", sessionId)
-      .eq("product_id", id)
-      .eq("size", size)
-
-    if (error) {
-      console.error("Erro ao remover item do carrinho:", error)
-    }
-  } catch (error) {
-    console.error("Erro ao remover do carrinho no Supabase:", error)
-  }
-}
-
-export async function updateCartItemQuantityInSupabase(id: number, size: string, quantity: number): Promise<void> {
-  try {
-    const supabase = createSupabaseClient()
-
-    // Obter o ID do usuário atual (ou usar um ID de sessão)
-    const sessionId = getSessionId()
-
-    const { error } = await supabase
-      .from("cart")
-      .update({
-        quantity: quantity,
-      })
-      .eq("session_id", sessionId)
-      .eq("product_id", id)
-      .eq("size", size)
-      .eq("store_id", DEFAULT_STORE_ID) // Filtrar pelo ID da loja padrão
-
-    if (error) {
-      console.error("Erro ao atualizar quantidade do item no carrinho:", error)
-    }
-  } catch (error) {
-    console.error("Erro ao atualizar quantidade no carrinho no Supabase:", error)
-  }
-}
-
-export async function clearCartInSupabase(): Promise<void> {
-  try {
-    const sessionId = getSessionId()
-    const supabase = createSupabaseClient()
-    // Usar a função utilitária para limpar o carrinho com filtro de store_id
-    const { error } = await clearCartWithStoreFilter(supabase, "cart", sessionId)
-
-    if (error) {
-      console.error("Erro ao limpar carrinho:", error)
-    }
-  } catch (error) {
-    console.error("Erro ao limpar carrinho no Supabase:", error)
-  }
-}
-
-// Função para obter um ID de sessão único para o carrinho
-function getSessionId(): string {
-  if (typeof window === "undefined") {
-    return "server-side"
-  }
-
-  // Verificar se já existe um ID de sessão no localStorage
-  let sessionId = localStorage.getItem("cart_session_id")
-
-  if (!sessionId) {
-    // Criar um novo ID de sessão
-    sessionId = "session_" + Date.now() + "_" + Math.random().toString(36).substring(2, 9)
-    localStorage.setItem("cart_session_id", sessionId)
-  }
-
-  return sessionId
-}
-
-// Funções para Produtos
-export async function getAllProductsFromSupabase(): Promise<Product[]> {
-  try {
-    const supabase = createSupabaseClient()
-    // Usar a função utilitária para aplicar o filtro de store_id
-    const { data, error } = await getTableWithStoreFilter(supabase, "products")
-
-    if (error) {
-      console.error("Erro ao obter produtos do Supabase:", error)
-      return []
-    }
-
-    // Converter os dados do formato do banco para o formato da aplicação
-    return data.map((product: any) => ({
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      image: product.image,
-      sizes: product.sizes,
-      categoryId: product.category_id,
-      active: product.active,
-      allowedAdditionals: product.allowed_additionals,
-      additionalsLimit: product.additionals_limit || 5,
-    }))
-  } catch (error) {
-    console.error("Erro ao obter produtos do Supabase:", error)
-    return []
-  }
-}
-
-export async function getProductsByCategoryFromSupabase(categoryId: number): Promise<Product[]> {
-  try {
-    const supabase = createSupabaseClient()
-    // Usar a função utilitária para aplicar o filtro de store_id e filtrar por categoria
-    const { data, error } = await getTableWithStoreFilter(supabase, "products")
-      .eq("category_id", categoryId).eq("active", true)
-
-    if (error) {
-      console.error("Erro ao obter produtos por categoria do Supabase:", error)
-      return []
-    }
-
-    // Converter os dados do formato do banco para o formato da aplicação
-    return data.map((product: any) => ({
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      image: product.image,
-      sizes: product.sizes,
-      categoryId: product.category_id,
-      active: product.active,
-      allowedAdditionals: product.allowed_additionals,
-    }))
-  } catch (error) {
-    console.error("Erro ao obter produtos por categoria do Supabase:", error)
-    return []
-  }
-}
-
-export async function saveProductToSupabase(product: Product): Promise<void> {
-  try {
-    const supabase = createSupabaseClient()
-
-    // Converter o produto para o formato do banco
-    const dbProduct = {
+    
+    // Inserir produtos
+    console.log("🍨 Inserindo produtos...")
+    const { error: productsError } = await supabase
+      .from("products")
+      .insert(baseProducts.map(product => ({
       id: product.id,
       name: product.name,
       description: product.description,
       image: product.image,
       sizes: product.sizes,
       category_id: product.categoryId,
-      active: product.active !== undefined ? product.active : true,
-      allowed_additionals: product.allowedAdditionals || [],
-      additionals_limit: product.additionalsLimit || 5,
-      store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
+        active: product.active,
+        allowed_additionals: product.allowedAdditionals,
+        has_additionals: product.hasAdditionals,
+        additionals_limit: product.additionalsLimit,
+        needs_spoon: product.needsSpoon,
+      })))
+    
+    if (productsError) {
+      console.error("Erro ao inserir produtos:", productsError)
+      return false
     }
-
-    // Verificar se o produto já existe
-    if (product.id) {
-      // Verificar se o produto já existe usando a função utilitária
-      const { data, error: selectError } = await getTableWithStoreFilter(supabase, "products")
-        .eq("id", product.id)
-
-      if (selectError) {
-        console.error("Erro ao verificar produto no Supabase:", selectError)
-        return
-      }
-
-      // Se encontrou algum resultado, o produto existe
-      if (data && data.length > 0) {
-        // Produto existe, atualizar usando a função utilitária
-        const { error: updateError } = await updateWithStoreFilter(
-          supabase,
-          "products",
-          dbProduct,
-          "id",
-          product.id
-        )
-
-        if (updateError) {
-          console.error("Erro ao atualizar produto no Supabase:", updateError)
-        }
-        return
-      }
-    }
-
-    // Produto não existe ou não tem ID, inserir usando a função utilitária
-    const { error: insertError } = await insertWithStoreId(supabase, "products", dbProduct)
-
-    if (insertError) {
-      console.error("Erro ao inserir produto no Supabase:", insertError)
-    }
-  } catch (error) {
-    console.error("Erro ao salvar produto no Supabase:", error)
-  }
-}
-
-export async function deleteProductFromSupabase(id: number): Promise<void> {
-  try {
-    const supabase = createSupabaseClient()
-    const { error } = await supabase.from("products").delete().eq("id", id)
-
-    if (error) {
-      console.error("Erro ao excluir produto do Supabase:", error)
-    }
-  } catch (error) {
-    console.error("Erro ao excluir produto do Supabase:", error)
-  }
-}
-
-// Funções para Pedidos
-export async function saveOrderToSupabase(order: Order): Promise<void> {
-  try {
-    const supabase = createSupabaseClient()
-
-    // Converter o pedido para o formato do banco
-    const dbOrder = {
-      id: order.id,
-      customer_name: order.customerName,
-      customer_phone: order.customerPhone,
-      address: order.address,
-      items: order.items,
-      subtotal: order.subtotal,
-      delivery_fee: order.deliveryFee,
-      total: order.total,
-      payment_method: order.paymentMethod,
-      status: order.status,
-      date: order.date || new Date().toISOString(),
-      store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
-    }
-
-    // Verificar se o pedido já existe
-    if (order.id) {
-      // Verificar se o pedido já existe usando a função utilitária
-      const { data, error: selectError } = await getTableWithStoreFilter(supabase, "orders")
-        .eq("id", order.id)
-
-      if (selectError) {
-        console.error("Erro ao verificar pedido no Supabase:", selectError)
-        return
-      }
-
-      // Se encontrou algum resultado, o pedido existe
-      if (data && data.length > 0) {
-        // Pedido existe, atualizar usando a função utilitária
-        const { error: updateError } = await updateWithStoreFilter(
-          supabase,
-          "orders",
-          dbOrder,
-          "id",
-          order.id
-        )
-
-        if (updateError) {
-          console.error("Erro ao atualizar pedido no Supabase:", updateError)
-        }
-        return
-      }
-    }
-
-    // Pedido não existe ou não tem ID, inserir usando a função utilitária
-    const { error: insertError } = await insertWithStoreId(supabase, "orders", dbOrder)
-
-    if (insertError) {
-      console.error("Erro ao inserir pedido no Supabase:", insertError)
-    }
-  } catch (error) {
-    console.error("Erro ao salvar pedido no Supabase:", error)
-  }
-}
-
-export async function getAllOrdersFromSupabase(): Promise<Order[]> {
-  try {
-    const supabase = createSupabaseClient()
-    // Usar a função utilitária para aplicar o filtro de store_id e ordenação
-    const { data, error } = await getOrderedRecordsWithStoreFilter(supabase, "orders", "date", false)
-
-    if (error) {
-      console.error("Erro ao obter pedidos do Supabase:", error)
-      return []
-    }
-
-    // Converter os dados do formato do banco para o formato da aplicação
-    return data.map((order: any) => ({
-      id: order.id,
-      customerName: order.customer_name,
-      customerPhone: order.customer_phone,
-      address: order.address,
-      items: order.items,
-      subtotal: order.subtotal,
-      deliveryFee: order.delivery_fee,
-      total: order.total,
-      paymentMethod: order.payment_method,
-      status: order.status,
-      date: new Date(order.date),
-      printed: order.printed,
-      notified: order.notified || false, // Adicionar campo notified com valor padrão
-    }))
-  } catch (error) {
-    console.error("Erro ao obter pedidos do Supabase:", error)
-    return []
-  }
-}
-
-// Funções para Conteúdo das Páginas
-export async function savePageContentToSupabase(pageContent: PageContent): Promise<void> {
-  try {
-    const supabase = createSupabaseClient()
-
-    // Converter o conteúdo da página para o formato do banco
-    const dbPageContent = {
-      id: pageContent.id,
-      title: pageContent.title,
-      content: pageContent.content,
-      last_updated: new Date().toISOString(),
-      store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
-    }
-
-    // Verificar se o conteúdo da página já existe
-    if (pageContent.id) {
-      // Verificar se o conteúdo da página já existe usando a função utilitária
-      const { data, error: selectError } = await getTableWithStoreFilter(supabase, "page_content")
-        .eq("id", pageContent.id)
-
-      if (selectError) {
-        console.error("Erro ao verificar conteúdo da página no Supabase:", selectError)
-        return
-      }
-
-      // Se encontrou algum resultado, o conteúdo da página existe
-      if (data && data.length > 0) {
-        // Conteúdo da página existe, atualizar usando a função utilitária
-        const { error: updateError } = await updateWithStoreFilter(
-          supabase,
-          "page_content",
-          dbPageContent,
-          "id",
-          pageContent.id
-        )
-
-        if (updateError) {
-          console.error("Erro ao atualizar conteúdo da página no Supabase:", updateError)
-        }
-        return
-      }
-    }
-
-    // Conteúdo da página não existe ou não tem ID, inserir usando a função utilitária
-    const { error: insertError } = await insertWithStoreId(supabase, "page_content", dbPageContent)
-
-    if (insertError) {
-      console.error("Erro ao inserir conteúdo da página no Supabase:", insertError)
-    }
-  } catch (error) {
-    console.error("Erro ao salvar conteúdo da página no Supabase:", error)
-  }
-}
-
-// Funções para Notificações
-export async function saveNotificationToSupabase(notification: Notification): Promise<void> {
-  try {
-    const supabase = createSupabaseClient()
-
-    // Converter a notificação para o formato do banco
-    const dbNotification = {
-      id: notification.id,
-      title: notification.title,
-      message: notification.message,
-      type: notification.type,
-      active: notification.active,
-      start_date: notification.startDate.toISOString(),
-      end_date: notification.endDate.toISOString(),
-      priority: notification.priority,
-      read: notification.read,
-      created_at: new Date().toISOString(), // Usar data atual para created_at
-      store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
-    }
-
-    // Verificar se a notificação já existe
-    if (notification.id) {
-      // Verificar se a notificação já existe usando a função utilitária
-      const { data, error: selectError } = await getTableWithStoreFilter(supabase, "notifications")
-        .eq("id", notification.id)
-
-      if (selectError) {
-        console.error("Erro ao verificar notificação no Supabase:", selectError)
-        return
-      }
-
-      // Se encontrou algum resultado, a notificação existe
-      if (data && data.length > 0) {
-        // Notificação existe, atualizar usando a função utilitária
-        // Não atualizar a data de criação
-        const dbNotificationUpdate = { ...dbNotification };
-        // Usar operador de tipo para evitar erro de tipo
-        if ('created_at' in dbNotificationUpdate) {
-          // @ts-ignore - Ignorar erro de tipo para o operador delete
-          delete dbNotificationUpdate.created_at;
-        }
-
-        const { error: updateError } = await updateWithStoreFilter(
-          supabase,
-          "notifications",
-          dbNotificationUpdate,
-          "id",
-          notification.id
-        )
-
-        if (updateError) {
-          console.error("Erro ao atualizar notificação no Supabase:", updateError)
-        }
-        return
-      }
-    }
-
-    // Notificação não existe ou não tem ID, inserir usando a função utilitária
-    const { error: insertError } = await insertWithStoreId(supabase, "notifications", dbNotification)
-
-    if (insertError) {
-      console.error("Erro ao inserir notificação no Supabase:", insertError)
-    }
-  } catch (error) {
-    console.error("Erro ao salvar notificação no Supabase:", error)
-  }
-}
-
-export async function deleteNotificationFromSupabase(id: number): Promise<void> {
-  try {
-    const supabase = createSupabaseClient()
-    const { error } = await supabase.from("notifications").delete().eq("id", id)
-
-    if (error) {
-      console.error("Erro ao excluir notificação do Supabase:", error)
-    }
-  } catch (error) {
-    console.error("Erro ao excluir notificação do Supabase:", error)
-  }
-}
-
-export async function markNotificationAsReadInSupabase(id: number): Promise<void> {
-  try {
-    const supabase = createSupabaseClient()
-    const { error } = await supabase.from("notifications").update({ read: true }).eq("id", id)
-
-    if (error) {
-      console.error("Erro ao marcar notificação como lida no Supabase:", error)
-    }
-  } catch (error) {
-    console.error("Erro ao marcar notificação como lida no Supabase:", error)
-  }
-}
-
-export async function markAllNotificationsAsReadInSupabase(): Promise<void> {
-  try {
-    const supabase = createSupabaseClient()
-    const now = new Date().toISOString()
-
-    const { error } = await supabase
-      .from("notifications")
-      .update({ read: true })
-      .eq("active", true)
-      .lte("start_date", now)
-      .gte("end_date", now)
-      .eq("read", false)
-
-    if (error) {
-      console.error("Erro ao marcar todas as notificações como lidas no Supabase:", error)
-    }
-  } catch (error) {
-    console.error("Erro ao marcar todas as notificações como lidas no Supabase:", error)
-  }
-}
-
-// Funções para Categorias
-export async function saveCategoryToSupabase(category: Category): Promise<void> {
-  try {
-    const supabase = createSupabaseClient()
-
-    // Converter a categoria para o formato do banco
-    const dbCategory = {
-      id: category.id,
-      name: category.name,
-      order: category.order,
-      active: category.active !== undefined ? category.active : true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
-    }
-
-    // Verificar se a categoria já existe
-    if (category.id) {
-      // Verificar se a categoria já existe usando a função utilitária
-      const { data, error: selectError } = await getTableWithStoreFilter(supabase, "categories")
-        .eq("id", category.id)
-
-      if (selectError) {
-        console.error("Erro ao verificar categoria no Supabase:", selectError)
-        return
-      }
-
-      // Se encontrou algum resultado, a categoria existe
-      if (data && data.length > 0) {
-        // Categoria existe, atualizar usando a função utilitária
-        const { error: updateError } = await updateWithStoreFilter(
-          supabase,
-          "categories",
-          dbCategory,
-          "id",
-          category.id
-        )
-
-        if (updateError) {
-          console.error("Erro ao atualizar categoria no Supabase:", updateError)
-        }
-        return
-      }
-    }
-
-    // Categoria não existe ou não tem ID, inserir usando a função utilitária
-    const { error: insertError } = await insertWithStoreId(supabase, "categories", dbCategory)
-
-    if (insertError) {
-      console.error("Erro ao inserir categoria no Supabase:", insertError)
-    }
-  } catch (error) {
-    console.error("Erro ao salvar categoria no Supabase:", error)
-  }
-}
-
-// Funções para Adicionais
-export async function saveAdditionalToSupabase(additional: Additional): Promise<void> {
-  try {
-    const supabase = createSupabaseClient()
-
-    // Converter o adicional para o formato do banco
-    const dbAdditional = {
+    
+    // Inserir adicionais
+    console.log("🍓 Inserindo adicionais...")
+    const { error: additionalsError } = await supabase
+      .from("additionals")
+      .insert(baseAdditionals.map(additional => ({
       id: additional.id,
       name: additional.name,
       price: additional.price,
       category_id: additional.categoryId,
-      active: additional.active !== undefined ? additional.active : true,
-      image: additional.image || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
+        active: additional.active,
+        image: additional.image,
+        has_pricing: additional.hasPricing,
+      })))
+    
+    if (additionalsError) {
+      console.error("Erro ao inserir adicionais:", additionalsError)
+      return false
     }
-
-    // Verificar se o adicional já existe
-    if (additional.id) {
-      // Verificar se o adicional já existe usando a função utilitária
-      const { data, error: selectError } = await getTableWithStoreFilter(supabase, "additionals")
-        .eq("id", additional.id)
-
-      if (selectError) {
-        console.error("Erro ao verificar adicional no Supabase:", selectError)
-        return
-      }
-
-      // Se encontrou algum resultado, o adicional existe
-      if (data && data.length > 0) {
-        // Adicional existe, atualizar usando a função utilitária
-        const { error: updateError } = await updateWithStoreFilter(
-          supabase,
-          "additionals",
-          dbAdditional,
-          "id",
-          additional.id
-        )
-
-        if (updateError) {
-          console.error("Erro ao atualizar adicional no Supabase:", updateError)
-        }
-        return
-      }
-    }
-
-    // Adicional não existe ou não tem ID, inserir usando a função utilitária
-    const { error: insertError } = await insertWithStoreId(supabase, "additionals", dbAdditional)
-
-    if (insertError) {
-      console.error("Erro ao inserir adicional no Supabase:", insertError)
-    }
+    
+    console.log("✅ Banco de dados inicializado com sucesso!")
+    return true
+    
   } catch (error) {
-    console.error("Erro ao salvar adicional no Supabase:", error)
+    console.error("❌ Erro ao inicializar banco de dados:", error)
+    return false
   }
 }
 
-// Funções para Slides do Carrossel
-export async function saveCarouselSlideToSupabase(slide: CarouselSlide): Promise<void> {
+// Função para verificar se o banco está configurado
+export async function isDatabaseInitialized(): Promise<boolean> {
   try {
     const supabase = createSupabaseClient()
 
-    // Converter o slide para o formato do banco
-    const dbSlide = {
-      id: slide.id,
-      title: slide.title,
-      subtitle: slide.subtitle,
-      image: slide.image,
-      order: slide.order,
-      active: slide.active !== undefined ? slide.active : true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
-    }
-
-    // Verificar se o slide já existe
-    if (slide.id) {
-      // Verificar se o slide já existe usando a função utilitária
-      const { data, error: selectError } = await getTableWithStoreFilter(supabase, "carousel_slides")
-        .eq("id", slide.id)
-
-      if (selectError) {
-        console.error("Erro ao verificar slide no Supabase:", selectError)
-        return
-      }
-
-      // Se encontrou algum resultado, o slide existe
-      if (data && data.length > 0) {
-        // Slide existe, atualizar usando a função utilitária
-        const { error: updateError } = await updateWithStoreFilter(
-          supabase,
-          "carousel_slides",
-          dbSlide,
-          "id",
-          slide.id
-        )
-
-        if (updateError) {
-          console.error("Erro ao atualizar slide no Supabase:", updateError)
-        }
-        return
-      }
-    }
-
-    // Slide não existe ou não tem ID, inserir usando a função utilitária
-    const { error: insertError } = await insertWithStoreId(supabase, "carousel_slides", dbSlide)
-
-    if (insertError) {
-      console.error("Erro ao inserir slide no Supabase:", insertError)
-    }
+    const { data: products } = await supabase
+      .from("products")
+      .select("id")
+      .limit(1)
+    
+    const { data: categories } = await supabase
+      .from("categories")
+      .select("id")
+      .limit(1)
+    
+    const { data: additionals } = await supabase
+      .from("additionals")
+      .select("id")
+      .limit(1)
+    
+    return !!(products?.length && categories?.length && additionals?.length)
+    
   } catch (error) {
-    console.error("Erro ao salvar slide no Supabase:", error)
+    console.error("Erro ao verificar inicialização do banco:", error)
+    return false
   }
 }
 
-// Funções para Frases
-export async function savePhraseToSupabase(phrase: Phrase): Promise<void> {
+// Função para limpar completamente o banco (usar com cuidado!)
+export async function clearDatabase(): Promise<boolean> {
   try {
     const supabase = createSupabaseClient()
 
-    // Converter a frase para o formato do banco
-    const dbPhrase = {
-      id: phrase.id,
-      text: phrase.text,
-      order: phrase.order,
-      active: phrase.active !== undefined ? phrase.active : true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
-    }
-
-    // Verificar se a frase já existe
-    if (phrase.id) {
-      // Verificar se a frase já existe usando a função utilitária
-      const { data, error: selectError } = await getTableWithStoreFilter(supabase, "phrases")
-        .eq("id", phrase.id)
-
-      if (selectError) {
-        console.error("Erro ao verificar frase no Supabase:", selectError)
-        return
-      }
-
-      // Se encontrou algum resultado, a frase existe
-      if (data && data.length > 0) {
-        // Frase existe, atualizar usando a função utilitária
-        const { error: updateError } = await updateWithStoreFilter(
-          supabase,
-          "phrases",
-          dbPhrase,
-          "id",
-          phrase.id
-        )
-
-        if (updateError) {
-          console.error("Erro ao atualizar frase no Supabase:", updateError)
-        }
-        return
-      }
-    }
-
-    // Frase não existe ou não tem ID, inserir usando a função utilitária
-    const { error: insertError } = await insertWithStoreId(supabase, "phrases", dbPhrase)
-
-    if (insertError) {
-      console.error("Erro ao inserir frase no Supabase:", insertError)
-    }
+    console.log("⚠️ ATENÇÃO: Limpando todo o banco de dados...")
+    
+    // Limpar na ordem correta para evitar problemas de referência
+    await supabase.from("orders").delete().neq("id", 0)
+    await supabase.from("additionals").delete().neq("id", 0)
+    await supabase.from("products").delete().neq("id", 0)
+    await supabase.from("categories").delete().neq("id", 0)
+    await supabase.from("carousel_slides").delete().neq("id", 0)
+    await supabase.from("phrases").delete().neq("id", 0)
+    await supabase.from("notifications").delete().neq("id", 0)
+    await supabase.from("page_contents").delete().neq("id", 0)
+    
+    console.log("✅ Banco de dados limpo com sucesso!")
+    return true
+    
   } catch (error) {
-    console.error("Erro ao salvar frase no Supabase:", error)
+    console.error("❌ Erro ao limpar banco de dados:", error)
+    return false
   }
 }
 
-// Funções para Configuração da Loja
-export async function saveStoreConfigToSupabase(storeConfig: StoreConfig): Promise<void> {
+// Função para obter estatísticas do banco
+export async function getDatabaseStats(): Promise<{
+  products: number
+  categories: number
+  additionals: number
+  orders: number
+  slides: number
+  phrases: number
+  notifications: number
+} | null> {
   try {
     const supabase = createSupabaseClient()
 
-    // Converter a configuração para o formato do banco
-    const dbStoreConfig = {
-      id: storeConfig.id || DEFAULT_STORE_ID,
-      name: storeConfig.name,
-      logo_url: storeConfig.logoUrl,
-      delivery_fee: storeConfig.deliveryFee,
-      is_open: storeConfig.isOpen,
-      operating_hours: storeConfig.operatingHours,
-      special_dates: storeConfig.specialDates || [],
-      last_updated: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
+    const [
+      { count: products },
+      { count: categories },
+      { count: additionals },
+      { count: orders },
+      { count: slides },
+      { count: phrases },
+      { count: notifications },
+    ] = await Promise.all([
+      supabase.from("products").select("*", { count: "exact", head: true }),
+      supabase.from("categories").select("*", { count: "exact", head: true }),
+      supabase.from("additionals").select("*", { count: "exact", head: true }),
+      supabase.from("orders").select("*", { count: "exact", head: true }),
+      supabase.from("carousel_slides").select("*", { count: "exact", head: true }),
+      supabase.from("phrases").select("*", { count: "exact", head: true }),
+      supabase.from("notifications").select("*", { count: "exact", head: true }),
+    ])
+    
+    return {
+      products: products || 0,
+      categories: categories || 0,
+      additionals: additionals || 0,
+      orders: orders || 0,
+      slides: slides || 0,
+      phrases: phrases || 0,
+      notifications: notifications || 0,
     }
-
-    // Verificar se a configuração já existe
-    const { data, error: selectError } = await getTableWithStoreFilter(supabase, "store_config")
-      .eq("id", dbStoreConfig.id)
-
-    if (selectError) {
-      console.error("Erro ao verificar configuração da loja no Supabase:", selectError)
-      return
-    }
-
-    // Se encontrou algum resultado, a configuração existe
-    if (data && data.length > 0) {
-      // Configuração existe, atualizar usando a função utilitária
-      const { error: updateError } = await updateWithStoreFilter(
-        supabase,
-        "store_config",
-        dbStoreConfig,
-        "id",
-        dbStoreConfig.id
-      )
-
-      if (updateError) {
-        console.error("Erro ao atualizar configuração da loja no Supabase:", updateError)
-      }
-      return
-    }
-
-    // Configuração não existe, inserir usando a função utilitária
-    const { error: insertError } = await insertWithStoreId(supabase, "store_config", dbStoreConfig)
-
-    if (insertError) {
-      console.error("Erro ao inserir configuração da loja no Supabase:", insertError)
-    }
+    
   } catch (error) {
-    console.error("Erro ao salvar configuração da loja no Supabase:", error)
+    console.error("Erro ao obter estatísticas do banco:", error)
+    return null
   }
 }

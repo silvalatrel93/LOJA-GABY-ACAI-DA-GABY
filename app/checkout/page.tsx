@@ -11,7 +11,7 @@ import { useCart, CartProvider } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
 import { getStoreConfig } from "@/lib/services/store-config-service"
 import { getStoreStatus } from "@/lib/store-utils"
-import { saveOrder } from "@/lib/services/order-service"
+import { OrderService } from "@/lib/services/order-service"
 import { getProductById } from "@/lib/services/product-service"
 import { generateSimplePixQRCode } from "@/lib/pix-utils"
 import type { StoreConfig } from "@/lib/types"
@@ -136,6 +136,7 @@ function CheckoutPageContent() {
     neighborhood: "",
     number: "",
     complement: "",
+    addressType: "casa", // Tipo de endereço selecionado
     city: "", // Campo de cidade vazio para preenchimento manual
     paymentMethod: "pix",
     paymentChange: ""
@@ -209,13 +210,45 @@ function CheckoutPageContent() {
     }
   }, [cart])
 
+  // Função para verificar se o produto é da categoria Picolé (mesma lógica do carrinho)
+  const isPicolé = (categoryName: string | null | undefined): boolean => {
+    if (!categoryName) return false
+    
+    const picoléTerms = [
+      "PICOLÉ", 
+      "PICOLÉ AO LEITE", 
+      "PICOLE", 
+      "PICOLE AO LEITE", 
+      "PICOLÉ AO LEITÉ", 
+      "PICOLE AO LEITÉ"
+    ]
+    
+    return picoléTerms.some(term => 
+      categoryName.toUpperCase().includes(term)
+    )
+  }
+
+  // Função para verificar se o produto é da categoria Moreninha
+  const isMoreninha = (categoryName: string | null | undefined): boolean => {
+    if (!categoryName) return false
+    
+    return categoryName.toUpperCase().includes("MORENINHA")
+  }
+
   // Verificar se há picolés no carrinho
-  const hasPicoles = cart.some(item => {
-    // Verificar pelo nome do produto ou pela categoria
-    const itemCategory = item.categoryName || productCategories[item.id] || ""
-    return itemCategory.toLowerCase().includes("picol") || 
-           (item.name && item.name.toLowerCase().includes("picol"))
-  })
+  const hasPicoles = cart.some(item => 
+    isPicolé(item.categoryName) || isPicolé(productCategories[item.id])
+  )
+  
+  // Verificar se TODOS os produtos no carrinho são da categoria PICOLE
+  const hasOnlyPicoles = cart.length > 0 && cart.every(item => 
+    isPicolé(item.categoryName) || isPicolé(productCategories[item.id])
+  )
+
+  // Verificar se TODOS os produtos no carrinho são da categoria MORENINHA
+  const hasOnlyMoreninha = cart.length > 0 && cart.every(item => 
+    isMoreninha(item.categoryName) || isMoreninha(productCategories[item.id])
+  )
 
   // Calcular subtotal e total
   const subtotal = cart.reduce((sum, item) => {
@@ -238,11 +271,22 @@ function CheckoutPageContent() {
   const minimumPicoleOrder = storeConfig?.minimumPicoleOrder || 20.0
   const picoleDeliveryFee = storeConfig?.picoleDeliveryFee || 5.0
   
-  // Aplicar taxa adicional se houver picolés e o valor for abaixo do mínimo
-  const shouldApplyPicoleFee = hasPicoles && subtotal < minimumPicoleOrder
+  // Aplicar taxa adicional se tem SOMENTE picolés e o valor for abaixo do mínimo
+  const shouldApplyPicoleFee = hasOnlyPicoles && subtotal < minimumPicoleOrder
+
+  // Verificar se deve aplicar taxa adicional para moreninha abaixo do valor mínimo
+  const minimumMoreninhaOrder = storeConfig?.minimumMoreninhaOrder || 17.0
+  const moreninhaDeliveryFee = storeConfig?.moreninhaDeliveryFee || 5.0
   
-  // Taxa de entrega final (taxa normal ou taxa para picolés)
-  const finalDeliveryFee = shouldApplyPicoleFee ? picoleDeliveryFee : deliveryFee
+  // Aplicar taxa adicional se tem SOMENTE moreninha e o valor for abaixo do mínimo
+  const shouldApplyMoreninhaFee = hasOnlyMoreninha && subtotal < minimumMoreninhaOrder
+  
+  // Taxa de entrega final (prioridade: picolé > moreninha > normal)
+  const finalDeliveryFee = shouldApplyPicoleFee 
+    ? picoleDeliveryFee 
+    : shouldApplyMoreninhaFee 
+      ? moreninhaDeliveryFee 
+      : deliveryFee
   
   const total = subtotal + finalDeliveryFee
 
@@ -296,6 +340,7 @@ function CheckoutPageContent() {
           number: formData.number,
           neighborhood: formData.neighborhood,
           complement: formData.complement,
+          addressType: formData.addressType, // Tipo de endereço (casa, apto, condomínio)
           city: formData.city || "Maringá", // Usando a cidade informada
           state: "PR", // Estado padrão para Paraná
         },
@@ -306,10 +351,12 @@ function CheckoutPageContent() {
           price: item.price,
           quantity: item.quantity,
           additionals: item.additionals,
-          needsSpoon: item.needsSpoon, // Preservar a informação de colher
+          needsSpoon: item.needsSpoon, // Preservar a informação se precisa de colher
+          spoonQuantity: item.spoonQuantity, // Preservar a quantidade de colheres
+          notes: item.notes, // Preservar as observações do cliente
         })),
         subtotal,
-        deliveryFee,
+        deliveryFee: finalDeliveryFee,
         total,
         paymentMethod: formData.paymentMethod,
         // Adicionando o campo paymentChange apenas se o pagamento for em dinheiro
@@ -321,10 +368,15 @@ function CheckoutPageContent() {
       }
 
       // Salvar pedido no banco de dados e obter o ID do pedido
-      const savedOrder = await saveOrder(order)
+      const result = await OrderService.createOrder(order)
+      
+      if (result.error) {
+        throw new Error(result.error.message)
+      }
+      
       // Extrair o ID do pedido salvo (se existir)
-      if (savedOrder && savedOrder.id) {
-        setOrderId(String(savedOrder.id))
+      if (result.data && result.data.id) {
+        setOrderId(String(result.data.id))
       }
       
       // Limpar carrinho
@@ -521,18 +573,67 @@ function CheckoutPageContent() {
               </div>
 
               <div>
-                <label htmlFor="complement" className="block text-sm font-medium text-gray-700 mb-1">
-                  Complemento
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Tipo de Endereço
                 </label>
-                <input
-                  type="text"
-                  id="complement"
-                  name="complement"
-                  value={formData.complement}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+                <div className="flex flex-wrap gap-4 mb-4">
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="casa"
+                      name="addressType"
+                      value="casa"
+                      checked={formData.addressType === "casa"}
+                      onChange={handleChange}
+                      className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                    />
+                    <label htmlFor="casa" className="ml-2 text-sm text-gray-700">
+                      🏠 Casa
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="apto"
+                      name="addressType"
+                      value="apto"
+                      checked={formData.addressType === "apto"}
+                      onChange={handleChange}
+                      className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                    />
+                    <label htmlFor="apto" className="ml-2 text-sm text-gray-700">
+                      🏢 Apto
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="condominio"
+                      name="addressType"
+                      value="condominio"
+                      checked={formData.addressType === "condominio"}
+                      onChange={handleChange}
+                      className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                    />
+                    <label htmlFor="condominio" className="ml-2 text-sm text-gray-700">
+                      🏘️ Condomínio
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="complement" className="block text-sm font-medium text-gray-700 mb-1">
+                    Complemento (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    id="complement"
+                    name="complement"
+                    value={formData.complement}
+                    onChange={handleChange}
+                    placeholder="Ex: Bloco A, Apt 101, Portão azul..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
               </div>
               
               <div>
@@ -572,7 +673,7 @@ function CheckoutPageContent() {
                   className="h-5 w-5 text-purple-600 focus:ring-purple-500"
                 />
                 <label htmlFor="pix" className="ml-2 block text-sm text-gray-700">
-                  PIX
+                  Pix na Entrega
                 </label>
               </div>
 
@@ -628,13 +729,20 @@ function CheckoutPageContent() {
                         className="focus:ring-purple-500 focus:border-purple-500 block w-full pl-10 pr-28 sm:pr-32 py-2 text-sm border-gray-300 rounded-md"
                         inputMode="decimal"
                       />
-                      {formData.paymentChange && parseFloat(formData.paymentChange) > 0 && (
-                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                          <span className="text-gray-700 text-xs sm:text-sm whitespace-nowrap">
-                            Troco: {formatCurrency(parseFloat(formData.paymentChange) - total)}
-                          </span>
-                        </div>
-                      )}
+                      {formData.paymentChange && parseFloat(formData.paymentChange) > 0 && (() => {
+                        const valorPago = parseFloat(formData.paymentChange)
+                        const valorTotal = total
+                        // Usar Math.round para evitar problemas de ponto flutuante
+                        const trocoCalculado = Math.round((valorPago - valorTotal) * 100) / 100
+                        
+                        return (
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <span className="text-gray-700 text-xs sm:text-sm whitespace-nowrap">
+                              Troco: {formatCurrency(trocoCalculado)}
+                            </span>
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
                 )}
@@ -680,10 +788,33 @@ function CheckoutPageContent() {
                   ) : null}
                   
                   {/* Exibir informação de colher */}
-                  {item.needsSpoon && (
-                    <div className="ml-4 text-sm text-gray-600 mt-1 flex items-center">
-                      <span className="inline-block w-2.5 h-2.5 bg-gradient-to-r from-green-400 to-green-600 rounded-full mr-1.5"></span>
-                      <span>Com colher</span>
+                  {item.needsSpoon !== undefined && (
+                    <div className={`ml-4 mt-2 ${item.needsSpoon ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'} border-l-4 p-2 rounded-r-md`}>
+                      <div className="flex items-start">
+                        <span className={`inline-block w-2.5 h-2.5 ${item.needsSpoon ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-red-400 to-red-600'} rounded-full mr-1.5 mt-1 flex-shrink-0`}></span>
+                        <div className="text-sm">
+                          <span className={`font-semibold ${item.needsSpoon ? 'text-green-800' : 'text-red-800'}`}>
+                            Precisa de colher: {item.needsSpoon ? (
+                              item.spoonQuantity && item.spoonQuantity > 1 ? 
+                                `Sim (${item.spoonQuantity} colheres)` : 
+                                'Sim (1 colher)'
+                            ) : 'Não'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Exibir observações do cliente */}
+                  {item.notes && item.notes.trim() !== "" && (
+                    <div className="ml-4 mt-2 bg-yellow-50 border-l-4 border-yellow-400 p-2 rounded-r-md">
+                      <div className="flex items-start">
+                        <span className="inline-block w-2.5 h-2.5 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full mr-1.5 mt-1 flex-shrink-0"></span>
+                        <div className="text-sm">
+                          <span className="font-semibold text-yellow-800">Obs:</span>
+                          <span className="text-yellow-700 ml-1">{item.notes}</span>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -700,6 +831,11 @@ function CheckoutPageContent() {
                     {shouldApplyPicoleFee && (
                       <span className="ml-1 text-xs text-orange-500 font-medium">
                         (Pedido de picolé abaixo de {formatCurrency(minimumPicoleOrder)})
+                      </span>
+                    )}
+                    {shouldApplyMoreninhaFee && (
+                      <span className="ml-1 text-xs text-orange-500 font-medium">
+                        (Pedido de moreninha abaixo de {formatCurrency(minimumMoreninhaOrder)})
                       </span>
                     )}
                   </div>

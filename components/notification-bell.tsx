@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Bell, BellRing, BellOff } from "lucide-react"
-import { getActiveNotifications, markNotificationAsRead, markAllNotificationsAsRead, type Notification } from "@/lib/db"
+import { NotificationService } from "@/lib/services/notification-service"
+import type { Notification } from "@/lib/types"
 import { usePushNotifications } from "@/hooks/usePushNotifications"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
@@ -124,7 +125,7 @@ export default function NotificationBell() {
     
     try {
       setIsLoading(true);
-      const activeNotifications = await getActiveNotifications();
+      const activeNotifications = await NotificationService.getActiveNotifications();
       
       // Verificar se o componente ainda está montado antes de atualizar o estado
       setNotifications(activeNotifications);
@@ -232,7 +233,7 @@ export default function NotificationBell() {
         prevUnreadCountRef.current = Math.max(0, prevUnreadCountRef.current - 1);
         
         // Fazer a operação de banco de dados em segundo plano
-        await markNotificationAsRead(notification.id);
+        await NotificationService.markAsRead(notification.id);
       } catch (error) {
         console.error("Erro ao marcar notificação como lida:", error);
         
@@ -261,7 +262,13 @@ export default function NotificationBell() {
       prevUnreadCountRef.current = 0;
       
       // Executar operação no banco de dados
-      await markAllNotificationsAsRead();
+      // Marcar todas as notificações não lidas como lidas
+      const unreadNotifications = notifications.filter(n => !n.read);
+      await Promise.all(
+        unreadNotifications.map(notification => 
+          NotificationService.markAsRead(notification.id)
+        )
+      );
       
       // Confirmar sucesso
       toast({

@@ -1,7 +1,9 @@
 "use client"
 
-import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
+import { cleanSizeDisplay } from "@/lib/utils"
 import type { ProductSize } from "@/lib/types"
+import { Card } from "@/lib/components/ui/card"
+import { PriceDisplay } from "@/lib/components/ui/price-display"
 
 interface SizeSelectorProps {
   sizes: ProductSize[]
@@ -18,27 +20,24 @@ export function SizeSelector({ sizes, selectedSize, onSizeSelect }: SizeSelector
   }
 
   return (
-    <div className="mt-4">
-      <h4 className="font-semibold text-gray-700 mb-2">Escolha o tamanho:</h4>
-      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2">
+    <div className="mt-3 sm:mt-4">
+      <h4 className="font-medium sm:font-semibold text-gray-700 mb-1.5 sm:mb-2 text-sm sm:text-base">Escolha o tamanho:</h4>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
         {sizes.map((sizeOption) => (
-          <button
+          <Card
             key={sizeOption.size}
-            type="button"
             onClick={() => handleSizeClick(sizeOption.size)}
-            className={`border rounded-md flex flex-col items-center justify-center p-2 sm:p-3 transition-colors ${
-              selectedSize === sizeOption.size
-                ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
-                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-            data-component-name="SizeSelector"
-            aria-pressed={selectedSize === sizeOption.size}
+            selected={selectedSize === sizeOption.size}
+            className="flex flex-col items-center justify-center p-1.5 sm:p-3"
           >
-            <div className="font-medium text-sm sm:text-base">{cleanSizeDisplay(sizeOption.size)}</div>
-            <div className="text-xs sm:text-sm bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="SizeSelector">
-              {formatCurrency(sizeOption.price)}
-            </div>
-          </button>
+            <div className="font-medium text-xs sm:text-base">{cleanSizeDisplay(sizeOption.size)}</div>
+            <PriceDisplay 
+              price={sizeOption.price} 
+              variant="small" 
+              className="text-xs sm:text-sm" 
+              data-component-name="SizeSelector"
+            />
+          </Card>
         ))}
       </div>
     </div>

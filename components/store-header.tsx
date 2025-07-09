@@ -18,11 +18,13 @@ export default function StoreHeader({ name, logoUrl }: StoreHeaderProps) {
           <div className="flex items-center ml-2">
             {storeConfig?.logoUrl && (
               <div className="mr-3">
-                <img
-                  src={storeConfig.logoUrl || "/placeholder.svg"}
-                  alt="Logo"
-                  className="h-10 w-auto object-contain"
-                />
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-purple-200 shadow-sm">
+                  <img
+                    src={storeConfig.logoUrl || "/placeholder.svg"}
+                    alt="Logo"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                </div>
               </div>
             )}
             <h1 className="text-xl font-bold text-purple-900">{storeConfig?.name || "Açaí Online"}</h1>

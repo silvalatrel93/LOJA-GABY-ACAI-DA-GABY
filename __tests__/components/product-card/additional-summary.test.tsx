@@ -2,6 +2,21 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { AdditionalSummary } from '@/components/product-card/additional-summary'
 import { AdditionalsProvider } from '@/lib/contexts/additionals-context'
 
+// Mock dos componentes reutilizáveis
+jest.mock('@/lib/components/ui/card', () => ({
+  Card: ({ children, className }: { children: React.ReactNode, className?: string }) => (
+    <div data-testid="card" className={className}>{children}</div>
+  )
+}))
+
+jest.mock('@/lib/components/ui/price-display', () => ({
+  PriceDisplay: ({ price, freeText }: { price: number, freeText?: string }) => (
+    <span data-testid="price-display">
+      {price === 0 ? (freeText || 'Grátis') : `R$ ${price.toFixed(2).replace('.', ',')}`}
+    </span>
+  )
+}))
+
 // Mock do hook useAdditionals
 jest.mock('@/lib/contexts/additionals-context', () => {
   const originalModule = jest.requireActual('@/lib/contexts/additionals-context')

@@ -10,9 +10,11 @@ export interface Product {
   categoryId: number
   categoryName?: string
   active: boolean
+  hidden?: boolean // Indica se o produto deve ser ocultado na visualização do cliente
   allowedAdditionals: number[]
   hasAdditionals?: boolean
   additionalsLimit?: number // Limite personalizado de adicionais para este produto
+  needsSpoon?: boolean // Indica se o produto precisa de colher
 }
 
 // Tamanho do produto
@@ -56,6 +58,9 @@ export interface CartItem {
   originalPrice?: number // Preço total incluindo adicionais (se houver)
   additionals?: Additional[]
   categoryName?: string // Nome da categoria do produto
+  needsSpoon?: boolean // true = sim, false = não, undefined = não selecionado (obrigatório)
+  spoonQuantity?: number // Quantidade de colheres (só relevante se needsSpoon = true)
+  notes?: string // Observações do cliente (ex: "remover banana", "sem açúcar")
 }
 
 // Adicional no carrinho
@@ -91,6 +96,10 @@ export interface StoreConfig {
   logoUrl: string
   deliveryFee: number
   maringaDeliveryFee?: number // Taxa de entrega específica para Maringá
+  picoleDeliveryFee?: number // Taxa de entrega específica para picolés
+  minimumPicoleOrder?: number // Valor mínimo para isenção da taxa de entrega de picolés
+  moreninhaDeliveryFee?: number // Taxa de entrega específica para moreninha
+  minimumMoreninhaOrder?: number // Valor mínimo para isenção da taxa de entrega de moreninha
   isOpen: boolean
   operatingHours: OperatingHours
   specialDates: SpecialDate[]
@@ -143,6 +152,7 @@ export interface Address {
   street: string
   number: string
   complement?: string
+  addressType?: string // Tipo de endereço: casa, apto, condominio
   neighborhood: string
   city: string
   state: string
@@ -158,12 +168,17 @@ export interface OrderItem {
   quantity: number
   size: string
   additionals?: CartAdditional[]
+  needsSpoon?: boolean // true = sim, false = não, undefined = não selecionado (obrigatório)
+  spoonQuantity?: number // Quantidade de colheres (só relevante se needsSpoon = true)
+  notes?: string // Observações do cliente (ex: "remover banana", "sem açúcar")
 }
 
 // Conteúdo da página
 export interface PageContent {
   id: string
-  title: string
+  title?: string // Título da página (opcional para compatibilidade)
+  page?: string // Página (opcional para compatibilidade)
+  section?: string // Seção (opcional para compatibilidade)
   content: string
   lastUpdated: Date
 }

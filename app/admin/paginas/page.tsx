@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ArrowLeft, Save } from "lucide-react"
-import { getPageContent, savePageContent, backupData, initializeDefaultPageContent, type PageContent } from "@/lib/db"
+import { getPageContent, savePageContent, initializeDefaultPageContent } from "@/lib/services/page-content-service"
+import { backupData } from "@/lib/db"
+import type { PageContent } from "@/lib/types"
 
 export default function PagesAdminPage() {
   const [pages, setPages] = useState<{ id: string; title: string; lastUpdated: Date }[]>([])

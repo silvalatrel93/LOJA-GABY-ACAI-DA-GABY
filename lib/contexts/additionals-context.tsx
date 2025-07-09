@@ -260,8 +260,19 @@ export function AdditionalsProvider({
     })
   }
   
+  // Função para limpar todos os adicionais do tamanho selecionado
   const resetAdditionalsBySize = () => {
-    setAdditionalsBySize({})
+    console.log('🧹 Limpando todos os adicionais do tamanho:', selectedSize)
+    setAdditionalsBySize(prev => {
+      const newState = { ...prev }
+      
+      // Remove os adicionais do tamanho atual
+      if (newState[selectedSize]) {
+        delete newState[selectedSize]
+      }
+      
+      return newState
+    })
   }
   
   const updateSizeLimits = (sizes: ProductSize[]) => {

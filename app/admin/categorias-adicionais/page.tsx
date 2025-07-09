@@ -3,11 +3,9 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ArrowLeft, Save, Plus, Trash2, Eye, EyeOff } from "lucide-react"
-import {
-  AdditionalCategoryService,
-  backupData,
-} from "@/lib/db"
+import { AdditionalCategoryService } from "@/lib/services/additional-category-service"
 import type { AdditionalCategory } from "@/lib/services/additional-category-service"
+import { backupData } from "@/lib/db"
 import { createSafeKey } from "@/lib/key-utils";
 
 export default function AdditionalCategoriesAdminPage() {

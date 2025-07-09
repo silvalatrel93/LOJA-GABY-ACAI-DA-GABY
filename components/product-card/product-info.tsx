@@ -1,8 +1,9 @@
 "use client"
 
 import { ShoppingCart } from "lucide-react"
-import { formatCurrency } from "@/lib/utils"
 import type { Product } from "@/lib/services/product-service"
+import { Button } from "@/lib/components/ui/button"
+import { PriceDisplay } from "@/lib/components/ui/price-display"
 
 interface ProductInfoProps {
   product: Product
@@ -28,15 +29,22 @@ export function ProductInfo({ product }: ProductInfoProps) {
         {product.description}
       </p>
       <div className="mt-2 flex justify-between items-center">
-        <div className="font-medium" data-component-name="ProductInfo">
-          <span className="text-xs bg-gradient-to-r from-purple-600 to-purple-900 text-transparent bg-clip-text font-bold block">A PARTIR DE</span>
-          <span className="bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold">
-            {formatCurrency(product.sizes[0]?.price || 0)}
-          </span>
-        </div>
-        <button className="text-white bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 flex items-center p-1.5 rounded-full shadow-md transition-colors" data-component-name="ProductInfo">
-          <ShoppingCart size={18} />
-        </button>
+        <PriceDisplay 
+          price={product.sizes[0]?.price || 0} 
+          showPrefix={true} 
+          prefixText="A PARTIR DE" 
+          data-component-name="ProductInfo"
+        />
+        <Button 
+          variant="primary" 
+          size="sm" 
+          className="p-1.5 rounded-full" 
+          icon={<ShoppingCart size={18} />}
+          data-component-name="ProductInfo"
+        >
+          {/* O Button precisa de children, mesmo que vazio */}
+          <span className="sr-only">Ver produto</span>
+        </Button>
       </div>
     </div>
   )

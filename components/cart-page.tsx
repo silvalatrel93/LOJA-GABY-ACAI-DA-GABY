@@ -109,6 +109,19 @@ export default function CartPage() {
                         <div className="ml-4 flex-grow">
                           <h3 className="text-sm font-medium text-gray-800">{item.name}</h3>
                           <p className="text-sm text-gray-600">Tamanho: {displaySize}</p>
+                          
+                          {/* Mostrar informação de colher de forma clara */}
+                          <div className="mt-1 flex items-center">
+                            {item.needsSpoon === true ? (
+                              <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+                                ✅ Precisa de colher: Sim ({item.spoonQuantity === 1 ? "1 colher" : `${item.spoonQuantity || 1} colheres`})
+                              </span>
+                            ) : item.needsSpoon === false ? (
+                              <span className="text-xs text-gray-600 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-200">
+                                ❌ Precisa de colher: Não
+                              </span>
+                            ) : null}
+                          </div>
 
                           {item.additionals && item.additionals.length > 0 && (
                             <div className="ml-2 text-xs text-gray-600">

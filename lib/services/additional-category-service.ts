@@ -1,62 +1,42 @@
 import { createSupabaseClient } from "../supabase-client"
-import { DEFAULT_STORE_ID } from "../constants"
-import { safelyGetRecordById } from "../supabase-utils"
 
-// Interface para categoria de adicionais
 export interface AdditionalCategory {
   id: number
   name: string
-  order: number // Mantemos o nome 'order' na interface para compatibilidade
+  order: number
   active: boolean
-  selectionLimit?: number // Limite de seleção para esta categoria (opcional)
+  selectionLimit?: number // Limite de seleção para esta categoria de adicionais
 }
 
-// Serviço para gerenciar categorias de adicionais
 export const AdditionalCategoryService = {
   // Obter todas as categorias de adicionais
   async getAllAdditionalCategories(): Promise<AdditionalCategory[]> {
     try {
-      console.log("Iniciando getAllAdditionalCategories")
-      console.log("DEFAULT_STORE_ID:", DEFAULT_STORE_ID)
-      
       const supabase = createSupabaseClient()
       const { data, error } = await supabase
         .from("additional_categories")
         .select("*")
-        .eq("store_id", DEFAULT_STORE_ID)
         .order("display_order", { ascending: true })
 
       if (error) {
-        console.error("Erro ao buscar categorias de adicionais:", JSON.stringify(error))
+        console.error("Erro ao buscar categorias de adicionais:", error)
         return []
       }
 
-      // Verificar se data existe
-      if (!data || !Array.isArray(data)) {
-        console.log("Nenhuma categoria de adicionais encontrada ou data não é um array")
-        return []
-      }
-
-      console.log("Dados brutos de categorias de adicionais:", JSON.stringify(data))
-      
-      // Converter explicitamente os tipos para evitar erros de tipagem
-      const result = data.map((item: any) => ({
-        id: Number(item.id),
-        name: String(item.name),
-        order: Number(item.display_order), // Mapear display_order para order na interface
-        active: Boolean(item.active),
-        selectionLimit: item.selection_limit !== null ? Number(item.selection_limit) : undefined,
+      return (data || []).map((category: any) => ({
+        id: Number(category.id),
+        name: String(category.name),
+        order: Number(category.display_order),
+        active: Boolean(category.active),
+        selectionLimit: category.selection_limit ? Number(category.selection_limit) : undefined,
       }))
-      
-      console.log("Categorias de adicionais processadas:", JSON.stringify(result))
-      return result
     } catch (error) {
       console.error("Erro ao buscar categorias de adicionais:", error)
       return []
     }
   },
 
-  // Obter categorias de adicionais ativas
+  // Obter categorias ativas de adicionais
   async getActiveAdditionalCategories(): Promise<AdditionalCategory[]> {
     try {
       const supabase = createSupabaseClient()
@@ -64,61 +44,51 @@ export const AdditionalCategoryService = {
         .from("additional_categories")
         .select("*")
         .eq("active", true)
-        .eq("store_id", DEFAULT_STORE_ID)
         .order("display_order", { ascending: true })
 
       if (error) {
-        console.error("Erro ao buscar categorias de adicionais ativas:", JSON.stringify(error))
+        console.error("Erro ao buscar categorias ativas de adicionais:", error)
         return []
       }
 
-      // Verificar se data existe
-      if (!data || !Array.isArray(data)) {
-        return []
-      }
-
-      // Converter explicitamente os tipos para evitar erros de tipagem
-      return data.map((item: any) => ({
-        id: Number(item.id),
-        name: String(item.name),
-        order: Number(item.display_order), // Mapear display_order para order na interface
-        active: Boolean(item.active),
-        selectionLimit: item.selection_limit !== null ? Number(item.selection_limit) : undefined,
+      return (data || []).map((category: any) => ({
+        id: Number(category.id),
+        name: String(category.name),
+        order: Number(category.display_order),
+        active: Boolean(category.active),
+        selectionLimit: category.selection_limit ? Number(category.selection_limit) : undefined,
       }))
     } catch (error) {
-      console.error("Erro ao buscar categorias de adicionais ativas:", error)
+      console.error("Erro ao buscar categorias ativas de adicionais:", error)
       return []
     }
   },
 
-  // Obter categoria de adicional por ID
+  // Obter categoria por ID
   async getAdditionalCategoryById(id: number): Promise<AdditionalCategory | null> {
     try {
       const supabase = createSupabaseClient()
-
       const { data, error } = await supabase
         .from("additional_categories")
         .select("*")
         .eq("id", id)
-        .eq("store_id", DEFAULT_STORE_ID)
-        .maybeSingle()
+        .single()
 
       if (error) {
-        console.error(`Erro ao buscar categoria de adicional com ID ${id}:`, JSON.stringify(error))
+        console.error(`Erro ao buscar categoria de adicional ${id}:`, error)
         return null
       }
 
       if (!data) {
-        console.error(`Categoria de adicional ${id} não encontrada`)
         return null
       }
 
-      // Converter explicitamente os tipos para evitar erros de tipagem
       return {
         id: Number(data.id),
         name: String(data.name),
-        order: Number(data.display_order), // Mapear display_order para order na interface
+        order: Number(data.display_order),
         active: Boolean(data.active),
+        selectionLimit: data.selection_limit ? Number(data.selection_limit) : undefined,
       }
     } catch (error) {
       console.error(`Erro ao buscar categoria de adicional ${id}:`, error)
@@ -127,114 +97,69 @@ export const AdditionalCategoryService = {
   },
 
   // Salvar categoria de adicional
-  async saveAdditionalCategory(category: AdditionalCategory): Promise<AdditionalCategory | null> {
+  async saveAdditionalCategory(category: AdditionalCategory): Promise<{ data: AdditionalCategory | null; error: Error | null }> {
     try {
       const supabase = createSupabaseClient()
-      console.log("Iniciando saveAdditionalCategory com dados:", JSON.stringify(category))
-      console.log("DEFAULT_STORE_ID na função saveAdditionalCategory:", DEFAULT_STORE_ID)
 
-      // Verificar se o ID é válido (se existir)
-      if (category.id) {
-        console.log("Verificando se a categoria de adicional com ID", category.id, "existe")
-        const { data: existingData, error: checkError } = await supabase
+      if (category.id && category.id > 0) {
+        // Atualizar categoria existente
+        const { data, error } = await supabase
           .from("additional_categories")
-          .select("id")
-          .eq("id", category.id)
-          .eq("store_id", DEFAULT_STORE_ID)
-          .maybeSingle()
-
-        if (checkError) {
-          console.error("Erro ao verificar categoria de adicional existente:", JSON.stringify(checkError))
-          return null
-        }
-
-        // Se a categoria existir, atualizar
-        if (existingData) {
-          console.log("Atualizando categoria de adicional existente com ID:", category.id)
-          
-          // Preparar dados para atualização
-          const categoryData: Record<string, any> = {
+          .update({
             name: category.name,
-            display_order: category.order, // Mapear order da interface para display_order no banco
+            display_order: category.order,
             active: category.active,
-            store_id: DEFAULT_STORE_ID || "00000000-0000-0000-0000-000000000000",
-          }
-          
-          // Verificar se o campo selectionLimit foi definido
-          if (category.selectionLimit !== undefined) {
-            // Tentar salvar o campo selection_limit
-            try {
-              categoryData.selection_limit = category.selectionLimit;
-              console.log("Incluindo selection_limit no update:", category.selectionLimit);
-            } catch (error) {
-              console.warn("Não foi possível incluir selection_limit, a coluna pode não existir:", error);
-            }
-          }
-          
-          const { error: updateError } = await supabase
-            .from("additional_categories")
-            .update(categoryData)
-            .eq("id", category.id)
-            .eq("store_id", DEFAULT_STORE_ID)
+            selection_limit: category.selectionLimit || null,
+          })
+          .eq("id", category.id)
+          .select()
+          .single()
 
-          if (updateError) {
-            console.error("Erro ao atualizar categoria de adicional:", JSON.stringify(updateError))
-            return null
-          }
-
-          // Buscar os dados atualizados
-          return this.getAdditionalCategoryById(category.id)
+        if (error) {
+          console.error("Erro ao atualizar categoria de adicional:", error)
+          return { data: null, error: new Error(error.message) }
         }
-      }
-      
-      // Se chegou aqui, é uma nova categoria ou o ID fornecido não existe
-      console.log("Inserindo nova categoria de adicional")
-      
-      // Preparar dados para inserção - incluindo o ID para evitar violação de restrição not-null
-      const categoryData: Record<string, any> = {
-        id: category.id, // Incluir o ID para evitar valor nulo
-        name: category.name,
-        display_order: category.order, // Mapear order da interface para display_order no banco
-        active: category.active,
-        store_id: DEFAULT_STORE_ID || "00000000-0000-0000-0000-000000000000",
-      }
-      
-      // Verificar se o campo selectionLimit foi definido
-      if (category.selectionLimit !== undefined) {
-        // Tentar salvar o campo selection_limit
-        try {
-          categoryData.selection_limit = category.selectionLimit;
-          console.log("Incluindo selection_limit na inserção:", category.selectionLimit);
-        } catch (error) {
-          console.warn("Não foi possível incluir selection_limit, a coluna pode não existir:", error);
+
+        const result: AdditionalCategory = {
+          id: Number(data.id),
+          name: String(data.name),
+          order: Number(data.display_order),
+          active: Boolean(data.active),
+          selectionLimit: data.selection_limit ? Number(data.selection_limit) : undefined,
         }
-      }
-      
-      console.log("Dados para inserção:", JSON.stringify(categoryData))
-      
-      const { data: insertData, error: insertError } = await supabase
-        .from("additional_categories")
-        .insert(categoryData)
-        .select("id")
 
-      if (insertError) {
-        console.error("Erro ao inserir categoria de adicional:", JSON.stringify(insertError))
-        return null
-      }
+        return { data: result, error: null }
+      } else {
+        // Criar nova categoria
+        const { data, error } = await supabase
+          .from("additional_categories")
+          .insert({
+            name: category.name,
+            display_order: category.order,
+            active: category.active !== undefined ? category.active : true,
+            selection_limit: category.selectionLimit || null,
+          })
+          .select()
+          .single()
 
-      if (!insertData || !Array.isArray(insertData) || insertData.length === 0) {
-        console.error("Nenhum dado retornado após inserção")
-        return null
-      }
+        if (error) {
+          console.error("Erro ao criar categoria de adicional:", error)
+          return { data: null, error: new Error(error.message) }
+        }
 
-      const newId = Number(insertData[0].id)
-      console.log("Nova categoria de adicional inserida com ID:", newId)
-      
-      // Buscar os dados completos da nova categoria
-      return this.getAdditionalCategoryById(newId)
+        const result: AdditionalCategory = {
+          id: Number(data.id),
+          name: String(data.name),
+          order: Number(data.display_order),
+          active: Boolean(data.active),
+          selectionLimit: data.selection_limit ? Number(data.selection_limit) : undefined,
+        }
+
+        return { data: result, error: null }
+      }
     } catch (error) {
       console.error("Erro ao salvar categoria de adicional:", error)
-      return null
+      return { data: null, error: error instanceof Error ? error : new Error(String(error)) }
     }
   },
 
@@ -242,24 +167,22 @@ export const AdditionalCategoryService = {
   async deleteAdditionalCategory(id: number): Promise<boolean> {
     try {
       const supabase = createSupabaseClient()
-      
       const { error } = await supabase
         .from("additional_categories")
         .delete()
         .eq("id", id)
-        .eq("store_id", DEFAULT_STORE_ID)
 
       if (error) {
-        console.error(`Erro ao excluir categoria de adicional ${id}:`, JSON.stringify(error))
+        console.error(`Erro ao deletar categoria de adicional ${id}:`, error)
         return false
       }
 
       return true
     } catch (error) {
-      console.error(`Erro ao excluir categoria de adicional ${id}:`, error)
+      console.error(`Erro ao deletar categoria de adicional ${id}:`, error)
       return false
     }
-  }
+  },
 }
 
 // Exportar funções individuais para facilitar o uso
@@ -268,5 +191,3 @@ export const getActiveAdditionalCategories = AdditionalCategoryService.getActive
 export const getAdditionalCategoryById = AdditionalCategoryService.getAdditionalCategoryById.bind(AdditionalCategoryService)
 export const saveAdditionalCategory = AdditionalCategoryService.saveAdditionalCategory.bind(AdditionalCategoryService)
 export const deleteAdditionalCategory = AdditionalCategoryService.deleteAdditionalCategory.bind(AdditionalCategoryService)
-
-// O tipo AdditionalCategory já é exportado acima

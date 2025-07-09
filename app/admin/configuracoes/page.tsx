@@ -290,6 +290,78 @@ export default function StoreConfigPage() {
                       Número máximo de picolés que podem ser adicionados em um único pedido.
                     </p>
                   </div>
+                  
+                  <div>
+                    <div className="flex items-center mb-2">
+                      <label className="block text-sm font-medium text-gray-700">Taxa de Entrega para Picolés</label>
+                      <div className="ml-auto">
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id="freePicoleDelivery"
+                            checked={storeConfig?.picoleDeliveryFee === 0}
+                            onChange={(e) => {
+                              setStoreConfig({
+                                ...storeConfig!,
+                                picoleDeliveryFee: e.target.checked ? 0 : 5.0,
+                              })
+                            }}
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          />
+                          <label htmlFor="freePicoleDelivery" className="ml-2 block text-sm text-gray-700">
+                            Entrega gratuita para todos os picolés
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {storeConfig?.picoleDeliveryFee !== 0 && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Valor da Taxa para Picolés (R$)</label>
+                          <input
+                            type="number"
+                            value={storeConfig?.picoleDeliveryFee || 5.0}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setStoreConfig({
+                                ...storeConfig!,
+                                picoleDeliveryFee: value === "" ? 0 : Number.parseFloat(value) || 5.0,
+                              })
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            placeholder="Digite o valor da taxa para picolés"
+                            step="0.01"
+                            min="0"
+                            inputMode="decimal"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Valor Mínimo para Isenção (R$)</label>
+                          <input
+                            type="number"
+                            value={storeConfig?.minimumPicoleOrder || 20.0}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setStoreConfig({
+                                ...storeConfig!,
+                                minimumPicoleOrder: value === "" ? 0 : Number.parseFloat(value) || 20.0,
+                              })
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            placeholder="Digite o valor mínimo para isenção da taxa"
+                            step="0.01"
+                            min="0"
+                            inputMode="decimal"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Pedidos de picolés com valor igual ou superior a este terão entrega gratuita.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

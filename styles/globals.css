@@ -10,6 +10,52 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Classes customizadas para responsividade dos adicionais */
+  .text-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2; /* Propriedade padrão para compatibilidade */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .text-responsive-xs {
+    font-size: 10px;
+  }
+
+  @media (min-width: 640px) {
+    .text-responsive-xs {
+      font-size: 12px;
+    }
+  }
+
+  .text-responsive-xxs {
+    font-size: 9px;
+  }
+
+  @media (min-width: 640px) {
+    .text-responsive-xxs {
+      font-size: 10px;
+    }
+  }
+
+  /* Animação para gradiente do botão */
+  .animate-gradient-x {
+    background-size: 200% 200%;
+    animation: gradient-x 3s ease infinite;
+  }
+
+  @keyframes gradient-x {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
 }
 
 @layer base {
