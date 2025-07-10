@@ -8,7 +8,7 @@ import * as PhraseService from "./services/phrase-service"
 import * as StoreConfigService from "./services/store-config-service"
 import { OrderService } from "./services/order-service" // Importar diretamente o objeto OrderService
 import * as PageContentService from "./services/page-content-service"
-import * as NotificationService from "./services/notification-service"
+import { NotificationService } from "./services/notification-service"
 import * as CartService from "./services/cart-service"
 import * as BackupService from "./services/backup-service"
 
@@ -206,8 +206,7 @@ export async function importData(data: any) {
 // Exportar funções individuais para manter compatibilidade com código existente
 export const getAllProducts = ProductService.getAllProducts
 export const getActiveProducts = ProductService.getActiveProducts
-export const getAllActiveProducts = ProductService.getAllActiveProducts
-export const getProductsByCategory = ProductService.getProductsByCategory
+// Removidas funções que não existem no ProductService
 export const getProductById = ProductService.getProductById
 export const saveProduct = ProductService.saveProduct
 export const deleteProduct = ProductService.deleteProduct
@@ -269,12 +268,12 @@ export const getPageContentBySlug = PageContentService.getPageContentBySlug
 export const savePageContent = PageContentService.savePageContent
 export const initializeDefaultPageContent = PageContentService.initializeDefaultPageContent // Adicionando esta exportação que estava faltando
 
-export const getAllNotifications = NotificationService.NotificationService.getAllNotifications.bind(NotificationService.NotificationService)
-export const getActiveNotifications = NotificationService.NotificationService.getActiveNotifications.bind(NotificationService.NotificationService)
-export const getUnreadNotifications = NotificationService.NotificationService.getUnreadNotifications?.bind(NotificationService.NotificationService)
-export const getNotificationById = NotificationService.NotificationService.getNotificationById.bind(NotificationService.NotificationService)
-export const saveNotification = NotificationService.NotificationService.saveNotification.bind(NotificationService.NotificationService)
-export const deleteNotification = NotificationService.NotificationService.deleteNotification.bind(NotificationService.NotificationService)
-export const markAsRead = NotificationService.NotificationService.markAsRead.bind(NotificationService.NotificationService)
-export const markNotificationAsRead = NotificationService.NotificationService.markAsRead.bind(NotificationService.NotificationService) // Adicionar esta exportação como alias
-export const markAllNotificationsAsRead = NotificationService.NotificationService.markAllAsRead?.bind(NotificationService.NotificationService) // Adicionar esta exportação
+export const getAllNotifications = NotificationService.getAllNotifications.bind(NotificationService)
+export const getActiveNotifications = NotificationService.getActiveNotifications.bind(NotificationService)
+// Removida função que não existe no NotificationService
+export const getNotificationById = NotificationService.getNotificationById.bind(NotificationService)
+export const saveNotification = NotificationService.saveNotification.bind(NotificationService)
+export const deleteNotification = NotificationService.deleteNotification.bind(NotificationService)
+export const markAsRead = NotificationService.markAsRead.bind(NotificationService)
+export const markNotificationAsRead = NotificationService.markAsRead.bind(NotificationService) // Adicionar esta exportação como alias
+// Removida função que não existe no NotificationService
