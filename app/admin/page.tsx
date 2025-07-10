@@ -411,7 +411,7 @@ export default function AdminPage() {
               <Layers size={22} className="text-green-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-green-600 mb-0.5">✅ Categorias</h2>
+              <h2 className="text-lg font-semibold text-green-600 mb-0.5">Categorias</h2>
               <p className="text-sm text-gray-600">Organizar categorias de produtos</p>
             </div>
           </Link>
