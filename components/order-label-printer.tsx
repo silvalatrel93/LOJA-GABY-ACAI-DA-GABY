@@ -113,9 +113,12 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
   const formatAdditionalLine = (quantity: number, name: string, price: number): string => {
     const normalizedName = normalizeForThermalPrint(name);
     const itemText = `+ ${quantity}x ${normalizedName}`;
-    const priceText = formatCurrency(price * quantity);
+    const priceText = price === 0 ? 'Grátis' : formatCurrency(price * quantity);
+    const lineLength = 40; // Tamanho da linha para espaçamento
+    const spacing = lineLength - itemText.length - priceText.length;
+    const spacingText = spacing > 0 ? ' '.repeat(spacing) : ' ';
     
-    return `${itemText}${' '.repeat(30 - itemText.length - priceText.length)}${priceText}`;
+    return `${itemText}${spacingText}${priceText}`;
   };
 
   // Função para formatar linha de item principal com espaçamento adequado
@@ -766,12 +769,19 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                 {item.additionals && item.additionals.length > 0 ? (
                   <div className="mb-2">
                     <div className="additional-status font-bold">Adicionais Complementos</div>
-                    {item.additionals.map((additional, idx) => (
-                      <div key={idx} className="flex justify-between w-full" style={{ fontFamily: 'monospace', fontSize: '10px', marginBottom: '2px' }}>
-                        <span>+ {additional.quantity}x {normalizeForThermalPrint(additional.name)}</span>
-                        <span>{additional.price === 0 ? 'Grátis' : formatCurrency(additional.price * (additional.quantity ?? 1))}</span>
-                      </div>
-                    ))}
+                    {item.additionals.map((additional, idx) => {
+                      const additionalText = `+ ${additional.quantity}x ${normalizeForThermalPrint(additional.name)}`
+                      const priceText = additional.price === 0 ? 'Grátis' : formatCurrency(additional.price * (additional.quantity ?? 1))
+                      const lineLength = 40 // Tamanho da linha para espaçamento
+                      const spacing = lineLength - additionalText.length - priceText.length
+                      const spacingText = spacing > 0 ? ' '.repeat(spacing) : ' '
+                      
+                      return (
+                        <div key={idx} className="additional" style={{ fontFamily: 'monospace', fontSize: '10px', marginBottom: '2px', whiteSpace: 'pre-line' }}>
+                          {additionalText}{spacingText}{priceText}
+                        </div>
+                      )
+                    })}
                   </div>
                 ) : null}
 
