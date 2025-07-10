@@ -9,6 +9,7 @@ import { formatCurrency } from "@/lib/utils"
 import ImageViewer from "@/components/image-viewer"
 import { getStoreStatus } from "@/lib/store-utils"
 import type { Product } from "@/lib/services/product-service"
+import type { Additional } from "@/lib/types"
 
 // Contexto e hooks personalizados
 import { AdditionalsProvider } from "@/lib/contexts/additionals-context"
@@ -46,6 +47,18 @@ function ProductCardContent({ product }: ProductCardProps) {
   const [needsSpoon, setNeedsSpoon] = useState<boolean | undefined>(undefined)
   const [spoonQuantity, setSpoonQuantity] = useState(1)
   
+  // Estados específicos para COMBO 2 COPOS
+  const [isCombo2Copos, setIsCombo2Copos] = useState(false)
+  const [firstCupAdded, setFirstCupAdded] = useState(false)
+  const [firstCupSize, setFirstCupSize] = useState<string>("")
+  const [firstCupAdditionals, setFirstCupAdditionals] = useState<{
+    [additionalId: number]: { additional: Additional; quantity: number }
+  }>({})
+  const [secondCupAdditionals, setSecondCupAdditionals] = useState<{
+    [additionalId: number]: { additional: Additional; quantity: number }
+  }>({})
+  const [currentCupStep, setCurrentCupStep] = useState<"first" | "second">("first")
+  
   // Acesso ao contexto do carrinho
   const { addToCart } = useCart()
   
@@ -70,6 +83,15 @@ function ProductCardContent({ product }: ProductCardProps) {
     FREE_ADDITIONALS_LIMIT,
     SIZES_WITH_FREE_ADDITIONALS
   } = useAdditionalsLogic(product)
+
+  // Efeito para detectar se é COMBO 2 COPOS
+  useEffect(() => {
+    const isCombo = product.name.toUpperCase().includes("COMBO 2 COPOS")
+    setIsCombo2Copos(isCombo)
+    if (isCombo) {
+      console.log("Produto COMBO 2 COPOS detectado!")
+    }
+  }, [product.name])
 
   // Efeito para selecionar automaticamente o primeiro tamanho disponível quando o produto for aberto
   useEffect(() => {
@@ -157,37 +179,115 @@ function ProductCardContent({ product }: ProductCardProps) {
       // Simular um pequeno delay para mostrar o loading (opcional)
       await new Promise(resolve => setTimeout(resolve, 300))
       
-      // Preparar lista de adicionais para o carrinho
-      const selectedAdditionalsArray = Object.values(selectedAdditionals).map(({ additional, quantity }) => ({
-        id: additional.id,
-        name: additional.name,
-        price: additional.price,
-        quantity,
-        categoryId: additional.categoryId,
-        categoryName: additional.categoryName,
-        active: additional.active || true
-      }))
-      
-      // Criar objeto do item para adicionar ao carrinho
-      const cartItem = {
-        productId: product.id,
-        name: product.name,
-        price: selectedSizeInfo.price,
-        image: product.image || "",
-        size: selectedSize,
-        quantity: (isPicolé(product.categoryName) || isMoreninha(product.categoryName)) ? quantity : 1,
-        additionals: selectedAdditionalsArray,
-        originalPrice: selectedSizeInfo.price + additionalsTotalPrice,
-        categoryName: product.categoryName,
-        needsSpoon: needsSpoon,
-        spoonQuantity: needsSpoon === true ? spoonQuantity : undefined
-      };
-      
-      // Adicionar ao carrinho
-      addToCart(cartItem)
-      
-      // Limpar os adicionais selecionados
-      resetAdditionalsBySize()
+      // Lógica especial para COMBO 2 COPOS
+      if (isCombo2Copos) {
+        if (currentCupStep === "first") {
+          // Adicionar o primeiro copo (pago)
+          const selectedAdditionalsArray = Object.values(selectedAdditionals).map(({ additional, quantity }) => ({
+            id: additional.id,
+            name: additional.name,
+            price: additional.price,
+            quantity,
+            categoryId: additional.categoryId,
+            categoryName: additional.categoryName,
+            active: additional.active || true
+          }))
+          
+          const firstCupItem = {
+            productId: product.id,
+            name: `${product.name} - 1º Copo`,
+            price: selectedSizeInfo.price,
+            image: product.image || "",
+            size: selectedSize,
+            quantity: 1,
+            additionals: selectedAdditionalsArray,
+            originalPrice: selectedSizeInfo.price + additionalsTotalPrice,
+            categoryName: product.categoryName,
+            needsSpoon: needsSpoon,
+            spoonQuantity: needsSpoon === true ? spoonQuantity : undefined
+          }
+          
+          // Adicionar primeiro copo ao carrinho
+          addToCart(firstCupItem)
+          
+          // Salvar dados do primeiro copo
+          setFirstCupAdded(true)
+          setFirstCupSize(selectedSize)
+          setFirstCupAdditionals(selectedAdditionals)
+          setCurrentCupStep("second")
+          
+          // Limpar seleções para o segundo copo
+          resetAdditionalsBySize()
+          
+        } else if (currentCupStep === "second") {
+          // Adicionar o segundo copo (grátis)
+          const selectedAdditionalsArray = Object.values(selectedAdditionals).map(({ additional, quantity }) => ({
+            id: additional.id,
+            name: additional.name,
+            price: additional.price,
+            quantity,
+            categoryId: additional.categoryId,
+            categoryName: additional.categoryName,
+            active: additional.active || true
+          }))
+          
+          const secondCupItem = {
+            productId: product.id,
+            name: `${product.name} - 2º Copo`,
+            price: 0, // Segundo copo é grátis
+            image: product.image || "",
+            size: selectedSize,
+            quantity: 1,
+            additionals: selectedAdditionalsArray,
+            originalPrice: additionalsTotalPrice, // Apenas o preço dos adicionais
+            categoryName: product.categoryName,
+            needsSpoon: needsSpoon,
+            spoonQuantity: needsSpoon === true ? spoonQuantity : undefined
+          }
+          
+          // Adicionar segundo copo ao carrinho
+          addToCart(secondCupItem)
+          
+          // Resetar o combo para permitir nova compra
+          setFirstCupAdded(false)
+          setFirstCupSize("")
+          setFirstCupAdditionals({})
+          setSecondCupAdditionals({})
+          setCurrentCupStep("first")
+          resetAdditionalsBySize()
+          
+          // Fechar o modal
+          setIsModalOpen(false)
+        }
+      } else {
+        // Lógica normal para outros produtos
+        const selectedAdditionalsArray = Object.values(selectedAdditionals).map(({ additional, quantity }) => ({
+          id: additional.id,
+          name: additional.name,
+          price: additional.price,
+          quantity,
+          categoryId: additional.categoryId,
+          categoryName: additional.categoryName,
+          active: additional.active || true
+        }))
+        
+        const cartItem = {
+          productId: product.id,
+          name: product.name,
+          price: selectedSizeInfo.price,
+          image: product.image || "",
+          size: selectedSize,
+          quantity: (isPicolé(product.categoryName) || isMoreninha(product.categoryName)) ? quantity : 1,
+          additionals: selectedAdditionalsArray,
+          originalPrice: selectedSizeInfo.price + additionalsTotalPrice,
+          categoryName: product.categoryName,
+          needsSpoon: needsSpoon,
+          spoonQuantity: needsSpoon === true ? spoonQuantity : undefined
+        }
+        
+        addToCart(cartItem)
+        resetAdditionalsBySize()
+      }
       
       // Mostrar feedback visual
       setShowSuccess(true)
@@ -244,6 +344,15 @@ function ProductCardContent({ product }: ProductCardProps) {
     const isMoreninhaProduct = isMoreninha(product.categoryName)
     const hasQuantitySelector = isPicoléProduct || isMoreninhaProduct
     const totalPrice = hasQuantitySelector ? total * quantity : total
+    
+    // Texto especial para COMBO 2 COPOS
+    if (isCombo2Copos) {
+      if (currentCupStep === "first") {
+        return `Adicionar 1º Copo • ${formatCurrency(totalPrice)}`
+      } else if (currentCupStep === "second") {
+        return `Adicionar 2º Copo • ${formatCurrency(additionalsTotalPrice)}`
+      }
+    }
     
     if (hasQuantitySelector && quantity > 1) {
       return `Adicionar ${quantity} un. • ${formatCurrency(totalPrice)}`
@@ -326,6 +435,7 @@ function ProductCardContent({ product }: ProductCardProps) {
                   selectedSize={selectedSize || ""} 
                   onSizeSelect={setSelectedSize} 
                 />
+                
                 
                 {/* Opção de colher */}
                 {product.needsSpoon && (

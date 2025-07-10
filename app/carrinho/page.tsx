@@ -420,7 +420,7 @@ function CartPageContent() {
                                       data-component-name="CartPageContent"
                                     >
                                       <span 
-                                        className={`${isMilkShake ? 'break-words leading-tight text-left' : 'truncate'} pr-2 leading-tight`} 
+                                        className={`${isMilkShake ? 'break-words leading-tight text-left' : 'break-words'} pr-2 leading-tight text-xs sm:text-sm max-w-full overflow-hidden`} 
                                         data-component-name="CartPageContent"
                                       >
                                         + {additional.quantity}x {additional.name}

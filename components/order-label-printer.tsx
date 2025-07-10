@@ -109,16 +109,80 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       .trim();
   };
 
-  // Função para formatar linha de adicional com espaçamento adequado
-  const formatAdditionalLine = (quantity: number, name: string, price: number): string => {
-    const normalizedName = normalizeForThermalPrint(name);
-    const itemText = `+ ${quantity}x ${normalizedName}`;
-    const priceText = price === 0 ? 'Grátis' : formatCurrency(price * quantity);
-    const lineLength = 40; // Tamanho da linha para espaçamento
-    const spacing = lineLength - itemText.length - priceText.length;
-    const spacingText = spacing > 0 ? ' '.repeat(spacing) : ' ';
+  // Função para quebrar texto longo em múltiplas linhas
+  const breakLongText = (text: string, maxLength: number): string[] => {
+    if (text.length <= maxLength) {
+      return [text];
+    }
     
-    return `${itemText}${spacingText}${priceText}`;
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+    
+    for (const word of words) {
+      const testLine = currentLine + (currentLine ? ' ' : '') + word;
+      
+      if (testLine.length <= maxLength) {
+        currentLine = testLine;
+      } else {
+        if (currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          // Palavra muito longa, quebrar forçadamente
+          lines.push(word.substring(0, maxLength));
+          currentLine = word.substring(maxLength);
+        }
+      }
+    }
+    
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+    
+    return lines;
+  };
+
+  // Função para formatar linha de adicional com quebra responsiva para textos longos
+  const formatAdditionalLineResponsive = (quantity: number, name: string, price: number): string[] => {
+    const normalizedName = normalizeForThermalPrint(name);
+    const priceText = price === 0 ? 'Grátis' : formatCurrency(price * quantity);
+    const prefix = `+ ${quantity}x `;
+    const lineLength = 42;
+    
+    // Calcular espaço disponível para o nome na primeira linha
+    const availableSpace = lineLength - prefix.length - priceText.length - 3; // 3 espaços mínimos
+    
+    if (normalizedName.length <= availableSpace) {
+      // Nome cabe em uma linha - usar formatação original
+      const spacing = lineLength - (prefix + normalizedName).length - priceText.length;
+      const spacingText = spacing > 0 ? ' '.repeat(spacing) : '   ';
+      return [`${prefix}${normalizedName}${spacingText}${priceText}`];
+    }
+    
+    // Nome muito longo - quebrar em múltiplas linhas
+    const nameLines = breakLongText(normalizedName, availableSpace);
+    const result: string[] = [];
+    
+    // Primeira linha com preço
+    const firstLine = `${prefix}${nameLines[0]}`;
+    const spacing = lineLength - firstLine.length - priceText.length;
+    const spacingText = spacing > 0 ? ' '.repeat(spacing) : '   ';
+    result.push(`${firstLine}${spacingText}${priceText}`);
+    
+    // Linhas adicionais com indentação (sem preço)
+    const indent = '    '; // 4 espaços de indentação
+    for (let i = 1; i < nameLines.length; i++) {
+      result.push(`${indent}${nameLines[i]}`);
+    }
+    
+    return result;
+  };
+
+  // Função para formatar linha de adicional com espaçamento adequado (mantida para compatibilidade)
+  const formatAdditionalLine = (quantity: number, name: string, price: number): string => {
+    const lines = formatAdditionalLineResponsive(quantity, name, price);
+    return lines.join('\n');
   };
 
   // Função para formatar linha de item principal com espaçamento adequado
@@ -280,6 +344,10 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                   letter-spacing: 0;
                   word-spacing: 0;
                   text-rendering: optimizeSpeed;
+                  line-height: 1.3;
+                }
+                .additional-group {
+                  margin-bottom: 2mm;
                 }
                 .divider {
                   border-top: 1px dashed #000;
@@ -518,9 +586,11 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
           // Adicionar adicionais do item
           item.additionals.forEach((additional) => {
-            const formattedLine = formatAdditionalLine(additional.quantity ?? 1, additional.name, additional.price)
-            doc.text(formattedLine, margin + 5, yPos)
-            yPos += 4
+            const formattedLines = formatAdditionalLineResponsive(additional.quantity ?? 1, additional.name, additional.price)
+            formattedLines.forEach(line => {
+              doc.text(line, margin + 5, yPos)
+              yPos += 4
+            })
           })
         }
 
@@ -770,15 +840,24 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                   <div className="mb-2">
                     <div className="additional-status font-bold">Adicionais Complementos</div>
                     {item.additionals.map((additional, idx) => {
-                      const additionalText = `+ ${additional.quantity}x ${normalizeForThermalPrint(additional.name)}`
-                      const priceText = additional.price === 0 ? 'Grátis' : formatCurrency(additional.price * (additional.quantity ?? 1))
-                      const lineLength = 40 // Tamanho da linha para espaçamento
-                      const spacing = lineLength - additionalText.length - priceText.length
-                      const spacingText = spacing > 0 ? ' '.repeat(spacing) : ' '
+                      const formattedLines = formatAdditionalLineResponsive(additional.quantity ?? 1, additional.name, additional.price)
                       
                       return (
-                        <div key={idx} className="additional" style={{ fontFamily: 'monospace', fontSize: '10px', marginBottom: '2px', whiteSpace: 'pre-line' }}>
-                          {additionalText}{spacingText}{priceText}
+                        <div key={idx} className="additional-group" style={{ marginBottom: '2px' }}>
+                          {formattedLines.map((line, lineIdx) => (
+                            <div 
+                              key={lineIdx} 
+                              className="additional" 
+                              style={{ 
+                                fontFamily: 'monospace', 
+                                fontSize: '10px', 
+                                marginBottom: '1px', 
+                                whiteSpace: 'pre' 
+                              }}
+                            >
+                              {line}
+                            </div>
+                          ))}
                         </div>
                       )
                     })}
