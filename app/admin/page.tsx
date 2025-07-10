@@ -180,7 +180,6 @@ export default function AdminPage() {
       active: true, // Adicionar a propriedade active que estava faltando
       hidden: false, // Por padrão, o produto é visível
       needsSpoon: false, // Por padrão, o produto não precisa de colher
-
     })
     setIsModalOpen(true)
   }
@@ -530,7 +529,11 @@ export default function AdminPage() {
               </svg>
             </div>
             <div>
+<<<<<<< HEAD
               <h2 className="text-lg font-semibold text-emerald-600 mb-0.5">🚧 Dashboard de Relatórios</h2>
+=======
+              <h2 className="text-lg font-semibold text-emerald-600 mb-0.5">Dashboard de Relatórios</h2>
+>>>>>>> 36bd669be2ef0a6f402a3b8ca14b8db2cb288546
               <p className="text-sm text-gray-600">Análise de vendas e histórico de pedidos</p>
             </div>
           </Link>
@@ -673,6 +676,7 @@ export default function AdminPage() {
 
                   return (
                     <div key={category.id} className="mb-6">
+<<<<<<< HEAD
                       {/* Cabeçalho da categoria com botão de toggle */}
                       <button
                         onClick={() => toggleCategory(category.id)}
@@ -688,6 +692,104 @@ export default function AdminPage() {
                             ) : (
                               <ChevronRight size={20} />
                             )}
+=======
+                      <h3 className="text-lg font-medium mb-4 pb-2 flex items-center relative">
+                        <span className="bg-gradient-to-r from-purple-400 to-[#92c730] w-1.5 h-6 rounded-full mr-3"></span>
+                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-[#5a7c1e] font-semibold">
+                          {category.name}
+                        </span> 
+                        <span className="text-xs bg-gradient-to-r from-purple-50 to-[#f0f7e6] text-purple-700 px-2 py-0.5 rounded-full ml-2 font-normal border border-purple-100/30 shadow-sm">
+                          {categoryProducts.length} {categoryProducts.length === 1 ? 'produto' : 'produtos'}
+                        </span>
+                        <div className="absolute -bottom-1 left-6 right-0 h-px bg-gradient-to-r from-purple-200/50 to-transparent"></div>
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+                        {categoryProducts.map((product) => (
+                          <div 
+                            key={product.id} 
+                            className="border border-gray-100 rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-sm hover:shadow-md transition-all duration-300 hover:translate-y-[-2px] group bg-white max-w-full"
+                          >
+                            <div className="w-full h-48 xs:h-40 sm:h-28 sm:w-28 md:w-32 md:h-32 lg:w-36 lg:h-36 relative overflow-hidden sm:rounded-l-xl rounded-t-xl sm:rounded-tr-none">
+                              <Image 
+                                src={product.image || "/placeholder.svg"} 
+                                alt={product.name} 
+                                fill 
+                                sizes="(max-width: 480px) 100vw, (max-width: 640px) 40vw, (max-width: 768px) 28rem, (max-width: 1024px) 32rem, 36rem"
+                                priority={true}
+                                className="object-cover transition-transform duration-500 group-hover:scale-110" 
+                                loading="eager"
+                                onError={(e) => {
+                                  // Fallback para imagem padrão em caso de erro
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = '/placeholder.svg';
+                                }}
+                              />
+                              {!product.image && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg>
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-4 flex-1">
+                              <div className="flex justify-between flex-wrap gap-2">
+                                <div>
+                                  <h3 className="font-semibold text-purple-900">
+                                    {product.name}
+                                    {product.hidden && (
+                                      <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full inline-block border border-gray-200">
+                                        Oculto
+                                      </span>
+                                    )}
+                                  </h3>
+                                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full inline-block mt-1 border border-blue-100">
+                                    Adicionais: {getAdditionalCount(product)}
+                                  </span>
+                                </div>
+                                <div className="flex space-x-1">
+                                  {/* Botão de visibilidade */}
+                                  <ProductVisibilityToggle
+                                    productId={product.id}
+                                    initialHidden={product.hidden}
+                                    onToggle={(newHidden: boolean) => {
+                                      // Atualizar o estado local após alternar a visibilidade
+                                      const updatedProducts = products.map(p => 
+                                        p.id === product.id ? {...p, hidden: newHidden} : p
+                                      );
+                                      setProducts(updatedProducts);
+                                    }}
+                                  />
+                                  <button 
+                                    onClick={() => handleEditProduct(product)} 
+                                    className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 transition-colors"
+                                    aria-label="Editar produto"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteProduct(product.id)}
+                                    className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
+                                    disabled={deleteStatus?.id === product.id && deleteStatus.status === "pending"}
+                                    aria-label="Excluir produto"
+                                  >
+                                    {deleteStatus?.id === product.id && deleteStatus.status === "pending" ? (
+                                      <span className="animate-pulse">...</span>
+                                    ) : (
+                                      <Trash2 size={18} />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                              <p className="text-sm text-gray-500 line-clamp-2 mt-2">{product.description}</p>
+                              <div className="mt-2 text-sm flex flex-wrap gap-2">
+                                {product.sizes.map((size) => (
+                                  <span key={size.size} className="mr-3 bg-gray-50 px-2 py-1 rounded-md text-gray-700 border border-gray-100">
+                                    {size.size}: <span className="font-medium text-purple-700">{formatCurrency(size.price)}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+>>>>>>> 36bd669be2ef0a6f402a3b8ca14b8db2cb288546
                           </div>
                           
                           <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-[#5a7c1e] font-semibold">
@@ -838,6 +940,32 @@ export default function AdminPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="product-visibility"
+                  checked={!editingProduct.hidden}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, hidden: !e.target.checked })}
+                  className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <label htmlFor="product-visibility" className="text-sm font-medium text-gray-700">
+                  Produto visível para clientes
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-2 mt-3">
+                <input
+                  type="checkbox"
+                  id="product-needs-spoon"
+                  checked={editingProduct.needsSpoon}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, needsSpoon: e.target.checked })}
+                  className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <label htmlFor="product-needs-spoon" className="text-sm font-medium text-gray-700">
+                  Precisa de Colher? (Pergunta ao cliente)
+                </label>
               </div>
 
               <div className="flex items-center space-x-2">
