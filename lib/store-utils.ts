@@ -42,3 +42,6 @@ export async function isStoreOpen(): Promise<boolean> {
     return true
   }
 }
+
+// Endereço padrão da loja para rotas de entrega
+export const DEFAULT_STORE_ADDRESS = "Avenida Richuelo, 1464, Jardim Ouro Verde 3";

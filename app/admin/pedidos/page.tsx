@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
-import { ArrowLeft, Printer, RefreshCw, Bell, BellOff, X, MessageSquare, Trash2 } from "lucide-react"
+import { ArrowLeft, Printer, RefreshCw, Bell, BellOff, X, MessageSquare, Trash2, Truck, MapPin, Share2 } from "lucide-react"
 import { getAllOrders, markOrderAsPrinted, updateOrderStatus, type Order } from "@/lib/db"
 import { OrderService } from "@/lib/services/order-service"
 import { WhatsAppService } from "@/lib/services/whatsapp-service"
+import { MapsService } from "@/lib/services/maps-service"
+import { DeliveryConfigService } from "@/lib/services/delivery-config-service"
 import type { OrderStatus } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
@@ -26,6 +28,9 @@ export default function OrdersPage() {
   const [showSoundActivationMessage, setShowSoundActivationMessage] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const [autoSendWhatsApp, setAutoSendWhatsApp] = useState<boolean>(true)
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false)
+  const [selectedDeliveryOrder, setSelectedDeliveryOrder] = useState<Order | null>(null)
+  const [defaultDeliveryPhone, setDefaultDeliveryPhone] = useState('')
   const { playSound } = useNotificationSound()
   const prevOrdersRef = useRef<Order[]>([])
   const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -192,6 +197,16 @@ export default function OrdersPage() {
     }
   }, [fetchOrders, processOrders]);
 
+  // Carregar número padrão do entregador ao montar o componente
+  useEffect(() => {
+    const loadDefaultDeliveryPhone = () => {
+      const phone = DeliveryConfigService.getDefaultDeliveryPhone();
+      setDefaultDeliveryPhone(phone);
+    };
+    
+    loadDefaultDeliveryPhone();
+  }, []);
+
   // Configurar verificação periódica de novos pedidos
   useEffect(() => {
     let isMounted = true;
@@ -254,6 +269,57 @@ export default function OrdersPage() {
       alert("Erro ao enviar mensagem de WhatsApp. Verifique o console para mais detalhes.");
     }
   }, []);
+
+  // Função para enviar notificação de saída para entrega
+  const handleSendDeliveryNotification = React.useCallback(async (order: Order): Promise<void> => {
+    try {
+      await WhatsAppService.sendDeliveryNotification(order);
+    } catch (error) {
+      console.error("Erro ao enviar notificação de entrega:", error);
+      alert("Erro ao enviar notificação de entrega. Verifique o console para mais detalhes.");
+    }
+  }, []);
+
+  // Função para abrir rota no Google Maps
+  const handleOpenMapsRoute = React.useCallback((order: Order): void => {
+    try {
+      MapsService.openMapsRoute(order);
+    } catch (error) {
+      console.error("Erro ao abrir rota no Google Maps:", error);
+      alert("Erro ao abrir rota no Google Maps. Verifique o console para mais detalhes.");
+    }
+  }, []);
+
+  // Função para compartilhar rota com entregador
+  const handleShareRouteWithDelivery = React.useCallback((order: Order): void => {
+    try {
+      setSelectedDeliveryOrder(order);
+      setShowDeliveryModal(true);
+    } catch (error) {
+      console.error("Erro ao compartilhar rota com entregador:", error);
+      alert("Erro ao compartilhar rota com entregador. Verifique o console para mais detalhes.");
+    }
+  }, []);
+
+  // Função para confirmar compartilhamento da rota
+  const handleConfirmShareRoute = React.useCallback((deliveryPhone: string, saveAsDefault: boolean = false): void => {
+    try {
+      if (selectedDeliveryOrder && deliveryPhone.trim()) {
+        // Salvar como padrão se solicitado
+        if (saveAsDefault) {
+          DeliveryConfigService.updateDefaultDeliveryPhone(deliveryPhone.trim());
+          setDefaultDeliveryPhone(deliveryPhone.trim());
+        }
+        
+        MapsService.shareRouteWithDelivery(selectedDeliveryOrder, deliveryPhone.trim());
+        setShowDeliveryModal(false);
+        setSelectedDeliveryOrder(null);
+      }
+    } catch (error) {
+      console.error("Erro ao compartilhar rota com entregador:", error);
+      alert("Erro ao compartilhar rota com entregador. Verifique o console para mais detalhes.");
+    }
+  }, [selectedDeliveryOrder]);
   
   // Função para abrir a página de impressão do pedido
   const openPrintPage = React.useCallback((order: Order) => {
@@ -903,13 +969,36 @@ export default function OrdersPage() {
                           </svg>
                           WhatsApp
                         </a>
-                        <button
-                          onClick={() => handleSendWhatsApp(order)}
-                          className="text-xs flex items-center bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1 rounded"
-                        >
-                          <MessageSquare className="h-3 w-3 mr-1" />
-                          Enviar Confirmação
-                        </button>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <button
+                            onClick={() => handleSendWhatsApp(order)}
+                            className="text-xs flex items-center bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1 rounded"
+                          >
+                            <MessageSquare className="h-3 w-3 mr-1" />
+                            Enviar Confirmação
+                          </button>
+                          <button
+                            onClick={() => handleSendDeliveryNotification(order)}
+                            className="text-xs flex items-center bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded"
+                          >
+                            <Truck className="h-3 w-3 mr-1" />
+                            Saiu para Entrega
+                          </button>
+                          <button
+                            onClick={() => handleOpenMapsRoute(order)}
+                            className="text-xs flex items-center bg-red-100 text-red-700 hover:bg-red-200 px-2 py-1 rounded"
+                          >
+                            <MapPin className="h-3 w-3 mr-1" />
+                            Ver Rota
+                          </button>
+                          <button
+                            onClick={() => handleShareRouteWithDelivery(order)}
+                            className="text-xs flex items-center bg-purple-100 text-purple-700 hover:bg-purple-200 px-2 py-1 rounded"
+                          >
+                            <Share2 className="h-3 w-3 mr-1" />
+                            Compartilhar
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -948,6 +1037,101 @@ export default function OrdersPage() {
               >
                 Fechar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Compartilhamento de Rota */}
+      {showDeliveryModal && selectedDeliveryOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-purple-900">Compartilhar Rota com Entregador</h2>
+              <button
+                onClick={() => {
+                  setShowDeliveryModal(false);
+                  setSelectedDeliveryOrder(null);
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-4">
+              <div className="mb-4">
+                <h3 className="font-semibold text-sm text-gray-700 mb-2">Pedido #{selectedDeliveryOrder.id}</h3>
+                <p className="text-sm text-gray-600">
+                  Cliente: {selectedDeliveryOrder.customerName}<br />
+                  Endereço: {selectedDeliveryOrder.address.street}, {selectedDeliveryOrder.address.number} - {selectedDeliveryOrder.address.neighborhood}
+                </p>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Número do Entregador (com DDD):
+                </label>
+                <input
+                  type="tel"
+                  placeholder="(44) 99999-9999"
+                  defaultValue={defaultDeliveryPhone}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      const target = e.target as HTMLInputElement;
+                      const checkbox = document.getElementById('save-as-default') as HTMLInputElement;
+                      if (target.value.trim()) {
+                        handleConfirmShareRoute(target.value.trim(), checkbox?.checked || false);
+                      }
+                    }
+                  }}
+                  autoFocus
+                />
+                {defaultDeliveryPhone && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Número padrão carregado. Você pode alterar se necessário.
+                  </p>
+                )}
+              </div>
+
+              <div className="mb-4">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="save-as-default"
+                    defaultChecked={!defaultDeliveryPhone}
+                    className="mr-2 h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                  />
+                  <span className="text-sm text-gray-700">
+                    Salvar como número padrão do entregador
+                  </span>
+                </label>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowDeliveryModal(false);
+                    setSelectedDeliveryOrder(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    const input = document.querySelector('input[type="tel"]') as HTMLInputElement;
+                    const checkbox = document.getElementById('save-as-default') as HTMLInputElement;
+                    if (input && input.value.trim()) {
+                      handleConfirmShareRoute(input.value.trim(), checkbox?.checked || false);
+                    }
+                  }}
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                >
+                  Compartilhar
+                </button>
+              </div>
             </div>
           </div>
         </div>

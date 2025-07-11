@@ -50,6 +50,22 @@ export const WhatsAppService = {
   },
 
   /**
+   * Cria uma mensagem informando que o pedido saiu para entrega
+   * @param order Dados do pedido
+   * @returns Texto formatado da mensagem de saída para entrega
+   */
+  createDeliveryNotificationMessage(order: Order): string {
+    // Formata o nome do cliente em maiúsculas
+    const customerName = order.customerName ? order.customerName.toUpperCase() : 'CLIENTE';
+    
+    // Constrói a mensagem de saída para entrega
+    return `Oi, ${customerName}! 🛵\n\n` +
+           `Seu pedido #${order.id} saiu para entrega e já está a caminho! 🎉\n\n` +
+           `Fique atento(a) ao celular, pois nosso entregador entrará em contato quando chegar. 📱\n\n` +
+           `Obrigado pela preferência e aguardamos ansiosamente para que você saboreie nossos produtos! 💜🍦`;
+  },
+
+  /**
    * Gera a URL para envio direto de mensagem via WhatsApp
    * @param phone Número de telefone do cliente
    * @param message Mensagem a ser enviada
@@ -91,6 +107,35 @@ export const WhatsAppService = {
   },
 
   /**
+   * Abre uma nova janela do navegador com a mensagem de saída para entrega
+   * @param order Dados do pedido
+   * @returns Verdadeiro se a operação foi bem-sucedida
+   */
+  async sendDeliveryNotification(order: Order): Promise<boolean> {
+    try {
+      if (!order.customerPhone) {
+        console.error("Telefone do cliente não disponível para envio de notificação de entrega");
+        return false;
+      }
+
+      const message = this.createDeliveryNotificationMessage(order);
+      const whatsappUrl = this.generateWhatsAppUrl(order.customerPhone, message);
+      
+      // Em ambiente de navegador, abre uma nova janela
+      if (typeof window !== 'undefined') {
+        window.open(whatsappUrl, '_blank');
+        return true;
+      }
+      
+      console.log("URL do WhatsApp gerada:", whatsappUrl);
+      return true;
+    } catch (error) {
+      console.error("Erro ao enviar notificação de entrega via WhatsApp:", error);
+      return false;
+    }
+  },
+
+  /**
    * Envia automaticamente uma mensagem de confirmação para o cliente
    * sem abrir uma nova janela (para uso em background)
    * @param order Dados do pedido
@@ -114,4 +159,5 @@ export const WhatsAppService = {
 
 // Exportar funções individuais para facilitar o uso
 export const sendOrderConfirmation = WhatsAppService.sendOrderConfirmation.bind(WhatsAppService);
+export const sendDeliveryNotification = WhatsAppService.sendDeliveryNotification.bind(WhatsAppService);
 export const prepareOrderConfirmation = WhatsAppService.prepareOrderConfirmation.bind(WhatsAppService);
