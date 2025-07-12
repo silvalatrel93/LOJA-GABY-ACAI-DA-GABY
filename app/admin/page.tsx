@@ -364,25 +364,30 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-green-50">
-      <header className="bg-gradient-to-r from-purple-700 via-purple-800 to-purple-900 text-white p-4 sticky top-0 z-40 shadow-lg">
+      <header className="bg-gradient-to-r from-purple-700 via-purple-800 to-purple-900 text-white p-3 sm:p-4 sticky top-0 z-40 shadow-lg">
         <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center">
-            <Link href="/" className="mr-4 hover:bg-white/10 p-2 rounded-lg transition-colors">
-              <ArrowLeft size={24} />
+          <div className="flex items-center min-w-0 flex-1">
+            <Link href="/" className="mr-2 sm:mr-4 hover:bg-white/10 p-1.5 sm:p-2 rounded-lg transition-colors flex-shrink-0">
+              <ArrowLeft size={20} className="sm:hidden" />
+              <ArrowLeft size={24} className="hidden sm:block" />
             </Link>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">
-              Admin - Painel de Controle
+            <h1 className="text-base sm:text-lg md:text-xl font-bold bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent truncate">
+              <span className="hidden sm:inline">Admin - Painel de Controle</span>
+              <span className="sm:hidden">Admin</span>
             </h1>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
             <button
               onClick={() => window.location.reload()}
-              className="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition-colors"
+              className="bg-white/10 hover:bg-white/20 p-1.5 sm:p-2 rounded-lg transition-colors"
               title="Atualizar dados"
             >
-              <RefreshCw size={20} />
+              <RefreshCw size={18} className="sm:hidden" />
+              <RefreshCw size={20} className="hidden sm:block" />
             </button>
-            <SocialShare />
+            <div className="hidden sm:block">
+              <SocialShare />
+            </div>
           </div>
         </div>
       </header>
