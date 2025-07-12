@@ -201,7 +201,7 @@ export default function RelatoriosPage() {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-green-50">
       {/* Header roxo responsivo */}
       <header className="bg-gradient-to-r from-purple-700 via-purple-800 to-purple-900 text-white p-3 sm:p-4 sticky top-0 z-40 shadow-lg">
-        <div className="container mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 flex items-center justify-between">
           <div className="flex items-center min-w-0 flex-1">
             <button
               onClick={() => window.history.back()}
