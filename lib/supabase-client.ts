@@ -35,3 +35,32 @@ export function createSupabaseClient() {
     throw error
   }
 }
+
+// Função para testar a conectividade com o Supabase
+export async function testSupabaseConnection() {
+  try {
+    console.log('Testando conexão com o Supabase...')
+    const supabase = createSupabaseClient()
+    
+    // Tentar uma consulta simples para verificar a conectividade
+    const { data, error } = await supabase
+      .from('store_config')
+      .select('count', { count: 'exact', head: true })
+    
+    if (error) {
+      console.error('Erro na conexão com Supabase:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      })
+      return false
+    }
+    
+    console.log('Conexão com o Supabase bem-sucedida')
+    return true
+  } catch (error) {
+    console.error('Erro inesperado ao testar conexão:', error)
+    return false
+  }
+}

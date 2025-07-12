@@ -1,4 +1,4 @@
-import { createSupabaseClient } from "../supabase-client"
+import { createSupabaseClient, testSupabaseConnection } from "../supabase-client"
 import type { StoreConfig, OperatingHours, SpecialDate } from "../types"
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
@@ -61,7 +61,16 @@ export const StoreConfigService = {
   // Obter configurações da loja
   async getStoreConfig(): Promise<StoreConfig> {
     try {
+      // Primeiro, testar a conectividade
+      const isConnected = await testSupabaseConnection()
+      if (!isConnected) {
+        console.warn("Conexão com Supabase falhou, usando configuração padrão")
+        return this.getDefaultConfig()
+      }
+
       const supabase = createSupabaseClient()
+      console.log(`Buscando configuração da loja com store_id: ${DEFAULT_STORE_ID}`)
+      
       const { data, error } = await supabase
         .from("store_config")
         .select("*")
@@ -69,12 +78,33 @@ export const StoreConfigService = {
         .single()
 
       if (error) {
-        console.error("Erro ao buscar configurações da loja:", error)
+        console.warn("Erro ao buscar configurações da loja:", {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        })
+        
+        // Se o erro for "PGRST116" (nenhum registro encontrado), tentar criar a configuração padrão
+        if (error.code === 'PGRST116') {
+          console.log("Nenhuma configuração encontrada, tentando criar configuração padrão...")
+          const createdConfig = await this.createDefaultStoreConfig()
+          if (createdConfig) {
+            return createdConfig
+          }
+        }
+        
+        console.log("Retornando configuração padrão devido ao erro")
         return this.getDefaultConfig()
       }
 
       if (!data) {
-        console.log("Nenhuma configuração de loja encontrada, retornando padrão")
+        console.log("Nenhuma configuração de loja encontrada, tentando criar configuração padrão...")
+        const createdConfig = await this.createDefaultStoreConfig()
+        if (createdConfig) {
+          return createdConfig
+        }
+        console.log("Retornando configuração padrão")
         return this.getDefaultConfig()
       }
 
@@ -127,8 +157,67 @@ export const StoreConfigService = {
           : 20, // Valor padrão de 20 se não estiver definido
       }
     } catch (error) {
-      console.error("Erro ao buscar configurações da loja:", error)
+      console.error("Erro inesperado ao buscar configurações da loja:", {
+        error: error,
+        message: error instanceof Error ? error.message : 'Erro desconhecido',
+        stack: error instanceof Error ? error.stack : undefined
+      })
+      console.log("Retornando configuração padrão devido ao erro inesperado")
       return this.getDefaultConfig()
+    }
+  },
+
+  // Cria a configuração padrão no banco de dados
+  async createDefaultStoreConfig(): Promise<StoreConfig | null> {
+    try {
+      console.log("Criando configuração padrão da loja no banco de dados...")
+      const supabase = createSupabaseClient()
+      
+      const defaultConfigData = {
+        id: 'main',
+        store_id: DEFAULT_STORE_ID,
+        name: DEFAULT_STORE_CONFIG.name,
+        logo_url: DEFAULT_STORE_CONFIG.logoUrl,
+        delivery_fee: DEFAULT_STORE_CONFIG.deliveryFee,
+        maringa_delivery_fee: DEFAULT_STORE_CONFIG.maringaDeliveryFee,
+        picole_delivery_fee: DEFAULT_STORE_CONFIG.picoleDeliveryFee,
+        minimum_picole_order: DEFAULT_STORE_CONFIG.minimumPicoleOrder,
+        moreninha_delivery_fee: DEFAULT_STORE_CONFIG.moreninhaDeliveryFee,
+        minimum_moreninha_order: DEFAULT_STORE_CONFIG.minimumMoreninhaOrder,
+        is_open: DEFAULT_STORE_CONFIG.isOpen,
+        operating_hours: DEFAULT_STORE_CONFIG.operatingHours,
+        special_dates: DEFAULT_STORE_CONFIG.specialDates,
+        whatsapp_number: DEFAULT_STORE_CONFIG.whatsappNumber,
+        pix_key: DEFAULT_STORE_CONFIG.pixKey,
+        last_updated: new Date().toISOString(),
+        carousel_initialized: DEFAULT_STORE_CONFIG.carousel_initialized,
+        max_picoles_per_order: DEFAULT_STORE_CONFIG.maxPicolesPerOrder
+      }
+
+      const { data, error } = await supabase
+        .from("store_config")
+        .insert(defaultConfigData)
+        .select()
+        .single()
+
+      if (error) {
+        console.error("Erro ao criar configuração padrão:", {
+          message: error.message,
+          code: error.code,
+          details: error.details
+        })
+        return null
+      }
+
+      if (data) {
+        console.log("Configuração padrão criada com sucesso!")
+        return DEFAULT_STORE_CONFIG
+      }
+      
+      return null
+    } catch (error) {
+      console.error("Erro ao criar configuração padrão da loja:", error)
+      return null
     }
   },
 
