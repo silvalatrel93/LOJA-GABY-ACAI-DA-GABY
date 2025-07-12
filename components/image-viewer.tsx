@@ -50,10 +50,10 @@ export default function ImageViewer({ imageUrl, alt, onClose }: ImageViewerProps
       className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center touch-none"
       onClick={handleBackgroundClick}
     >
-      {/* Botão de fechar */}
+      {/* Botão de fechar - posicionamento responsivo */}
       <button
         onClick={handleCloseButtonClick}
-        className="absolute top-4 right-4 bg-gradient-to-r from-purple-500 to-purple-800 hover:from-purple-600 hover:to-purple-900 p-2 rounded-full text-white shadow-sm transition-all duration-200 z-10"
+        className="absolute top-4 right-4 sm:top-4 sm:right-4 max-sm:top-auto max-sm:bottom-8 max-sm:right-4 bg-gradient-to-r from-purple-500 to-purple-800 hover:from-purple-600 hover:to-purple-900 p-2 rounded-full text-white shadow-sm transition-all duration-200 z-10"
         aria-label="Fechar"
       >
         <X size={24} />
@@ -82,11 +82,6 @@ export default function ImageViewer({ imageUrl, alt, onClose }: ImageViewerProps
             loading="eager" // Carregamento imediato para o visualizador
           />
         </div>
-      </div>
-      
-      {/* Indicador de toque para dispositivos móveis */}
-      <div className="absolute bottom-8 left-0 right-0 text-center text-white text-sm opacity-70">
-        Toque fora da imagem para fechar
       </div>
     </div>
   )
