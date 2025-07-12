@@ -303,7 +303,9 @@ function ProductCardContent({ product }: ProductCardProps) {
                 image={product.image || "/placeholder.svg"} 
                 alt={product.name} 
                 onOpenViewer={handleOpenImageViewer} 
-                size="large" 
+                size="large"
+                priority={true} // Prioridade para imagens no modal
+                loading="eager"
               />
               
               {/* Categoria e descrição */}

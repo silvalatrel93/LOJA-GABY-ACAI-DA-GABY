@@ -24,20 +24,21 @@ import { AcaiPattern } from "@/components/ui/acai-pattern"
 
 interface ProductCardProps {
   product: Product
+  priority?: boolean
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, priority = false }: ProductCardProps) {
   return (
     <AdditionalsProvider 
       maxAdditionalsLimit={999} // Não usar limite geral, apenas limites por tamanho
       productSizes={product.sizes}
     >
-      <ProductCardContent product={product} />
+      <ProductCardContent product={product} priority={priority} />
     </AdditionalsProvider>
   )
 }
 
-function ProductCardContent({ product }: ProductCardProps) {
+function ProductCardContent({ product, priority = false }: ProductCardProps) {
   // Estado local do componente
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false)
@@ -389,7 +390,9 @@ function ProductCardContent({ product }: ProductCardProps) {
           image={product.image || "/placeholder.svg"} 
           alt={product.name} 
           onOpenViewer={handleOpenImageViewer} 
-          size="small" 
+          size="small"
+          priority={priority}
+          loading={priority ? "eager" : "lazy"}
         />
         
           {/* Componente de informações do produto */}

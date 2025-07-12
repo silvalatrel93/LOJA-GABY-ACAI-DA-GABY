@@ -65,7 +65,7 @@ export default function ImageViewer({ imageUrl, alt, onClose }: ImageViewerProps
           <img
             src={imageUrl || "/placeholder.svg"}
             alt={alt}
-            className="max-w-full max-h-full object-contain touch-manipulation"
+            className="max-w-full max-h-full object-contain touch-manipulation transition-opacity duration-300"
             onClick={(e) => e.stopPropagation()} // Impedir que cliques na imagem fechem o visualizador
             style={{
               // Melhora o redimensionamento em dispositivos móveis
@@ -79,6 +79,7 @@ export default function ImageViewer({ imageUrl, alt, onClose }: ImageViewerProps
             draggable={false}
             onTouchStart={(e) => e.stopPropagation()}
             onTouchMove={(e) => e.stopPropagation()}
+            loading="eager" // Carregamento imediato para o visualizador
           />
         </div>
       </div>

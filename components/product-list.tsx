@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { getVisibleProducts } from "@/lib/services/product-service"
 import { getActiveCategories } from "@/lib/services/category-service"
 import ProductCard from "@/components/product-card"
+import { ImagePreloader } from "@/components/image-preloader"
 import type { Product, Category } from "@/lib/types"
 import { createSafeKey } from "@/lib/key-utils"
 
@@ -184,6 +185,11 @@ export default function ProductList({ products: _initialProducts = [], categorie
     return allProducts.filter((product) => product.categoryId === selectedCategory)
   }, [selectedCategory, allProducts])
 
+  // Coletar URLs das imagens dos produtos para preload
+  const productImageUrls = useMemo(() => {
+    return allProducts.map(product => product.image).filter(Boolean)
+  }, [allProducts])
+
   // Função para controlar a barra fixa durante o scroll
   const handleScroll = useCallback(() => {
     const currentScrollY = window.scrollY
@@ -338,8 +344,12 @@ export default function ProductList({ products: _initialProducts = [], categorie
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              {categoryProducts.map((product) => (
-                <ProductCard key={createSafeKey(product.id, 'product')} product={product} />
+              {categoryProducts.map((product, index) => (
+                <ProductCard 
+                  key={createSafeKey(product.id, 'product')} 
+                  product={product}
+                  priority={index < 2} // Prioridade para os primeiros 2 produtos por categoria 
+                />
               ))}
             </div>
           </div>
@@ -349,6 +359,9 @@ export default function ProductList({ products: _initialProducts = [], categorie
 
   return (
     <div className="w-full">
+      {/* Preloader de imagens (apenas as primeiras 8) */}
+      <ImagePreloader imageUrls={productImageUrls} maxPreload={8} />
+      
       {/* Barra de categorias */}
       <div
         ref={categoriesBarRef}
