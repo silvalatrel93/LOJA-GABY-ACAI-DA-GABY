@@ -413,50 +413,6 @@ function ProductCardContent({ product }: ProductCardProps) {
                 </button>
               </div>
               
-              {/* Indicador de progresso para produtos combo */}
-              {isCombo2Copos && (
-                <div className="bg-purple-50 border-b border-purple-100 p-3 sm:p-4">
-                  <div className="flex items-center justify-center space-x-6">
-                    {/* Primeiro item */}
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                        currentCupStep === "first" 
-                          ? "bg-purple-600 text-white" 
-                          : firstCupAdded 
-                            ? "bg-green-500 text-white" 
-                            : "bg-gray-300 text-gray-600"
-                      }`}>
-                        {firstCupAdded ? "✓" : "1"}
-                      </div>
-                      <span className={`text-sm font-medium ${
-                        currentCupStep === "first" ? "text-purple-700" : "text-gray-600"
-                      }`}>
-                        Configurando 1º Item
-                      </span>
-                    </div>
-                    
-                    {/* Linha conectora */}
-                    <div className="flex-1 h-0.5 bg-gray-300 max-w-16"></div>
-                    
-                    {/* Segundo item */}
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                        currentCupStep === "second" 
-                          ? "bg-purple-600 text-white" 
-                          : "bg-gray-300 text-gray-600"
-                      }`}>
-                        2
-                      </div>
-                      <span className={`text-sm font-medium ${
-                        currentCupStep === "second" ? "text-purple-700" : "text-gray-600"
-                      }`}>
-                        Configurando 2º Item <span className="text-green-600 font-semibold">(GRÁTIS)</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
               <div className="p-3 sm:p-4">
                 {/* Componente de imagem do produto */}
                 <ProductImage 
