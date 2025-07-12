@@ -88,8 +88,9 @@ function ProductCardContent({ product }: ProductCardProps) {
   useEffect(() => {
     const productNameUpper = product.name.toUpperCase()
     const isCombo = productNameUpper.includes("COMBO 2 COPOS") ||
-                   productNameUpper.includes("2 MARMITA MINI") ||
-                   productNameUpper.includes("2 COPOS 300ML")
+                   productNameUpper.includes("2 MARMITA MINI")
+    // Excluir especificamente o produto "2 Copos 300ml de açaí com: leite em pó + leite condensado."
+    // que não deve ter sistema combo
     setIsCombo2Copos(isCombo)
     if (isCombo) {
       console.log("Produto combo detectado:", product.name)
