@@ -195,7 +195,7 @@ function ProductCardContent({ product }: ProductCardProps) {
           
           const firstCupItem = {
             productId: product.id,
-            name: `${product.name} - 1º Copo`,
+            name: product.name,
             price: selectedSizeInfo.price,
             image: product.image || "",
             size: selectedSize,
@@ -233,7 +233,7 @@ function ProductCardContent({ product }: ProductCardProps) {
           
           const secondCupItem = {
             productId: product.id,
-            name: `${product.name} - 2º Copo`,
+            name: product.name,
             price: 0, // Segundo copo é grátis
             image: product.image || "",
             size: selectedSize,
@@ -348,9 +348,9 @@ function ProductCardContent({ product }: ProductCardProps) {
     // Texto especial para COMBO 2 COPOS
     if (isCombo2Copos) {
       if (currentCupStep === "first") {
-        return `Adicionar 1º Copo • ${formatCurrency(totalPrice)}`
+        return `Adicionar ao Carrinho • ${formatCurrency(totalPrice)}`
       } else if (currentCupStep === "second") {
-        return `Adicionar 2º Copo • ${formatCurrency(additionalsTotalPrice)}`
+        return `Adicionar ao Carrinho • ${formatCurrency(additionalsTotalPrice)}`
       }
     }
     
