@@ -61,7 +61,6 @@ export const WhatsAppService = {
     // Constrói a mensagem de saída para entrega
     return `Oi, ${customerName}! 🛵\n\n` +
            `Seu pedido #${order.id} saiu para entrega e já está a caminho! 🎉\n\n` +
-           `Fique atento(a) ao celular, pois nosso entregador entrará em contato quando chegar. 📱\n\n` +
            `Obrigado pela preferência e aguardamos ansiosamente para que você saboreie nossos produtos! 💜🍦`;
   },
 
