@@ -7,7 +7,7 @@ const urlsToCache = [
   '/admin',
   '/offline.html',
   '/manifest.json',
-  '/acai-logo.png',
+  '/placeholder.svg',
   '/placeholder.svg',
   '/placeholder-logo.svg',
 ];

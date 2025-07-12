@@ -97,7 +97,7 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
                     <div className="w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white/20 shadow-sm">
                       <Image
                         src={storeConfig.logoUrl || "/placeholder.svg"}
-                        alt={`Logo ${storeConfig.name || "Açaí Online"}`}
+                        alt={`Logo ${storeConfig.name || "Heai Açai e Sorvetes"}`}
                         fill
                         className="object-cover rounded-full"
                         priority
@@ -106,7 +106,7 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
                   </div>
                 )}
                 <span className="text-xl font-bold transition-all duration-300">
-                  {storeConfig?.name || "Açaí Online"}
+                  {storeConfig?.name || "Heai Açai e Sorvetes"}
                 </span>
               </Link>
             </div>
@@ -159,7 +159,7 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
         >
           <div className="w-full max-w-screen-xl mx-auto px-4 text-center">
             <p>
-              © {new Date().getFullYear()} {storeConfig?.name || "Açaí Online"} - Todos os direitos reservados
+              © {new Date().getFullYear()} {storeConfig?.name || "Heai Açai e Sorvetes"} - Todos os direitos reservados
             </p>
           </div>
         </footer>

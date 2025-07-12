@@ -314,8 +314,8 @@ export default function SupabaseInitializer() {
 
       await StoreConfigService.saveStoreConfig({
         id: "main",
-        name: "Açaí Delícia",
-        logoUrl: "/acai-logo.png",
+                  name: "Heai Açai e Sorvetes",
+        logoUrl: "",
         deliveryFee: 5.0,
         isOpen: true,
         operatingHours: {
@@ -358,7 +358,7 @@ export default function SupabaseInitializer() {
 
       await NotificationService.saveNotification({
         id: 0, // Será gerado pelo banco
-        title: "Bem-vindo ao Sistema de Açaí Online",
+        title: "Bem-vindo ao Sistema Heai Açai e Sorvetes",
         message: "Obrigado por usar nosso sistema! Estamos felizes em tê-lo conosco.",
         type: "info",
         active: true,

@@ -50,6 +50,9 @@ export default function StoreConfigPage() {
 
     try {
       setIsSaving(true)
+      
+      console.log("Salvando configurações:", { id: storeConfig.id, name: storeConfig.name })
+      
       await saveStoreConfig(storeConfig)
 
       // Fazer backup após salvar

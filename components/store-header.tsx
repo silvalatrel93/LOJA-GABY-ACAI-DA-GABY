@@ -27,7 +27,7 @@ export default function StoreHeader({ name, logoUrl }: StoreHeaderProps) {
                 </div>
               </div>
             )}
-            <h1 className="text-xl font-bold text-purple-900">{storeConfig?.name || "Açaí Online"}</h1>
+            <h1 className="text-xl font-bold text-purple-900">{storeConfig?.name || "Heai Açai e Sorvetes"}</h1>
           </div>
         </div>
         {/* Removido o botão de carrinho que estava aqui */}

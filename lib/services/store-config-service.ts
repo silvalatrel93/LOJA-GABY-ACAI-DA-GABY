@@ -27,8 +27,8 @@ interface SupabaseStoreConfig {
 // Configuração padrão para usar como fallback
 const DEFAULT_STORE_CONFIG: StoreConfig = {
   id: "main",
-  name: "Açaí Online",
-  logoUrl: "/acai-logo.png",
+  name: "Heai Açai e Sorvetes",
+  logoUrl: "",
   deliveryFee: 0,
   maringaDeliveryFee: 0, // Taxa de entrega específica para Maringá
   picoleDeliveryFee: 5.0, // Taxa de entrega específica para picolés
@@ -75,7 +75,7 @@ export const StoreConfigService = {
         .from("store_config")
         .select("*")
         .eq("store_id", DEFAULT_STORE_ID)
-        .single()
+        .maybeSingle()
 
       if (error) {
         console.warn("Erro ao buscar configurações da loja:", {
@@ -91,6 +91,65 @@ export const StoreConfigService = {
           const createdConfig = await this.createDefaultStoreConfig()
           if (createdConfig) {
             return createdConfig
+          }
+        }
+        
+        // Caso haja múltiplos registros, buscar o primeiro manualmente
+        if (error.details && error.details.includes('multiple')) {
+          console.log("Múltiplos registros encontrados, buscando o primeiro...")
+          const { data: multipleData, error: limitError } = await supabase
+            .from("store_config")
+            .select("*")
+            .eq("store_id", DEFAULT_STORE_ID)
+            .limit(1)
+          
+          if (!limitError && multipleData && multipleData.length > 0) {
+            const config = multipleData[0] as unknown as SupabaseStoreConfig
+            return {
+              id: typeof config.id === 'string' ? config.id : 'main',
+              name: typeof config.name === 'string' ? config.name : 'Heai Açai e Sorvetes',
+              logoUrl: typeof config.logo_url === 'string' ? config.logo_url : '',
+              deliveryFee: typeof config.delivery_fee === 'number' 
+                ? config.delivery_fee 
+                : Number(config.delivery_fee) || 0,
+              maringaDeliveryFee: typeof config.maringa_delivery_fee === 'number'
+                ? config.maringa_delivery_fee
+                : Number(config.maringa_delivery_fee) || 0,
+              picoleDeliveryFee: typeof config.picole_delivery_fee === 'number'
+                ? config.picole_delivery_fee
+                : Number(config.picole_delivery_fee) || 5.0,
+              minimumPicoleOrder: typeof config.minimum_picole_order === 'number'
+                ? config.minimum_picole_order
+                : Number(config.minimum_picole_order) || 20.0,
+              moreninhaDeliveryFee: typeof config.moreninha_delivery_fee === 'number'
+                ? config.moreninha_delivery_fee
+                : Number(config.moreninha_delivery_fee) || 5.0,
+              minimumMoreninhaOrder: typeof config.minimum_moreninha_order === 'number'
+                ? config.minimum_moreninha_order
+                : Number(config.minimum_moreninha_order) || 17.0,
+              isOpen: Boolean(config.is_open),
+              operatingHours: config.operating_hours && typeof config.operating_hours === 'object'
+                ? config.operating_hours 
+                : {},
+              specialDates: Array.isArray(config.special_dates) 
+                ? config.special_dates 
+                : [],
+              whatsappNumber: typeof config.whatsapp_number === 'string' 
+                ? config.whatsapp_number 
+                : '5511999999999',
+              pixKey: typeof config.pix_key === 'string' 
+                ? config.pix_key 
+                : '09300021990',
+              lastUpdated: typeof config.last_updated === 'string' 
+                ? config.last_updated 
+                : new Date().toISOString(),
+              carousel_initialized: typeof config.carousel_initialized === 'boolean'
+                ? config.carousel_initialized
+                : false,
+              maxPicolesPerOrder: typeof config.max_picoles_per_order === 'number'
+                ? config.max_picoles_per_order
+                : 20,
+            }
           }
         }
         
@@ -113,7 +172,7 @@ export const StoreConfigService = {
       // Garantir que temos valores padrão para todos os campos obrigatórios
       return {
         id: typeof config.id === 'string' ? config.id : 'main',
-        name: typeof config.name === 'string' ? config.name : 'Loja',
+        name: typeof config.name === 'string' ? config.name : 'Heai Açai e Sorvetes',
         logoUrl: typeof config.logo_url === 'string' ? config.logo_url : '',
         deliveryFee: typeof config.delivery_fee === 'number' 
           ? config.delivery_fee 
@@ -170,7 +229,7 @@ export const StoreConfigService = {
   // Cria a configuração padrão no banco de dados
   async createDefaultStoreConfig(): Promise<StoreConfig | null> {
     try {
-      console.log("Criando configuração padrão da loja no banco de dados...")
+      console.log("Criando/atualizando configuração padrão da loja no banco de dados...")
       const supabase = createSupabaseClient()
       
       const defaultConfigData = {
@@ -196,7 +255,7 @@ export const StoreConfigService = {
 
       const { data, error } = await supabase
         .from("store_config")
-        .insert(defaultConfigData)
+        .upsert(defaultConfigData)
         .select()
         .single()
 
@@ -210,7 +269,7 @@ export const StoreConfigService = {
       }
 
       if (data) {
-        console.log("Configuração padrão criada com sucesso!")
+        console.log("Configuração padrão criada/atualizada com sucesso!")
         return DEFAULT_STORE_CONFIG
       }
       
@@ -235,8 +294,8 @@ export const StoreConfigService = {
       // Validar e padronizar os dados de entrada
       const validatedConfig: StoreConfig = {
         id: typeof config.id === 'string' && config.id.trim() ? config.id : 'main',
-        name: typeof config.name === 'string' && config.name.trim() ? config.name : 'Loja',
-        logoUrl: typeof config.logoUrl === 'string' ? config.logoUrl : '/acai-logo.png',
+        name: typeof config.name === 'string' && config.name.trim() ? config.name : 'Heai Açai e Sorvetes',
+        logoUrl: typeof config.logoUrl === 'string' ? config.logoUrl : '',
         deliveryFee: typeof config.deliveryFee === 'number' ? config.deliveryFee : 0,
         maringaDeliveryFee: typeof config.maringaDeliveryFee === 'number' ? config.maringaDeliveryFee : 0,
         picoleDeliveryFee: typeof config.picoleDeliveryFee === 'number' ? config.picoleDeliveryFee : 5.0,
@@ -283,14 +342,19 @@ export const StoreConfigService = {
       // Usar o ID da configuração existente ou 'main' como fallback
       const configId = validatedConfig.id
 
+      // Preparar dados finais para o upsert
+      const finalData = { 
+        ...configData, 
+        id: configId,
+        store_id: DEFAULT_STORE_ID 
+      };
+      
+      console.log("Dados finais para upsert:", { id: finalData.id, name: finalData.name })
+
       // Atualizar ou inserir os dados no Supabase
       const { data, error } = await supabase
         .from("store_config")
-        .upsert({ 
-          ...configData, 
-          id: configId,
-          store_id: DEFAULT_STORE_ID 
-        })
+        .upsert(finalData)
         .select()
         .single()
 
