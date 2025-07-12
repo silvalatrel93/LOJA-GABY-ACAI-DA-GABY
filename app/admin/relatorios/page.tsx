@@ -198,24 +198,103 @@ export default function RelatoriosPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 p-2 sm:p-4">
-      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Cabeçalho */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
-          <div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Dashboard de Relatórios</h1>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">Análise de vendas e histórico de pedidos</p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-green-50">
+      {/* Header roxo responsivo */}
+      <header className="bg-gradient-to-r from-purple-700 via-purple-800 to-purple-900 text-white p-3 sm:p-4 sticky top-0 z-40 shadow-lg">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center min-w-0 flex-1">
+            <button
               onClick={() => window.history.back()}
-              className="text-sm sm:text-base"
+              className="mr-2 sm:mr-4 hover:bg-white/10 p-1.5 sm:p-2 rounded-lg transition-colors flex-shrink-0"
             >
-              ← <span className="hidden sm:inline">Voltar</span>
-            </Button>
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="sm:hidden"
+              >
+                <path d="m12 19-7-7 7-7"/>
+                <path d="M19 12H5"/>
+              </svg>
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="hidden sm:block"
+              >
+                <path d="m12 19-7-7 7-7"/>
+                <path d="M19 12H5"/>
+              </svg>
+            </button>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-base sm:text-lg md:text-xl font-bold bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent truncate">
+                <span className="hidden sm:inline">Dashboard de Relatórios</span>
+                <span className="sm:hidden">Relatórios</span>
+              </h1>
+              <p className="text-xs sm:text-sm text-purple-200 mt-0.5 truncate hidden xs:block">
+                <span className="hidden sm:inline">Análise de vendas e histórico de pedidos</span>
+                <span className="sm:hidden">Vendas e pedidos</span>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-white/10 hover:bg-white/20 p-1.5 sm:p-2 rounded-lg transition-colors"
+              title="Atualizar dados"
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="18" 
+                height="18" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="sm:hidden"
+              >
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M3 21v-5h5"/>
+              </svg>
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="hidden sm:block"
+              >
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M3 21v-5h5"/>
+              </svg>
+            </button>
           </div>
         </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 p-2 sm:p-4">
 
         {/* Filtros */}
         <Card>
