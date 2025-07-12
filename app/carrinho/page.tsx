@@ -14,9 +14,9 @@ import type { Additional } from "@/lib/types"
 // Componente para exibir um item com nome à esquerda e valor à direita
 function ItemRow({ name, value, className }: { name: string; value: string; className?: string }) {
   return (
-    <div className={`flex items-center w-full ${className || ''}`}>
-      <div className="flex-grow">{name}</div>
-      <div className="flex-shrink-0 w-20 text-right tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="ItemRow">{value}</div>
+    <div className={`flex items-center justify-between w-full ${className || ''}`}>
+      <div className="flex-1 text-sm sm:text-base text-gray-600">{name}</div>
+      <div className="flex-shrink-0 text-right tabular-nums text-sm sm:text-base md:text-lg font-bold text-gray-900" data-component-name="ItemRow">{value}</div>
     </div>
   )
 }
@@ -339,13 +339,14 @@ function CartPageContent() {
                           {/* Nome, preço e controles do produto */}
                           <div className="flex justify-between items-start">
                             <div className="flex-1 min-w-0 pr-2">
-                              <span className="font-medium text-sm sm:text-base truncate pr-2 leading-tight">
-                                {item.quantity}x {item.name} <span className="text-xs text-gray-500 block sm:inline mt-0.5 sm:mt-0">({item.size})</span>
+                              <span className="font-medium text-sm sm:text-base md:text-lg leading-tight">
+                                <span className="font-bold text-gray-800">{item.quantity}x</span> {item.name}
+                                <span className="text-xs sm:text-sm text-gray-500 block sm:inline mt-0.5 sm:mt-0 ml-0 sm:ml-1">({item.size})</span>
                               </span>
                             </div>
                             
                             <div className="flex items-center gap-2 flex-shrink-0">
-                              <span className="text-sm sm:text-base whitespace-nowrap bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CartPageContent">{formatCurrency(item.price)}</span>
+                              <span className="text-base sm:text-lg md:text-xl font-bold text-green-600 whitespace-nowrap" data-component-name="CartPageContent">{formatCurrency(item.price)}</span>
                               
                               {/* Botões de controle para MILK-SHAKE'S */}
                               {(() => {
@@ -426,7 +427,7 @@ function CartPageContent() {
                                         + {additional.quantity}x {additional.name}
                                       </span>
                                       <span 
-                                        className={`whitespace-nowrap ${isMilkShake ? 'text-right' : 'ml-1'}`}
+                                        className={`whitespace-nowrap text-sm sm:text-base font-semibold text-green-600 ${isMilkShake ? 'text-right' : 'ml-1'}`}
                                       >
                                         {additional.price === 0 ? "Grátis" : `+ ${formatCurrency(additional.price * (additional.quantity || 1))}`}
                                       </span>
@@ -592,9 +593,9 @@ function CartPageContent() {
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-          <h2 className="text-base sm:text-lg font-semibold text-purple-900 mb-3 sm:mb-4">Resumo do Pedido</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-purple-900 mb-3 sm:mb-4">Resumo do Pedido</h2>
 
-          <div className="space-y-3">
+          <div className="space-y-3 sm:space-y-4">
             <ItemRow name="Subtotal" value={formatCurrency(subtotal)} />
             
             {/* Taxa de entrega com mensagem condicional */}
@@ -661,11 +662,11 @@ function CartPageContent() {
               )}
             </div>
             
-            <div className="pt-3 mt-1 border-t">
+            <div className="pt-3 mt-1 border-t border-gray-300">
               <ItemRow 
                 name="Total" 
                 value={formatCurrency(total)} 
-                className="text-base sm:text-lg font-bold text-purple-900"
+                className="text-lg sm:text-xl md:text-2xl font-bold text-purple-900"
               />
             </div>
           </div>
