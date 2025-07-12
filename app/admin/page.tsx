@@ -579,14 +579,14 @@ export default function AdminPage() {
 
           {/* Cabeçalho */}
           <div className="relative z-10">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-4">
-              <h2 className="text-lg sm:text-xl md:text-2xl font-bold">
+            <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 xs:gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <h2 className="text-base xs:text-lg sm:text-xl md:text-2xl font-bold">
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-700 via-purple-800 to-[#5a7c1e]">
                   Gerenciar Produtos
                 </span>
               </h2>
-              <div className="flex items-center bg-gradient-to-r from-purple-100 to-[#e8f5d3] text-xs sm:text-sm text-purple-800 px-3 py-1.5 rounded-full font-medium self-start sm:self-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5 flex-shrink-0">
+              <div className="flex items-center bg-gradient-to-r from-purple-100 to-[#e8f5d3] text-xs sm:text-sm text-purple-800 px-2 xs:px-3 py-1 xs:py-1.5 rounded-full font-medium self-start xs:self-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 xs:mr-1.5 flex-shrink-0 xs:w-[14px] xs:h-[14px]">
                   <path d="m7.5 4.27 9 5.15"></path>
                   <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
                   <path d="m3.3 7 8.7 5 8.7-5"></path>
@@ -598,17 +598,17 @@ export default function AdminPage() {
             <div className="w-full h-0.5 bg-gradient-to-r from-purple-100 via-[#e8f5d3] to-transparent mb-3 sm:mb-4"></div>
 
             {/* Barra de pesquisa e controles */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="flex flex-col gap-2 xs:gap-3 mb-4">
               {/* Pesquisa */}
-              <div className="relative flex-1">
+              <div className="relative w-full">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                  <svg className="w-3.5 h-3.5 xs:w-4 xs:h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
                     <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
                   </svg>
                 </div>
                 <input
                   type="text"
-                  className="block w-full p-2.5 pl-10 text-sm text-gray-900 border border-purple-200 rounded-lg bg-white focus:ring-purple-500 focus:border-purple-500 transition-all duration-300"
+                  className="block w-full p-2 xs:p-2.5 pl-9 xs:pl-10 text-sm text-gray-900 border border-purple-200 rounded-lg bg-white focus:ring-purple-500 focus:border-purple-500 transition-all duration-300"
                   placeholder="Pesquisar produtos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -618,7 +618,7 @@ export default function AdminPage() {
                     className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
                     onClick={() => setSearchTerm("")}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="xs:w-4 xs:h-4">
                       <line x1="18" y1="6" x2="6" y2="18"></line>
                       <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
@@ -627,24 +627,24 @@ export default function AdminPage() {
               </div>
 
               {/* Controles de collapse/expand */}
-              <div className="flex gap-2">
+              <div className="flex flex-col xs:flex-row gap-2">
                 <button
                   onClick={toggleAllCategories}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-lg transition-colors duration-200"
+                  className="flex items-center justify-center xs:justify-start gap-2 px-3 py-2 text-sm font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-lg transition-colors duration-200 w-full xs:w-auto"
                   title={allExpanded ? "Colapsar todas" : "Expandir todas"}
                 >
-                  {allExpanded ? <EyeOff size={16} /> : <Eye size={16} />}
-                  <span className="hidden sm:inline">
+                  {allExpanded ? <EyeOff size={14} className="xs:w-4 xs:h-4" /> : <Eye size={14} className="xs:w-4 xs:h-4" />}
+                  <span className="text-xs xs:text-sm">
                     {allExpanded ? "Colapsar todas" : "Expandir todas"}
                   </span>
                 </button>
 
                 <button
                   onClick={handleAddProduct}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="flex items-center justify-center xs:justify-start gap-2 px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg w-full xs:w-auto"
                 >
-                  <Plus size={16} />
-                  <span className="hidden sm:inline">Novo Produto</span>
+                  <Plus size={14} className="xs:w-4 xs:h-4" />
+                  <span className="text-xs xs:text-sm">Novo Produto</span>
                 </button>
               </div>
             </div>
@@ -682,25 +682,25 @@ export default function AdminPage() {
                         onClick={() => toggleCategory(category.id)}
                         className="w-full text-left group"
                       >
-                        <h3 className="text-lg font-medium mb-4 pb-2 flex items-center relative hover:bg-purple-50/50 rounded-lg p-2 -m-2 transition-colors duration-200">
-                          <span className="bg-gradient-to-r from-purple-400 to-[#92c730] w-1.5 h-6 rounded-full mr-3"></span>
+                        <h3 className="text-base xs:text-lg font-medium mb-3 xs:mb-4 pb-2 flex items-center relative hover:bg-purple-50/50 rounded-lg p-2 -m-2 transition-colors duration-200">
+                          <span className="bg-gradient-to-r from-purple-400 to-[#92c730] w-1 xs:w-1.5 h-5 xs:h-6 rounded-full mr-2 xs:mr-3 flex-shrink-0"></span>
                           
                           {/* Ícone de expand/collapse */}
-                          <div className="mr-3 transition-transform duration-200 text-purple-600">
+                          <div className="mr-2 xs:mr-3 transition-transform duration-200 text-purple-600 flex-shrink-0">
                             {isExpanded ? (
-                              <ChevronDown size={20} />
+                              <ChevronDown size={18} className="xs:w-5 xs:h-5" />
                             ) : (
-                              <ChevronRight size={20} />
+                              <ChevronRight size={18} className="xs:w-5 xs:h-5" />
                             )}
                           </div>
                           
-                          <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-[#5a7c1e] font-semibold">
+                          <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-[#5a7c1e] font-semibold truncate min-w-0 flex-1">
                             {category.name}
                           </span>
-                          <span className="text-xs bg-gradient-to-r from-purple-50 to-[#f0f7e6] text-purple-700 px-2 py-0.5 rounded-full ml-2 font-normal border border-purple-100/30 shadow-sm">
+                          <span className="text-xs bg-gradient-to-r from-purple-50 to-[#f0f7e6] text-purple-700 px-1.5 xs:px-2 py-0.5 rounded-full ml-1 xs:ml-2 font-normal border border-purple-100/30 shadow-sm flex-shrink-0">
                             {categoryProducts.length} {categoryProducts.length === 1 ? 'produto' : 'produtos'}
                           </span>
-                          <div className="absolute -bottom-1 left-6 right-0 h-px bg-gradient-to-r from-purple-200/50 to-transparent"></div>
+                          <div className="absolute -bottom-1 left-5 xs:left-6 right-0 h-px bg-gradient-to-r from-purple-200/50 to-transparent"></div>
                         </h3>
                       </button>
 
@@ -710,18 +710,18 @@ export default function AdminPage() {
                           ? 'max-h-[5000px] opacity-100' 
                           : 'max-h-0 opacity-0'
                       }`}>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 xs:gap-4 sm:gap-5">
                           {categoryProducts.map((product) => (
                             <div
                               key={product.id}
-                              className="border border-gray-100 rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-sm hover:shadow-md transition-all duration-300 hover:translate-y-[-2px] group bg-white max-w-full"
+                              className="border border-gray-100 rounded-xl overflow-hidden flex flex-col xs:flex-row shadow-sm hover:shadow-md transition-all duration-300 hover:translate-y-[-1px] group bg-white max-w-full"
                             >
-                              <div className="w-full h-48 xs:h-40 sm:h-28 sm:w-28 md:w-32 md:h-32 lg:w-36 lg:h-36 relative overflow-hidden sm:rounded-l-xl rounded-t-xl sm:rounded-tr-none">
+                              <div className="w-full h-36 xs:h-24 xs:w-24 sm:h-28 sm:w-28 md:w-32 md:h-32 lg:w-36 lg:h-36 relative overflow-hidden xs:rounded-l-xl rounded-t-xl xs:rounded-tr-none flex-shrink-0">
                                 <Image
                                   src={product.image || "/placeholder.svg"}
                                   alt={product.name}
                                   fill
-                                  sizes="(max-width: 480px) 100vw, (max-width: 640px) 40vw, (max-width: 768px) 28rem, (max-width: 1024px) 32rem, 36rem"
+                                  sizes="(max-width: 475px) 100vw, (max-width: 640px) 24rem, (max-width: 768px) 28rem, (max-width: 1024px) 32rem, 36rem"
                                   priority={true}
                                   className="object-cover transition-transform duration-500 group-hover:scale-110"
                                   loading="eager"
@@ -733,26 +733,26 @@ export default function AdminPage() {
                                 />
                                 {!product.image && (
                                   <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 xs:w-6 xs:h-6 sm:w-8 sm:h-8"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg>
                                   </div>
                                 )}
                               </div>
-                              <div className="p-4 flex-1">
-                                <div className="flex justify-between flex-wrap gap-2">
-                                  <div>
-                                    <h3 className="font-semibold text-purple-900">
+                              <div className="p-3 xs:p-4 flex-1 min-w-0">
+                                <div className="flex justify-between items-start gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <h3 className="font-semibold text-purple-900 text-sm xs:text-base truncate">
                                       {product.name}
                                       {product.hidden && (
-                                        <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full inline-block border border-gray-200">
+                                        <span className="ml-1 xs:ml-2 text-xs bg-gray-100 text-gray-600 px-1.5 xs:px-2 py-0.5 rounded-full inline-block border border-gray-200">
                                           Oculto
                                         </span>
                                       )}
                                     </h3>
-                                    <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full inline-block mt-1 border border-blue-100">
+                                    <span className="text-xs bg-blue-50 text-blue-700 px-1.5 xs:px-2 py-0.5 rounded-full inline-block mt-1 border border-blue-100">
                                       Adicionais: {getAdditionalCount(product)}
                                     </span>
                                   </div>
-                                  <div className="flex space-x-1">
+                                  <div className="flex space-x-0.5 xs:space-x-1 flex-shrink-0">
                                     {/* Botão de visibilidade */}
                                     <ProductVisibilityToggle
                                       productId={product.id}
@@ -767,29 +767,29 @@ export default function AdminPage() {
                                     />
                                     <button
                                       onClick={() => handleEditProduct(product)}
-                                      className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 transition-colors"
+                                      className="text-blue-600 hover:text-blue-800 p-1.5 xs:p-2 rounded-full hover:bg-blue-50 transition-colors touch-manipulation"
                                       aria-label="Editar produto"
                                     >
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="xs:w-[18px] xs:h-[18px]"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                                     </button>
                                     <button
                                       onClick={() => handleDeleteProduct(product.id)}
-                                      className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
+                                      className="text-red-600 hover:text-red-800 p-1.5 xs:p-2 rounded-full hover:bg-red-50 transition-colors touch-manipulation"
                                       disabled={deleteStatus?.id === product.id && deleteStatus.status === "pending"}
                                       aria-label="Excluir produto"
                                     >
                                       {deleteStatus?.id === product.id && deleteStatus.status === "pending" ? (
-                                        <span className="animate-pulse">...</span>
+                                        <span className="animate-pulse text-xs">...</span>
                                       ) : (
-                                        <Trash2 size={18} />
+                                        <Trash2 size={16} className="xs:w-[18px] xs:h-[18px]" />
                                       )}
                                     </button>
                                   </div>
                                 </div>
-                                <p className="text-sm text-gray-500 line-clamp-2 mt-2">{product.description}</p>
-                                <div className="mt-2 text-sm flex flex-wrap gap-2">
+                                <p className="text-xs xs:text-sm text-gray-500 line-clamp-2 mt-2 leading-relaxed">{product.description}</p>
+                                <div className="mt-2 flex flex-wrap gap-1 xs:gap-2">
                                   {product.sizes.map((size, index) => (
-                                    <span key={createSafeKey(`${product.id}-${index}-${size.size}-${size.price}`, 'size-display')} className="mr-3 bg-gray-50 px-2 py-1 rounded-md text-gray-700 border border-gray-100">
+                                    <span key={createSafeKey(`${product.id}-${index}-${size.size}-${size.price}`, 'size-display')} className="bg-gray-50 px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-md text-gray-700 border border-gray-100 text-xs xs:text-sm">
                                       {size.size}: <span className="font-medium text-purple-700">{formatCurrency(size.price)}</span>
                                     </span>
                                   ))}
