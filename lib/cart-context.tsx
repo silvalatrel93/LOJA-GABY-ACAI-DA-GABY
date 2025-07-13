@@ -54,7 +54,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const currentPath = window.location.pathname
       const mesaAtual = localStorage.getItem('mesa_atual')
       
-      console.log('CartContext - Verificando contexto:', { currentPath, mesaAtual: !!mesaAtual })
+      // console.log('CartContext - Verificando contexto:', { currentPath, mesaAtual: !!mesaAtual })
       
       // Verifica se temos dados de mesa no localStorage
       if (mesaAtual) {

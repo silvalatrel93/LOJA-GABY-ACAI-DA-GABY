@@ -130,32 +130,7 @@ function CheckoutPageContent() {
   const { cart, clearCart, tableInfo, isTableOrder } = useCart()
   const router = useRouter()
   
-  // Debug para verificar detecção de mesa
-  console.log('Checkout - Debug:', {
-    isTableOrder,
-    tableInfo,
-    currentPath: typeof window !== 'undefined' ? window.location.pathname : 'server',
-    localStorage_mesa: typeof window !== 'undefined' ? localStorage.getItem('mesa_atual') : 'server',
-    referrer: typeof window !== 'undefined' ? document.referrer : 'server',
-    cameFromMesa: typeof window !== 'undefined' ? document.referrer.includes('/mesa/') : false
-  })
-  
-  // Verificar se deveria ser mesa baseado no referrer
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const referrer = document.referrer
-      const cameFromMesa = referrer.includes('/mesa/')
-      const hasTableData = localStorage.getItem('mesa_atual')
-      
-      console.log('Verificação checkout:', {
-        referrer,
-        cameFromMesa,
-        hasTableData: !!hasTableData,
-        isTableOrder,
-        shouldBeMesa: cameFromMesa && hasTableData
-      })
-    }
-  }, [])
+  // Contexto de mesa/delivery detectado automaticamente
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -560,15 +535,7 @@ function CheckoutPageContent() {
           </div>
 
           {/* Informações da mesa ou seção de endereço */}
-          {(() => {
-            console.log('Checkout - Renderização:', { 
-              isTableOrder, 
-              hasTableInfo: !!tableInfo,
-              tableInfo,
-              showTableSection: isTableOrder && tableInfo 
-            })
-            return isTableOrder && tableInfo
-          })() ? (
+          {isTableOrder && tableInfo ? (
             <div className="bg-white rounded-lg shadow-md p-4 mb-4">
               <h2 className="text-lg font-semibold text-purple-900 mb-4">Informações da Mesa</h2>
               <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg">
