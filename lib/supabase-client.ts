@@ -4,22 +4,36 @@ import { createClient } from "@supabase/supabase-js"
 let supabaseInstance: ReturnType<typeof createClient> | null = null
 
 export function createSupabaseClient() {
-  if (supabaseInstance) return supabaseInstance
+  if (supabaseInstance) {
+    console.log('Retornando instância existente do Supabase');
+    return supabaseInstance;
+  }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  console.log('Tentando conectar ao Supabase:')
-  console.log('URL definida:', !!supabaseUrl)
-  console.log('ANON_KEY definida:', !!supabaseAnonKey)
+  console.log('Tentando conectar ao Supabase:');
+  console.log('URL:', supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'não definida');
+  console.log('ANON_KEY:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 10)}...` : 'não definida');
+  console.log('NODE_ENV:', process.env.NODE_ENV);
 
   // Valores de fallback para desenvolvimento local
-  const fallbackUrl = 'https://xyzcompany.supabase.co'
-  const fallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtdGt4cXBrYnp3YnZpaWZwcXRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTU2MjA3MDMsImV4cCI6MjAzMTE5NjcwM30.dummy-key-for-development'
+  const fallbackUrl = 'https://xyzcompany.supabase.co';
+  const fallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtdGt4cXBrYnp3YnZpaWZwcXRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTU2MjA3MDMsImV4cCI6MjAzMTE5NjcwM30.dummy-key-for-development';
 
   // Usar valores de fallback apenas em desenvolvimento
-  const finalUrl = supabaseUrl || (process.env.NODE_ENV === 'development' ? fallbackUrl : undefined)
-  const finalKey = supabaseAnonKey || (process.env.NODE_ENV === 'development' ? fallbackKey : undefined)
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const usingFallback = !supabaseUrl || !supabaseAnonKey;
+  
+  const finalUrl = supabaseUrl || (isDevelopment ? fallbackUrl : undefined);
+  const finalKey = supabaseAnonKey || (isDevelopment ? fallbackKey : undefined);
+  
+  console.log('Configuração final:', {
+    finalUrl: finalUrl ? `${finalUrl.substring(0, 20)}...` : 'não definida',
+    finalKey: finalKey ? `${finalKey.substring(0, 10)}...` : 'não definida',
+    isDevelopment,
+    usingFallback
+  });
 
   if (!finalUrl || !finalKey) {
     console.error("Erro: Supabase URL e Anon Key são necessários. Verifique as variáveis de ambiente.")
