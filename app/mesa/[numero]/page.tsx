@@ -132,10 +132,18 @@ export default function MesaPage() {
   // Salvar informações da mesa no localStorage para usar no checkout
   useEffect(() => {
     if (table) {
-      localStorage.setItem('mesa_atual', JSON.stringify({
+      const mesaData = {
         id: table.id,
         number: table.number,
         name: table.name
+      }
+      
+      localStorage.setItem('mesa_atual', JSON.stringify(mesaData))
+      console.log('Mesa configurada no localStorage:', mesaData)
+      
+      // Disparar evento customizado para notificar o contexto do carrinho
+      window.dispatchEvent(new CustomEvent('mesa-configurada', { 
+        detail: mesaData 
       }))
     }
   }, [table])

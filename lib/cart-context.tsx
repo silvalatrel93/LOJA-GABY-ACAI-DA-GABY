@@ -54,20 +54,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const currentPath = window.location.pathname
       const mesaAtual = localStorage.getItem('mesa_atual')
       
-      // Só considera como mesa se estivermos realmente na rota de mesa E tiver dados no localStorage
-      if (currentPath.startsWith('/mesa/') && mesaAtual) {
-        try {
-          const mesa = JSON.parse(mesaAtual) as TableInfo
-          setTableInfo(mesa)
-          setIsTableOrder(true)
-        } catch (error) {
-          console.error('Erro ao ler informações da mesa:', error)
-          setTableInfo(null)
-          setIsTableOrder(false)
+      console.log('CartContext - Verificando contexto:', { currentPath, mesaAtual: !!mesaAtual })
+      
+      // Só considera como mesa se estivermos realmente na rota de mesa
+      if (currentPath.startsWith('/mesa/')) {
+        if (mesaAtual) {
+          try {
+            const mesa = JSON.parse(mesaAtual) as TableInfo
+            console.log('CartContext - Configurando como mesa:', mesa)
+            setTableInfo(mesa)
+            setIsTableOrder(true)
+          } catch (error) {
+            console.error('Erro ao ler informações da mesa:', error)
+            setTableInfo(null)
+            setIsTableOrder(false)
+          }
+        } else {
+          console.log('CartContext - Na rota de mesa mas sem dados no localStorage, aguardando...')
+          // Se estivermos na rota de mesa mas ainda não tiver dados, aguardar um pouco
+          // Não limpar o estado imediatamente para dar tempo da página da mesa configurar
         }
       } else {
         // Se não estivermos na rota de mesa, limpar dados de mesa e definir como delivery
-        if (!currentPath.startsWith('/mesa/') && mesaAtual) {
+        console.log('CartContext - Configurando como delivery')
+        if (mesaAtual) {
           localStorage.removeItem('mesa_atual')
         }
         setTableInfo(null)
@@ -77,21 +87,34 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
-    checkTableContext()
+    // Aguardar um pouco antes da primeira verificação para dar tempo da página carregar
+    const initialTimeout = setTimeout(checkTableContext, 500)
 
     // Listener para mudanças de rota
     const handleRouteChange = () => {
+      setTimeout(checkTableContext, 100) // Pequeno delay para dar tempo da nova página configurar
+    }
+
+    // Listener para evento customizado de mesa configurada
+    const handleMesaConfigurada = () => {
+      console.log('CartContext - Evento mesa-configurada recebido, verificando contexto...')
       checkTableContext()
     }
 
     // Escutar mudanças na URL
     window.addEventListener('popstate', handleRouteChange)
     
+    // Escutar evento customizado de mesa configurada
+    window.addEventListener('mesa-configurada', handleMesaConfigurada)
+    
     // Verificar periodicamente mudanças na URL (para navegação SPA)
-    const intervalId = setInterval(checkTableContext, 1000)
+    // Aumentei o intervalo para 2 segundos para ser menos agressivo
+    const intervalId = setInterval(checkTableContext, 2000)
 
     return () => {
+      clearTimeout(initialTimeout)
       window.removeEventListener('popstate', handleRouteChange)
+      window.removeEventListener('mesa-configurada', handleMesaConfigurada)
       clearInterval(intervalId)
     }
   }, [checkTableContext])
