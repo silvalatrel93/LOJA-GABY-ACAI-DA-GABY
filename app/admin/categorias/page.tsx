@@ -75,7 +75,13 @@ export default function CategoriesAdminPage() {
     }
 
     try {
-      await saveCategory(editingCategory)
+      const result = await saveCategory(editingCategory)
+      
+      if (result.error) {
+        console.error("Erro ao salvar categoria:", result.error)
+        alert(`Erro ao salvar categoria: ${result.error.message}`)
+        return
+      }
 
       // Atualizar a lista de categorias após salvar
       await loadCategories()
@@ -89,7 +95,14 @@ export default function CategoriesAdminPage() {
   const handleToggleActive = async (category: Category) => {
     try {
       const updatedCategory = { ...category, active: !category.active }
-      await saveCategory(updatedCategory)
+      const result = await saveCategory(updatedCategory)
+      
+      if (result.error) {
+        console.error("Erro ao atualizar status da categoria:", result.error)
+        alert(`Erro ao atualizar status da categoria: ${result.error.message}`)
+        return
+      }
+      
       await loadCategories()
     } catch (error) {
       console.error("Erro ao atualizar status da categoria:", error)
@@ -108,8 +121,19 @@ export default function CategoriesAdminPage() {
       const updatedCategory = { ...category, order: prevCategory.order }
       const updatedPrevCategory = { ...prevCategory, order: category.order }
 
-      await saveCategory(updatedCategory)
-      await saveCategory(updatedPrevCategory)
+      const result1 = await saveCategory(updatedCategory)
+      if (result1.error) {
+        console.error("Erro ao mover categoria para cima:", result1.error)
+        alert(`Erro ao reordenar categorias: ${result1.error.message}`)
+        return
+      }
+      
+      const result2 = await saveCategory(updatedPrevCategory)
+      if (result2.error) {
+        console.error("Erro ao mover categoria para cima:", result2.error)
+        alert(`Erro ao reordenar categorias: ${result2.error.message}`)
+        return
+      }
 
       await loadCategories()
     } catch (error) {
@@ -129,8 +153,19 @@ export default function CategoriesAdminPage() {
       const updatedCategory = { ...category, order: nextCategory.order }
       const updatedNextCategory = { ...nextCategory, order: category.order }
 
-      await saveCategory(updatedCategory)
-      await saveCategory(updatedNextCategory)
+      const result1 = await saveCategory(updatedCategory)
+      if (result1.error) {
+        console.error("Erro ao mover categoria para baixo:", result1.error)
+        alert(`Erro ao reordenar categorias: ${result1.error.message}`)
+        return
+      }
+      
+      const result2 = await saveCategory(updatedNextCategory)
+      if (result2.error) {
+        console.error("Erro ao mover categoria para baixo:", result2.error)
+        alert(`Erro ao reordenar categorias: ${result2.error.message}`)
+        return
+      }
 
       await loadCategories()
     } catch (error) {

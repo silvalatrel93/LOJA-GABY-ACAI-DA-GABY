@@ -1,5 +1,6 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Category } from "../types"
+import { DEFAULT_STORE_ID } from "../constants"
 
 // Serviço para gerenciar categorias
 export const CategoryService = {
@@ -99,6 +100,7 @@ export const CategoryService = {
             name: category.name,
             order: category.order,
             active: category.active,
+            store_id: DEFAULT_STORE_ID,
           })
           .eq("id", category.id)
           .select()
@@ -125,6 +127,7 @@ export const CategoryService = {
             name: category.name,
             order: category.order,
             active: category.active !== undefined ? category.active : true,
+            store_id: DEFAULT_STORE_ID,
           })
           .select()
           .single()
