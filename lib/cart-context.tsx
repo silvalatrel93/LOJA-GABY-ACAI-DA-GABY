@@ -56,32 +56,41 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       
       console.log('CartContext - Verificando contexto:', { currentPath, mesaAtual: !!mesaAtual })
       
-      // Só considera como mesa se estivermos realmente na rota de mesa
-      if (currentPath.startsWith('/mesa/')) {
-        if (mesaAtual) {
-          try {
-            const mesa = JSON.parse(mesaAtual) as TableInfo
+      // Verifica se temos dados de mesa no localStorage
+      if (mesaAtual) {
+        try {
+          const mesa = JSON.parse(mesaAtual) as TableInfo
+          
+          // Se estivermos na rota de mesa OU em rotas relacionadas ao pedido de mesa (checkout, carrinho)
+          if (currentPath.startsWith('/mesa/') || 
+              currentPath === '/checkout' || 
+              currentPath === '/carrinho') {
             console.log('CartContext - Configurando como mesa:', mesa)
             setTableInfo(mesa)
             setIsTableOrder(true)
-          } catch (error) {
-            console.error('Erro ao ler informações da mesa:', error)
+          } else {
+            // Só limpa se estivermos em uma rota completamente diferente (home, admin, etc)
+            console.log('CartContext - Limpando dados de mesa - navegação para rota não relacionada')
+            localStorage.removeItem('mesa_atual')
             setTableInfo(null)
             setIsTableOrder(false)
           }
-        } else {
-          console.log('CartContext - Na rota de mesa mas sem dados no localStorage, aguardando...')
-          // Se estivermos na rota de mesa mas ainda não tiver dados, aguardar um pouco
-          // Não limpar o estado imediatamente para dar tempo da página da mesa configurar
+        } catch (error) {
+          console.error('Erro ao ler informações da mesa:', error)
+          localStorage.removeItem('mesa_atual')
+          setTableInfo(null)
+          setIsTableOrder(false)
         }
       } else {
-        // Se não estivermos na rota de mesa, limpar dados de mesa e definir como delivery
-        console.log('CartContext - Configurando como delivery')
-        if (mesaAtual) {
-          localStorage.removeItem('mesa_atual')
+        // Sem dados de mesa - sempre delivery
+        if (currentPath.startsWith('/mesa/')) {
+          console.log('CartContext - Na rota de mesa mas sem dados no localStorage, aguardando...')
+          // Se estivermos na rota de mesa mas ainda não tiver dados, aguardar
+        } else {
+          console.log('CartContext - Configurando como delivery')
+          setTableInfo(null)
+          setIsTableOrder(false)
         }
-        setTableInfo(null)
-        setIsTableOrder(false)
       }
     }
   }, [])
