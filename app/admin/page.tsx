@@ -23,6 +23,8 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
+  Users,
+  QrCode,
 } from "lucide-react"
 import { ProductVisibilityToggle } from "@/components/admin/product-visibility-toggle"
 import SocialShare from "@/components/social-share"
@@ -509,6 +511,32 @@ export default function AdminPage() {
             <div>
               <h2 className="text-lg font-semibold text-amber-600 mb-0.5">Horários de Funcionamento</h2>
               <p className="text-sm text-gray-600">Configure os horários de funcionamento da loja</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/mesas"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-teal-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-teal-200"
+          >
+            <div className="bg-teal-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <Users size={22} className="text-teal-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-teal-600 mb-0.5">Mesas</h2>
+              <p className="text-sm text-gray-600">Gerenciar mesas e QR codes</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/pedidos-mesa"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-orange-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-orange-200"
+          >
+            <div className="bg-orange-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <QrCode size={22} className="text-orange-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-orange-600 mb-0.5">Pedidos das Mesas</h2>
+              <p className="text-sm text-gray-600">Gerenciar pedidos presenciais</p>
             </div>
           </Link>
 

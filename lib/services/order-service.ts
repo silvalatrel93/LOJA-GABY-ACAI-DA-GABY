@@ -1,5 +1,5 @@
 import { createSupabaseClient } from "../supabase-client"
-import type { Order, OrderStatus } from "../types"
+import type { Order, OrderStatus, OrderType } from "../types"
 import { DEFAULT_STORE_ID } from "../constants"
 
 export const OrderService = {
@@ -34,6 +34,8 @@ export const OrderService = {
         date: new Date(String(order.date)),
         printed: Boolean(order.printed),
         notified: Boolean(order.notified),
+        orderType: (order.order_type as OrderType) || 'delivery',
+        tableId: order.table_id ? Number(order.table_id) : undefined,
       }))
     } catch (error) {
       console.error("Erro ao buscar pedidos:", error)
@@ -71,6 +73,8 @@ export const OrderService = {
         date: new Date(String(order.date)),
         printed: Boolean(order.printed),
         notified: Boolean(order.notified),
+        orderType: (order.order_type as OrderType) || 'delivery',
+        tableId: order.table_id ? Number(order.table_id) : undefined,
       }))
     } catch (error) {
       console.error(`Erro ao buscar pedidos com status ${status}:`, error)
@@ -112,6 +116,8 @@ export const OrderService = {
         date: new Date(String(data.date)),
         printed: Boolean(data.printed),
         notified: Boolean(data.notified),
+        orderType: (data.order_type as OrderType) || 'delivery',
+        tableId: data.table_id ? Number(data.table_id) : undefined,
       }
     } catch (error) {
       console.error(`Erro ao buscar pedido ${id}:`, error)
@@ -139,6 +145,8 @@ export const OrderService = {
         printed: order.printed || false,
         notified: order.notified || false,
         store_id: DEFAULT_STORE_ID, // Store ID padrão obrigatório
+        order_type: order.orderType || 'delivery', // Incluir tipo do pedido
+        table_id: order.tableId || null, // Incluir ID da mesa se for pedido de mesa
       }
 
       const { data, error } = await supabase
@@ -179,6 +187,8 @@ export const OrderService = {
         date: new Date(String(data.date)),
         printed: Boolean(data.printed),
         notified: Boolean(data.notified),
+        orderType: (data.order_type as OrderType) || 'delivery',
+        tableId: data.table_id ? Number(data.table_id) : undefined,
       }
 
       return { data: result, error: null }
@@ -362,6 +372,95 @@ export const OrderService = {
       }
     }
   },
+
+  // Obter pedidos por tipo (delivery ou table)
+  async getOrdersByType(orderType: OrderType): Promise<Order[]> {
+    try {
+      const supabase = createSupabaseClient()
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("order_type", orderType)
+        .order("date", { ascending: false })
+
+      if (error) {
+        console.error(`Erro ao buscar pedidos do tipo ${orderType}:`, error)
+        return []
+      }
+
+      return (data || []).map((order: any) => ({
+        id: Number(order.id),
+        customerName: String(order.customer_name),
+        customerPhone: String(order.customer_phone),
+        address: order.address as any,
+        items: order.items as any,
+        subtotal: Number(order.subtotal),
+        deliveryFee: Number(order.delivery_fee),
+        total: Number(order.total),
+        paymentMethod: String(order.payment_method),
+        paymentChange: order.payment_change ? String(order.payment_change) : undefined,
+        status: order.status as OrderStatus,
+        date: new Date(String(order.date)),
+        printed: Boolean(order.printed),
+        notified: Boolean(order.notified),
+        orderType: (order.order_type as OrderType) || 'delivery',
+        tableId: order.table_id ? Number(order.table_id) : undefined,
+      }))
+    } catch (error) {
+      console.error(`Erro ao buscar pedidos do tipo ${orderType}:`, error)
+      return []
+    }
+  },
+
+  // Obter pedidos de mesa
+  async getTableOrders(): Promise<Order[]> {
+    return this.getOrdersByType('table')
+  },
+
+  // Obter pedidos de delivery
+  async getDeliveryOrders(): Promise<Order[]> {
+    return this.getOrdersByType('delivery')
+  },
+
+  // Obter pedidos de uma mesa específica
+  async getOrdersByTable(tableId: number): Promise<Order[]> {
+    try {
+      const supabase = createSupabaseClient()
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("table_id", tableId)
+        .eq("order_type", "table")
+        .order("date", { ascending: false })
+
+      if (error) {
+        console.error(`Erro ao buscar pedidos da mesa ${tableId}:`, error)
+        return []
+      }
+
+      return (data || []).map((order: any) => ({
+        id: Number(order.id),
+        customerName: String(order.customer_name),
+        customerPhone: String(order.customer_phone),
+        address: order.address as any,
+        items: order.items as any,
+        subtotal: Number(order.subtotal),
+        deliveryFee: Number(order.delivery_fee),
+        total: Number(order.total),
+        paymentMethod: String(order.payment_method),
+        paymentChange: order.payment_change ? String(order.payment_change) : undefined,
+        status: order.status as OrderStatus,
+        date: new Date(String(order.date)),
+        printed: Boolean(order.printed),
+        notified: Boolean(order.notified),
+        orderType: (order.order_type as OrderType) || 'delivery',
+        tableId: order.table_id ? Number(order.table_id) : undefined,
+      }))
+    } catch (error) {
+      console.error(`Erro ao buscar pedidos da mesa ${tableId}:`, error)
+      return []
+    }
+  },
 }
 
 // Exportar funções individuais para facilitar o uso
@@ -374,3 +473,7 @@ export const markOrderAsPrinted = OrderService.markOrderAsPrinted.bind(OrderServ
 export const markOrderAsNotified = OrderService.markOrderAsNotified.bind(OrderService)
 export const deleteOrder = OrderService.deleteOrder.bind(OrderService)
 export const getOrderStats = OrderService.getOrderStats.bind(OrderService)
+export const getOrdersByType = OrderService.getOrdersByType.bind(OrderService)
+export const getTableOrders = OrderService.getTableOrders.bind(OrderService)
+export const getDeliveryOrders = OrderService.getDeliveryOrders.bind(OrderService)
+export const getOrdersByTable = OrderService.getOrdersByTable.bind(OrderService)

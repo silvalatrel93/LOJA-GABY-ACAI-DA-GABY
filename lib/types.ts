@@ -129,6 +129,20 @@ export interface SpecialDate {
 // Status do pedido
 export type OrderStatus = 'new' | 'pending' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'completed' | 'cancelled' | 'canceled';
 
+// Tipo do pedido
+export type OrderType = 'delivery' | 'table';
+
+// Mesa
+export interface Table {
+  id: number
+  number: number
+  name: string
+  active: boolean
+  qrCode: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 // Pedido
 export interface Order {
   id: number
@@ -145,6 +159,9 @@ export interface Order {
   date: Date
   printed: boolean
   notified: boolean
+  tableId?: number // ID da mesa para pedidos presenciais
+  orderType: OrderType // Tipo do pedido
+  tableName?: string // Nome da mesa (para exibição)
 }
 
 // Endereço

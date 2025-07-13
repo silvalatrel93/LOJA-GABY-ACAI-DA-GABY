@@ -89,7 +89,7 @@ export default function OrdersPage() {
   const fetchOrders = React.useCallback(async (silent = false, isMounted = true): Promise<Order[] | null> => {
     try {
       if (!silent) setIsLoading(true);
-      const ordersList = await getAllOrders();
+      const ordersList = await OrderService.getDeliveryOrders();
       
       if (!isMounted) return null;
       
@@ -477,9 +477,12 @@ export default function OrdersPage() {
                 <ArrowLeft size={20} className="text-white/90" />
               </Link>
               
-              <h1 className="ml-2 sm:ml-3 text-lg sm:text-xl font-bold text-white tracking-tight truncate max-w-[180px] sm:max-w-none">
-                Gerenciar Pedidos
-              </h1>
+              <div className="flex items-center ml-2 sm:ml-3">
+                <Truck size={20} className="text-white/90 mr-2" />
+                <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight truncate max-w-[180px] sm:max-w-none">
+                  Pedidos Delivery
+                </h1>
+              </div>
             </div>
             
             {/* Lado direito - Botões de ação */}
@@ -970,13 +973,13 @@ export default function OrdersPage() {
                           WhatsApp
                         </a>
                         <div className="flex flex-col sm:flex-row gap-2">
-                          <button
-                            onClick={() => handleSendWhatsApp(order)}
-                            className="text-xs flex items-center bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1 rounded"
-                          >
-                            <MessageSquare className="h-3 w-3 mr-1" />
-                            Enviar Confirmação
-                          </button>
+                        <button
+                          onClick={() => handleSendWhatsApp(order)}
+                          className="text-xs flex items-center bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1 rounded"
+                        >
+                          <MessageSquare className="h-3 w-3 mr-1" />
+                          Enviar Confirmação
+                        </button>
                           <button
                             onClick={() => handleSendDeliveryNotification(order)}
                             className="text-xs flex items-center bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded"

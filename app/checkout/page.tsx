@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Clock, MapPin, CreditCard, Truck, Home, Building, MapPinned, Copy, Check, Eye, EyeOff, CheckCircle } from "lucide-react"
+import { ArrowLeft, Clock, MapPin, CreditCard, Truck, Home, Building, MapPinned, Copy, Check, Eye, EyeOff, CheckCircle, Users } from "lucide-react"
 import { useCart, CartProvider } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
 import { getStoreConfig } from "@/lib/services/store-config-service"
@@ -127,7 +127,7 @@ function ItemRow({ name, value }: { name: string; value: string }) {
 
 // Componente interno que usa o hook useCart
 function CheckoutPageContent() {
-  const { cart, clearCart } = useCart()
+  const { cart, clearCart, tableInfo, isTableOrder } = useCart()
   const router = useRouter()
   const [formData, setFormData] = useState({
     name: "",
@@ -281,12 +281,14 @@ function CheckoutPageContent() {
   // Aplicar taxa adicional se tem SOMENTE moreninha e o valor for abaixo do mínimo
   const shouldApplyMoreninhaFee = hasOnlyMoreninha && subtotal < minimumMoreninhaOrder
   
-  // Taxa de entrega final (prioridade: picolé > moreninha > normal)
-  const finalDeliveryFee = shouldApplyPicoleFee 
-    ? picoleDeliveryFee 
-    : shouldApplyMoreninhaFee 
-      ? moreninhaDeliveryFee 
-      : deliveryFee
+  // Taxa de entrega final (prioridade: mesa = 0 > picolé > moreninha > normal)
+  const finalDeliveryFee = isTableOrder 
+    ? 0 // Mesa não tem taxa de entrega
+    : shouldApplyPicoleFee 
+      ? picoleDeliveryFee 
+      : shouldApplyMoreninhaFee 
+        ? moreninhaDeliveryFee 
+        : deliveryFee
   
   const total = subtotal + finalDeliveryFee
 
@@ -335,7 +337,15 @@ function CheckoutPageContent() {
       const order = {
         customerName: formData.name,
         customerPhone: formData.phone,
-        address: {
+        address: isTableOrder ? {
+          street: `Mesa ${tableInfo?.number || 'N/A'}`,
+          number: tableInfo?.name || `Mesa ${tableInfo?.number || 'N/A'}`,
+          neighborhood: "Salão",
+          complement: "",
+          addressType: "mesa",
+          city: "Local",
+          state: "PR",
+        } : {
           street: formData.address,
           number: formData.number,
           neighborhood: formData.neighborhood,
@@ -365,6 +375,8 @@ function CheckoutPageContent() {
         date: new Date(),
         printed: false,
         notified: false,
+        orderType: isTableOrder ? "table" as const : "delivery" as const,
+        ...(isTableOrder && tableInfo && { tableId: tableInfo.id }),
       }
 
       // Salvar pedido no banco de dados e obter o ID do pedido
@@ -520,8 +532,32 @@ function CheckoutPageContent() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-            <h2 className="text-lg font-semibold text-purple-900 mb-4">Endereço de Entrega</h2>
+          {/* Informações da mesa ou seção de endereço */}
+          {isTableOrder && tableInfo ? (
+            <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+              <h2 className="text-lg font-semibold text-purple-900 mb-4">Informações da Mesa</h2>
+              <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-purple-200 p-2 rounded-full">
+                      <Users className="w-5 h-5 text-purple-700" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-purple-900">{tableInfo.name}</h3>
+                      <p className="text-sm text-purple-600">Pedido será entregue na mesa</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="bg-white/70 px-3 py-1 rounded-full">
+                      <span className="text-sm font-medium text-purple-800">Mesa {tableInfo.number}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+              <h2 className="text-lg font-semibold text-purple-900 mb-4">Endereço de Entrega</h2>
 
             <div className="space-y-3">
               <div>
@@ -534,7 +570,7 @@ function CheckoutPageContent() {
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  required
+                  required={!isTableOrder}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
@@ -550,7 +586,7 @@ function CheckoutPageContent() {
                     name="number"
                     value={formData.number}
                     onChange={handleChange}
-                    required
+                    required={!isTableOrder}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     inputMode="numeric"
                   />
@@ -566,7 +602,7 @@ function CheckoutPageContent() {
                     name="neighborhood"
                     value={formData.neighborhood}
                     onChange={handleChange}
-                    required
+                    required={!isTableOrder}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
@@ -646,7 +682,7 @@ function CheckoutPageContent() {
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
-                  required
+                  required={!isTableOrder}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
                 {isMaringa && (
@@ -657,6 +693,7 @@ function CheckoutPageContent() {
               </div>
             </div>
           </div>
+          )}
 
           <div className="bg-white rounded-lg shadow-md p-4 mb-4">
             <h2 className="text-lg font-semibold text-purple-900 mb-4">Forma de Pagamento</h2>

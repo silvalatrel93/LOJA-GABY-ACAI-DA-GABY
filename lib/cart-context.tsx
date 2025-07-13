@@ -6,6 +6,12 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 import { getCartItems, addToCart, updateCartItemQuantity, removeFromCart, clearCart } from "@/lib/services/cart-service"
 import type { CartItem } from "@/lib/types"
 
+interface TableInfo {
+  id: number
+  number: number
+  name: string
+}
+
 interface CartContextType {
   cart: CartItem[]
   addToCart: (item: Omit<CartItem, "id">) => Promise<void>
@@ -15,6 +21,8 @@ interface CartContextType {
   clearCart: () => Promise<void>
   isLoading: boolean
   itemCount: number
+  tableInfo: TableInfo | null
+  isTableOrder: boolean
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -23,6 +31,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [itemCount, setItemCount] = useState(0)
+  const [tableInfo, setTableInfo] = useState<TableInfo | null>(null)
+  const [isTableOrder, setIsTableOrder] = useState(false)
 
   // Carregar itens do carrinho
   const loadCart = useCallback(async () => {
@@ -35,6 +45,25 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       console.error("Erro ao carregar carrinho:", error)
     } finally {
       setIsLoading(false)
+    }
+  }, [])
+
+  // Verificar se estamos em uma mesa
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const mesaAtual = localStorage.getItem('mesa_atual')
+      if (mesaAtual) {
+        try {
+          const mesa = JSON.parse(mesaAtual) as TableInfo
+          setTableInfo(mesa)
+          setIsTableOrder(true)
+        } catch (error) {
+          console.error('Erro ao ler informações da mesa:', error)
+        }
+      } else {
+        setTableInfo(null)
+        setIsTableOrder(false)
+      }
     }
   }, [])
 
@@ -168,6 +197,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         clearCart: handleClearCart,
         isLoading,
         itemCount,
+        tableInfo,
+        isTableOrder,
       }}
     >
       {children}
