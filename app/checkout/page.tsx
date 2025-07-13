@@ -134,8 +134,28 @@ function CheckoutPageContent() {
   console.log('Checkout - Debug:', {
     isTableOrder,
     tableInfo,
-    currentPath: typeof window !== 'undefined' ? window.location.pathname : 'server'
+    currentPath: typeof window !== 'undefined' ? window.location.pathname : 'server',
+    localStorage_mesa: typeof window !== 'undefined' ? localStorage.getItem('mesa_atual') : 'server',
+    referrer: typeof window !== 'undefined' ? document.referrer : 'server',
+    cameFromMesa: typeof window !== 'undefined' ? document.referrer.includes('/mesa/') : false
   })
+  
+  // Verificar se deveria ser mesa baseado no referrer
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const referrer = document.referrer
+      const cameFromMesa = referrer.includes('/mesa/')
+      const hasTableData = localStorage.getItem('mesa_atual')
+      
+      console.log('Verificação checkout:', {
+        referrer,
+        cameFromMesa,
+        hasTableData: !!hasTableData,
+        isTableOrder,
+        shouldBeMesa: cameFromMesa && hasTableData
+      })
+    }
+  }, [])
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
