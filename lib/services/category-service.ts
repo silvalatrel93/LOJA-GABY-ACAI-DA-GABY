@@ -8,7 +8,7 @@ export const CategoryService = {
   async getAllCategories(): Promise<Category[]> {
     try {
       const supabase = createSupabaseClient()
-      let query = supabase.from("categories").select("*").order("order")
+      let query = supabase.from("categories").select("*").eq("store_id", DEFAULT_STORE_ID).order("order")
 
       const { data, error } = await query
 
@@ -36,6 +36,7 @@ export const CategoryService = {
       const { data, error } = await supabase
         .from("categories")
         .select("*")
+        .eq("store_id", DEFAULT_STORE_ID)
         .eq("active", true)
         .order("order")
 
@@ -64,6 +65,7 @@ export const CategoryService = {
         .from("categories")
         .select("*")
         .eq("id", id)
+        .eq("store_id", DEFAULT_STORE_ID)
         .single()
 
       if (error) {
@@ -103,6 +105,7 @@ export const CategoryService = {
             store_id: DEFAULT_STORE_ID,
           })
           .eq("id", category.id)
+          .eq("store_id", DEFAULT_STORE_ID)
           .select()
 
         if (error) {
