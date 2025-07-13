@@ -93,20 +93,9 @@ export const CategoryService = {
   async saveCategory(category: Category): Promise<{ data: Category | null; error: Error | null }> {
     try {
       const supabase = createSupabaseClient()
-      
-      // Log de debug
-      console.log("[DEBUG] saveCategory chamada com:", {
-        id: category.id,
-        name: category.name,
-        order: category.order,
-        active: category.active,
-        store_id: DEFAULT_STORE_ID
-      })
 
       if (category.id && category.id > 0) {
         // Atualizar categoria existente
-        console.log("[DEBUG] Tentando atualizar categoria ID:", category.id)
-        
         const { data, error } = await supabase
           .from("categories")
           .update({
@@ -118,15 +107,12 @@ export const CategoryService = {
           .eq("store_id", DEFAULT_STORE_ID)
           .select()
 
-        console.log("[DEBUG] Resultado da atualização:", { data, error })
-
         if (error) {
           console.error("Erro ao atualizar categoria:", error)
           return { data: null, error: new Error(error.message) }
         }
 
         if (!data || data.length === 0) {
-          console.error("[DEBUG] Nenhum dado retornado na atualização. Categoria não encontrada.")
           return { data: null, error: new Error("Categoria não encontrada") }
         }
 
