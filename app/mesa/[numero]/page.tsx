@@ -24,7 +24,7 @@ import type { Table, Category } from "@/lib/types"
 export default function MesaPage() {
   const params = useParams()
   const numeroMesa = params?.numero as string
-  
+
   const [slides, setSlides] = useState<CarouselSlide[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -132,21 +132,21 @@ export default function MesaPage() {
   // Salvar informações da mesa no localStorage para usar no checkout
   useEffect(() => {
     console.log('Mesa useEffect executado:', { table, hasTable: !!table })
-    
+
     if (table) {
       const mesaData = {
         id: table.id,
         number: table.number,
         name: table.name
       }
-      
+
       localStorage.setItem('mesa_atual', JSON.stringify(mesaData))
       console.log('Mesa configurada no localStorage:', mesaData)
       console.log('Verificando se foi salvo:', localStorage.getItem('mesa_atual'))
-      
+
       // Disparar evento customizado para notificar o contexto do carrinho
-      window.dispatchEvent(new CustomEvent('mesa-configurada', { 
-        detail: mesaData 
+      window.dispatchEvent(new CustomEvent('mesa-configurada', {
+        detail: mesaData
       }))
     } else {
       console.log('Table é null/undefined, não salvando no localStorage')
@@ -177,34 +177,24 @@ export default function MesaPage() {
     <MainLayout carouselSlides={slides} showCart={true}>
       {/* Header da Mesa */}
       <div className="bg-gradient-to-r from-purple-600 to-purple-800 text-white p-4 mb-4 rounded-lg mx-4 mt-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="bg-white/20 p-2 rounded-full">
-              <Users className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">{table?.name || `Mesa ${numeroMesa}`}</h1>
-              <p className="text-purple-100 text-sm">Faça seu pedido diretamente da mesa</p>
-            </div>
+        <div className="flex items-center space-x-3">
+          <div className="bg-white/20 p-2 rounded-full">
+            <Users className="w-6 h-6" />
           </div>
-          <div className="text-right">
-            <div className="bg-white/20 p-2 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">Mesa {numeroMesa}</span>
-              </div>
-            </div>
+          <div>
+            <h1 className="text-xl font-bold">{table?.name || `Mesa ${numeroMesa}`}</h1>
+            <p className="text-purple-100 text-[10px] xs:text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl break-words leading-tight max-w-full overflow-hidden whitespace-normal">Faça seu pedido diretamente da mesa</p>
           </div>
         </div>
       </div>
 
       {/* Informações importantes para mesa */}
-      <div className="mx-4 mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <h3 className="font-semibold text-yellow-800 mb-2">📋 Informações do pedido</h3>
-        <ul className="text-sm text-yellow-700 space-y-1">
-          <li>• Seu pedido será preparado e entregue na mesa</li>
-          <li>• Não há taxa de entrega para pedidos na mesa</li>
-          <li>• Aguarde a confirmação do pedido pela equipe</li>
+      <div className="mx-2 sm:mx-4 mb-4 p-3 sm:p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <h3 className="font-semibold text-yellow-800 mb-2 text-xs sm:text-sm md:text-base">📋 Informações do pedido</h3>
+        <ul className="text-[10px] xs:text-xs sm:text-sm text-yellow-700 space-y-1 leading-relaxed">
+          <li className="break-words">• Seu pedido será preparado e entregue na mesa</li>
+          <li className="break-words">• Não há taxa de entrega para pedidos na mesa</li>
+          <li className="break-words">• Aguarde a confirmação do pedido pela equipe</li>
         </ul>
       </div>
 
@@ -243,4 +233,4 @@ export default function MesaPage() {
       <FloatingCartButton />
     </MainLayout>
   )
-} 
+}

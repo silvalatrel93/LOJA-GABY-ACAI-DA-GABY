@@ -76,7 +76,7 @@ export default function MesasAdminPage() {
 
     // Validação
     const errors: Record<string, string> = {}
-    
+
     if (!formData.number.trim()) {
       errors.number = "Número da mesa é obrigatório"
     } else if (isNaN(Number(formData.number)) || Number(formData.number) <= 0) {
@@ -101,7 +101,7 @@ export default function MesasAdminPage() {
     setIsSubmitting(true)
     try {
       let result
-      
+
       if (selectedTable) {
         // Atualizar mesa existente
         result = await TableService.updateTable(selectedTable.id, {
@@ -118,7 +118,7 @@ export default function MesasAdminPage() {
           qrCode: "", // Será gerado automaticamente
         })
       }
-      
+
       if (result.error) {
         alert(`Erro ao ${selectedTable ? 'atualizar' : 'criar'} mesa: ${result.error.message}`)
         return
@@ -130,9 +130,9 @@ export default function MesasAdminPage() {
       resetForm()
       await loadTables()
       await loadStats()
-      
+
       // Feedback visual pelo fechamento do modal e atualização da lista
-      
+
     } catch (error) {
       console.error("Erro ao salvar mesa:", error)
       alert("Erro inesperado ao salvar mesa. Tente novamente.")
@@ -154,21 +154,21 @@ export default function MesasAdminPage() {
 
   const handleDelete = async (table: Table) => {
     const confirmMessage = `⚠️ ATENÇÃO: Deseja excluir a mesa ${table.name}?\n\nEsta ação não pode ser desfeita.\n\n❗ A mesa só pode ser excluída se não houver pedidos associados.`
-    
+
     if (!confirm(confirmMessage)) {
       return
     }
 
     try {
       const result = await TableService.deleteTable(table.id)
-      
+
       if (result.error) {
         // Verificar se o erro é sobre pedidos associados
         if (result.error.message.includes("pedidos associados")) {
           alert(`❌ Não é possível excluir a mesa ${table.name}\n\n📋 Esta mesa possui pedidos associados.\n\n💡 Para excluir a mesa:\n1. Acesse "Pedidos das Mesas"\n2. Finalize ou cancele todos os pedidos desta mesa\n3. Tente excluir novamente`)
           return
         }
-        
+
         // Para outros tipos de erro
         alert(`Erro ao excluir mesa: ${result.error.message}`)
         return
@@ -178,7 +178,7 @@ export default function MesasAdminPage() {
       await loadTables()
       await loadStats()
       alert(`✅ Mesa ${table.name} excluída com sucesso!`)
-      
+
     } catch (error) {
       console.error("Erro ao excluir mesa:", error)
       alert("Erro inesperado ao excluir mesa. Tente novamente.")
@@ -190,7 +190,7 @@ export default function MesasAdminPage() {
       const result = await TableService.updateTable(table.id, {
         active: !table.active,
       })
-      
+
       if (result.error) {
         alert(`Erro ao ${!table.active ? 'ativar' : 'desativar'} mesa: ${result.error.message}`)
         return
@@ -198,10 +198,10 @@ export default function MesasAdminPage() {
 
       await loadTables()
       await loadStats()
-      
+
       // Feedback visual sutil para ativação/desativação
       // (sem alert para não incomodar muito o usuário)
-      
+
     } catch (error) {
       console.error("Erro ao alterar status da mesa:", error)
       alert("Erro inesperado ao alterar status da mesa. Tente novamente.")
@@ -256,7 +256,7 @@ export default function MesasAdminPage() {
             </Link>
             <h1 className="text-xl font-bold">Gerenciar Mesas</h1>
           </div>
-          <Button 
+          <Button
             onClick={handleAddNew}
             className="bg-white/10 hover:bg-white/20 text-white border-white/20"
           >
@@ -323,7 +323,7 @@ export default function MesasAdminPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Mesas Cadastradas</CardTitle>
-              <Button 
+              <Button
                 onClick={() => { loadTables(); loadStats(); }}
                 variant="outline"
                 size="sm"
@@ -360,7 +360,7 @@ export default function MesasAdminPage() {
                         <td className="p-3 font-medium">{table.number}</td>
                         <td className="p-3">{table.name}</td>
                         <td className="p-3">
-                          <Badge 
+                          <Badge
                             variant={table.active ? "default" : "secondary"}
                             className={table.active ? "bg-green-100 text-green-800" : ""}
                           >
@@ -488,7 +488,7 @@ export default function MesasAdminPage() {
           </DialogHeader>
           <div className="flex justify-center">
             {selectedTable && (
-              <QRCodeGenerator 
+              <QRCodeGenerator
                 table={selectedTable}
                 onGenerate={(url) => console.log("QR gerado:", url)}
               />

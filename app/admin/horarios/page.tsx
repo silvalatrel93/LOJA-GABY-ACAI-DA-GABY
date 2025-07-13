@@ -33,7 +33,7 @@ export default function OperatingHoursPage() {
 
     const dayMapping: Record<string, string> = {
       'segunda-feira': 'monday',
-      'terça-feira': 'tuesday', 
+      'terça-feira': 'tuesday',
       'quarta-feira': 'wednesday',
       'quinta-feira': 'thursday',
       'sexta-feira': 'friday',
@@ -42,7 +42,7 @@ export default function OperatingHoursPage() {
     }
 
     const normalizedHours: Record<string, { open: boolean; hours: string }> = {}
-    
+
     // Primeiro, copiar qualquer chave que já esteja em inglês
     const weekdays: string[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
     weekdays.forEach((day: string) => {
@@ -69,12 +69,12 @@ export default function OperatingHoursPage() {
       try {
         setIsLoading(true)
         const config = await getStoreConfig()
-        
+
         // Normalizar os horários de funcionamento
         if (config && config.operatingHours) {
           config.operatingHours = normalizeOperatingHours(config.operatingHours)
         }
-        
+
         setStoreConfig(config)
       } catch (error) {
         console.error("Erro ao carregar configurações da loja:", error)
@@ -91,7 +91,7 @@ export default function OperatingHoursPage() {
     const dayMapping: Record<string, string> = {
       'monday': 'segunda-feira',
       'tuesday': 'terça-feira',
-      'wednesday': 'quarta-feira', 
+      'wednesday': 'quarta-feira',
       'thursday': 'quinta-feira',
       'friday': 'sexta-feira',
       'saturday': 'sábado',
@@ -99,7 +99,7 @@ export default function OperatingHoursPage() {
     }
 
     const convertedHours: Record<string, { open: boolean; hours: string }> = {}
-    
+
     Object.entries(dayMapping).forEach(([enKey, ptKey]) => {
       if (operatingHours[enKey]) {
         convertedHours[ptKey] = operatingHours[enKey]
@@ -114,13 +114,13 @@ export default function OperatingHoursPage() {
 
     try {
       setIsSaving(true)
-      
+
       // Converter os horários de volta para português antes de salvar
       const configToSave = {
         ...storeConfig,
         operatingHours: convertOperatingHoursToPortuguese(storeConfig.operatingHours)
       }
-      
+
       await saveStoreConfig(configToSave)
 
       // Fazer backup após salvar
@@ -201,8 +201,8 @@ export default function OperatingHoursPage() {
         <div className="container mx-auto px-2 sm:px-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
-              <Link 
-                href="/admin" 
+              <Link
+                href="/admin"
                 className="p-1.5 rounded-full hover:bg-purple-700 transition-colors duration-200 flex-shrink-0"
                 aria-label="Voltar"
               >
@@ -212,20 +212,19 @@ export default function OperatingHoursPage() {
                 Horários de Funcionamento
               </h1>
             </div>
-            
+
             <div className="w-full sm:w-auto">
               <button
                 onClick={handleSaveConfig}
                 disabled={isSaving}
-                className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium flex items-center justify-center space-x-2 transition-all duration-200 ${
-                  isSaving
+                className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium flex items-center justify-center space-x-2 transition-all duration-200 ${isSaving
                     ? 'bg-gray-500 cursor-not-allowed'
                     : saveStatus === 'success'
-                    ? 'bg-green-600 hover:bg-green-700 shadow-lg transform hover:scale-105'
-                    : saveStatus === 'error'
-                    ? 'bg-red-600 hover:bg-red-700 shadow-lg transform hover:scale-105'
-                    : 'bg-purple-600 hover:bg-purple-700 shadow-lg transform hover:scale-105'
-                }`}
+                      ? 'bg-green-600 hover:bg-green-700 shadow-lg transform hover:scale-105'
+                      : saveStatus === 'error'
+                        ? 'bg-red-600 hover:bg-red-700 shadow-lg transform hover:scale-105'
+                        : 'bg-purple-600 hover:bg-purple-700 shadow-lg transform hover:scale-105'
+                  }`}
               >
                 {isSaving ? (
                   <>
@@ -289,11 +288,10 @@ export default function OperatingHoursPage() {
                 <div className="w-full sm:w-auto">
                   <button
                     onClick={handleToggleStoreOpen}
-                    className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium text-white flex items-center justify-center space-x-2 transition-all duration-200 ${
-                      storeConfig.isOpen 
-                        ? 'bg-red-600 hover:bg-red-700 shadow-lg transform hover:scale-105' 
+                    className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium text-white flex items-center justify-center space-x-2 transition-all duration-200 ${storeConfig.isOpen
+                        ? 'bg-red-600 hover:bg-red-700 shadow-lg transform hover:scale-105'
                         : 'bg-green-600 hover:bg-green-700 shadow-lg transform hover:scale-105'
-                    }`}
+                      }`}
                   >
                     {storeConfig.isOpen ? (
                       <>
@@ -346,9 +344,8 @@ export default function OperatingHoursPage() {
                           value={config.hours}
                           onChange={(e) => handleHoursChange(day, e.target.value)}
                           placeholder="10:00 - 22:00"
-                          className={`px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                            !config.open ? "bg-gray-100 text-gray-500" : ""
-                          }`}
+                          className={`px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 ${!config.open ? "bg-gray-100 text-gray-500" : ""
+                            }`}
                           disabled={!config.open}
                         />
                       </div>
