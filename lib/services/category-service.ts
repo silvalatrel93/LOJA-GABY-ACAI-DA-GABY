@@ -104,18 +104,22 @@ export const CategoryService = {
           })
           .eq("id", category.id)
           .select()
-          .single()
 
         if (error) {
           console.error("Erro ao atualizar categoria:", error)
           return { data: null, error: new Error(error.message) }
         }
 
+        if (!data || data.length === 0) {
+          return { data: null, error: new Error("Categoria não encontrada") }
+        }
+
+        const updatedCategory = data[0]
         const result: Category = {
-          id: Number(data.id),
-          name: String(data.name),
-          order: Number(data.order),
-          active: Boolean(data.active),
+          id: Number(updatedCategory.id),
+          name: String(updatedCategory.name),
+          order: Number(updatedCategory.order),
+          active: Boolean(updatedCategory.active),
         }
 
         return { data: result, error: null }
@@ -130,18 +134,22 @@ export const CategoryService = {
             store_id: DEFAULT_STORE_ID,
           })
           .select()
-          .single()
 
         if (error) {
           console.error("Erro ao criar categoria:", error)
           return { data: null, error: new Error(error.message) }
         }
 
+        if (!data || data.length === 0) {
+          return { data: null, error: new Error("Falha ao criar categoria") }
+        }
+
+        const newCategory = data[0]
         const result: Category = {
-          id: Number(data.id),
-          name: String(data.name),
-          order: Number(data.order),
-          active: Boolean(data.active),
+          id: Number(newCategory.id),
+          name: String(newCategory.name),
+          order: Number(newCategory.order),
+          active: Boolean(newCategory.active),
         }
 
         return { data: result, error: null }
