@@ -49,23 +49,52 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // Verificar se estamos em uma mesa
-  useEffect(() => {
+  const checkTableContext = useCallback(() => {
     if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname
       const mesaAtual = localStorage.getItem('mesa_atual')
-      if (mesaAtual) {
+      
+      // Só considera como mesa se estivermos realmente na rota de mesa E tiver dados no localStorage
+      if (currentPath.startsWith('/mesa/') && mesaAtual) {
         try {
           const mesa = JSON.parse(mesaAtual) as TableInfo
           setTableInfo(mesa)
           setIsTableOrder(true)
         } catch (error) {
           console.error('Erro ao ler informações da mesa:', error)
+          setTableInfo(null)
+          setIsTableOrder(false)
         }
       } else {
+        // Se não estivermos na rota de mesa, limpar dados de mesa e definir como delivery
+        if (!currentPath.startsWith('/mesa/') && mesaAtual) {
+          localStorage.removeItem('mesa_atual')
+        }
         setTableInfo(null)
         setIsTableOrder(false)
       }
     }
   }, [])
+
+  useEffect(() => {
+    checkTableContext()
+
+    // Listener para mudanças de rota
+    const handleRouteChange = () => {
+      checkTableContext()
+    }
+
+    // Escutar mudanças na URL
+    window.addEventListener('popstate', handleRouteChange)
+    
+    // Verificar periodicamente mudanças na URL (para navegação SPA)
+    const intervalId = setInterval(checkTableContext, 1000)
+
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange)
+      clearInterval(intervalId)
+    }
+  }, [checkTableContext])
 
   // Carregar carrinho ao iniciar
   useEffect(() => {
