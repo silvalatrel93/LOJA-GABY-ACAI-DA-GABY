@@ -113,7 +113,6 @@ export const CategoryService = {
             name: category.name,
             order: category.order,
             active: category.active,
-            store_id: DEFAULT_STORE_ID,
           })
           .eq("id", category.id)
           .eq("store_id", DEFAULT_STORE_ID)
