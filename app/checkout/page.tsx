@@ -129,6 +129,13 @@ function ItemRow({ name, value }: { name: string; value: string }) {
 function CheckoutPageContent() {
   const { cart, clearCart, tableInfo, isTableOrder } = useCart()
   const router = useRouter()
+  
+  // Debug para verificar detecção de mesa
+  console.log('Checkout - Debug:', {
+    isTableOrder,
+    tableInfo,
+    currentPath: typeof window !== 'undefined' ? window.location.pathname : 'server'
+  })
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -533,7 +540,15 @@ function CheckoutPageContent() {
           </div>
 
           {/* Informações da mesa ou seção de endereço */}
-          {isTableOrder && tableInfo ? (
+          {(() => {
+            console.log('Checkout - Renderização:', { 
+              isTableOrder, 
+              hasTableInfo: !!tableInfo,
+              tableInfo,
+              showTableSection: isTableOrder && tableInfo 
+            })
+            return isTableOrder && tableInfo
+          })() ? (
             <div className="bg-white rounded-lg shadow-md p-4 mb-4">
               <h2 className="text-lg font-semibold text-purple-900 mb-4">Informações da Mesa</h2>
               <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg">
@@ -543,13 +558,13 @@ function CheckoutPageContent() {
                       <Users className="w-5 h-5 text-purple-700" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-purple-900">{tableInfo.name}</h3>
+                      <h3 className="font-semibold text-purple-900">{tableInfo?.name}</h3>
                       <p className="text-sm text-purple-600">Pedido será entregue na mesa</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="bg-white/70 px-3 py-1 rounded-full">
-                      <span className="text-sm font-medium text-purple-800">Mesa {tableInfo.number}</span>
+                      <span className="text-sm font-medium text-purple-800">Mesa {tableInfo?.number}</span>
                     </div>
                   </div>
                 </div>
