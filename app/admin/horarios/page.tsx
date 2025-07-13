@@ -15,12 +15,66 @@ export default function OperatingHoursPage() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle")
 
 
+  // Função para normalizar os horários de funcionamento
+  const normalizeOperatingHours = (operatingHours: any): Record<string, { open: boolean; hours: string }> => {
+    // Verificar se operatingHours existe e é um objeto
+    if (!operatingHours || typeof operatingHours !== 'object') {
+      // Retornar horários padrão se não existir
+      return {
+        monday: { open: false, hours: "10:00 - 22:00" },
+        tuesday: { open: false, hours: "10:00 - 22:00" },
+        wednesday: { open: false, hours: "10:00 - 22:00" },
+        thursday: { open: false, hours: "10:00 - 22:00" },
+        friday: { open: false, hours: "10:00 - 22:00" },
+        saturday: { open: false, hours: "10:00 - 22:00" },
+        sunday: { open: false, hours: "10:00 - 22:00" }
+      }
+    }
+
+    const dayMapping: Record<string, string> = {
+      'segunda-feira': 'monday',
+      'terça-feira': 'tuesday', 
+      'quarta-feira': 'wednesday',
+      'quinta-feira': 'thursday',
+      'sexta-feira': 'friday',
+      'sábado': 'saturday',
+      'domingo': 'sunday'
+    }
+
+    const normalizedHours: Record<string, { open: boolean; hours: string }> = {}
+    
+    // Primeiro, copiar qualquer chave que já esteja em inglês
+    const weekdays: string[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    weekdays.forEach((day: string) => {
+      if (operatingHours[day]) {
+        normalizedHours[day] = operatingHours[day]
+      } else {
+        normalizedHours[day] = { open: false, hours: "10:00 - 22:00" }
+      }
+    })
+
+    // Depois, mapear as chaves em português para inglês
+    Object.entries(dayMapping).forEach(([ptKey, enKey]) => {
+      if (operatingHours[ptKey]) {
+        normalizedHours[enKey] = operatingHours[ptKey]
+      }
+    })
+
+    return normalizedHours
+  }
+
   // Carregar configurações da loja
   useEffect(() => {
     const loadStoreConfig = async () => {
       try {
         setIsLoading(true)
         const config = await getStoreConfig()
+        
+        // Normalizar os horários de funcionamento
+        if (config && config.operatingHours) {
+          config.operatingHours = normalizeOperatingHours(config.operatingHours)
+        }
+        
         setStoreConfig(config)
       } catch (error) {
         console.error("Erro ao carregar configurações da loja:", error)
@@ -32,12 +86,42 @@ export default function OperatingHoursPage() {
     loadStoreConfig()
   }, [])
 
+  // Função para converter horários de volta para português (para salvar no banco)
+  const convertOperatingHoursToPortuguese = (operatingHours: Record<string, { open: boolean; hours: string }>): Record<string, { open: boolean; hours: string }> => {
+    const dayMapping: Record<string, string> = {
+      'monday': 'segunda-feira',
+      'tuesday': 'terça-feira',
+      'wednesday': 'quarta-feira', 
+      'thursday': 'quinta-feira',
+      'friday': 'sexta-feira',
+      'saturday': 'sábado',
+      'sunday': 'domingo'
+    }
+
+    const convertedHours: Record<string, { open: boolean; hours: string }> = {}
+    
+    Object.entries(dayMapping).forEach(([enKey, ptKey]) => {
+      if (operatingHours[enKey]) {
+        convertedHours[ptKey] = operatingHours[enKey]
+      }
+    })
+
+    return convertedHours
+  }
+
   const handleSaveConfig = async () => {
     if (!storeConfig) return
 
     try {
       setIsSaving(true)
-      await saveStoreConfig(storeConfig)
+      
+      // Converter os horários de volta para português antes de salvar
+      const configToSave = {
+        ...storeConfig,
+        operatingHours: convertOperatingHoursToPortuguese(storeConfig.operatingHours)
+      }
+      
+      await saveStoreConfig(configToSave)
 
       // Fazer backup após salvar
       await backupData()
@@ -63,13 +147,14 @@ export default function OperatingHoursPage() {
 
   const handleDayToggle = (day: string) => {
     if (!storeConfig) return
+    const currentConfig = storeConfig.operatingHours[day] || { open: false, hours: "10:00 - 22:00" }
     setStoreConfig({
       ...storeConfig,
       operatingHours: {
         ...storeConfig.operatingHours,
         [day]: {
-          ...storeConfig.operatingHours[day],
-          open: !storeConfig.operatingHours[day].open,
+          ...currentConfig,
+          open: !currentConfig.open,
         },
       },
     })
@@ -77,12 +162,13 @@ export default function OperatingHoursPage() {
 
   const handleHoursChange = (day: string, hours: string) => {
     if (!storeConfig) return
+    const currentConfig = storeConfig.operatingHours[day] || { open: false, hours: "10:00 - 22:00" }
     setStoreConfig({
       ...storeConfig,
       operatingHours: {
         ...storeConfig.operatingHours,
         [day]: {
-          ...storeConfig.operatingHours[day],
+          ...currentConfig,
           hours,
         },
       },
@@ -238,7 +324,7 @@ export default function OperatingHoursPage() {
 
               <div className="space-y-4">
                 {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
-                  const config = storeConfig.operatingHours[day];
+                  const config = storeConfig.operatingHours[day] || { open: false, hours: "10:00 - 22:00" };
                   return (
                     <div key={day} className="flex items-center justify-between border-b pb-3">
                       <div className="flex items-center">
