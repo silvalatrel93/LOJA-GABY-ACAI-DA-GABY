@@ -7,6 +7,7 @@ export interface Product {
   description: string
   image: string
   sizes: ProductSize[]
+  tableSizes?: ProductSize[] // Preços específicos para mesa (opcional)
   categoryId: number
   categoryName?: string
   active: boolean

@@ -29,6 +29,7 @@ import {
   LogOut,
 } from "lucide-react"
 import { ProductVisibilityToggle } from "@/components/admin/product-visibility-toggle"
+import { TablePricingManager } from "@/components/admin/table-pricing-manager"
 import SocialShare from "@/components/social-share"
 import {
   getAllProducts,
@@ -1058,6 +1059,14 @@ export default function AdminPage() {
                   Configure o limite de adicionais individualmente para cada tamanho acima.
                   Deixe vazio para permitir adicionais ilimitados naquele tamanho.
                 </p>
+              </div>
+
+              {/* Gerenciador de Preços de Mesa */}
+              <div>
+                <TablePricingManager
+                  product={editingProduct}
+                  onUpdate={(updatedProduct) => setEditingProduct(updatedProduct)}
+                />
               </div>
             </div>
 

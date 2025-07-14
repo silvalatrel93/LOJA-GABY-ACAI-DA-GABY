@@ -14,6 +14,7 @@ export const ProductService = {
           description,
           image,
           sizes,
+          table_sizes,
           category_id,
           categories!products_category_id_fkey(name),
           active,
@@ -35,6 +36,7 @@ export const ProductService = {
         description: String(item.description || ""),
         image: String(item.image || ""),
         sizes: Array.isArray(item.sizes) ? item.sizes : [],
+        tableSizes: Array.isArray(item.table_sizes) ? item.table_sizes : undefined,
         categoryId: Number(item.category_id),
         categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories 
           ? String((item.categories as any).name) 
@@ -64,6 +66,7 @@ export const ProductService = {
           description,
           image,
           sizes,
+          table_sizes,
           category_id,
           categories!products_category_id_fkey(name),
           active,
@@ -86,6 +89,7 @@ export const ProductService = {
         description: String(item.description || ""),
         image: String(item.image || ""),
         sizes: Array.isArray(item.sizes) ? item.sizes : [],
+        tableSizes: Array.isArray(item.table_sizes) ? item.table_sizes : undefined,
         categoryId: Number(item.category_id),
         categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories 
           ? String((item.categories as any).name) 
@@ -115,6 +119,7 @@ export const ProductService = {
           description,
           image,
           sizes,
+          table_sizes,
           category_id,
           categories!products_category_id_fkey(name),
           active,
@@ -138,6 +143,7 @@ export const ProductService = {
         description: String(item.description || ""),
         image: String(item.image || ""),
         sizes: Array.isArray(item.sizes) ? item.sizes : [],
+        tableSizes: Array.isArray(item.table_sizes) ? item.table_sizes : undefined,
         categoryId: Number(item.category_id),
         categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories 
           ? String((item.categories as any).name) 
@@ -167,6 +173,7 @@ export const ProductService = {
           description,
           image,
           sizes,
+          table_sizes,
           category_id,
           categories!products_category_id_fkey(name),
           active,
@@ -193,6 +200,7 @@ export const ProductService = {
         description: String(data.description || ""),
         image: String(data.image || ""),
         sizes: Array.isArray(data.sizes) ? data.sizes : [],
+        tableSizes: Array.isArray(data.table_sizes) ? data.table_sizes : undefined,
         categoryId: Number(data.category_id),
         categoryName: data.categories && typeof data.categories === 'object' && data.categories !== null && 'name' in data.categories 
           ? String((data.categories as any).name) 
@@ -225,6 +233,7 @@ export const ProductService = {
           description: product.description || "",
           image: product.image || "",
           sizes: product.sizes || [],
+          table_sizes: product.tableSizes || null,
           category_id: product.categoryId,
           active: Boolean(product.active),
           hidden: Boolean(product.hidden || false),
@@ -266,6 +275,7 @@ export const ProductService = {
           description: String(data.description || ""),
           image: String(data.image || ""),
           sizes: Array.isArray(data.sizes) ? data.sizes : [],
+          tableSizes: Array.isArray(data.table_sizes) ? data.table_sizes : undefined,
           categoryId: Number(data.category_id),
           active: Boolean(data.active),
           hidden: Boolean(data.hidden || false),
@@ -283,6 +293,7 @@ export const ProductService = {
           description: product.description || "",
           image: product.image || "",
           sizes: product.sizes || [],
+          table_sizes: product.tableSizes || null,
           category_id: product.categoryId,
           active: Boolean(product.active !== undefined ? product.active : true),
           hidden: Boolean(product.hidden || false),
@@ -322,6 +333,7 @@ export const ProductService = {
           description: String(data.description || ""),
           image: String(data.image || ""),
           sizes: Array.isArray(data.sizes) ? data.sizes : [],
+          tableSizes: Array.isArray(data.table_sizes) ? data.table_sizes : undefined,
           categoryId: Number(data.category_id),
           active: Boolean(data.active),
           hidden: Boolean(data.hidden || false),

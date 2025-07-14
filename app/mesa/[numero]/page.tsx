@@ -41,9 +41,12 @@ export default function MesaPage() {
       try {
         setLoading(true)
         setError(null)
-        setTableError(null)
 
-        // Verificar se a mesa existe e está ativa
+        // Adicionar timestamp para evitar cache
+        const timestamp = Date.now()
+        console.log(`Carregando dados da mesa ${numeroMesa} - ${timestamp}`)
+
+        // Verificar se a mesa existe (apenas se numeroMesa foi fornecido)
         if (numeroMesa) {
           const tableNumber = parseInt(numeroMesa)
           if (isNaN(tableNumber)) {
@@ -86,6 +89,19 @@ export default function MesaPage() {
 
         try {
           productsData = await getActiveProducts()
+          
+          // Aplicar preços da mesa quando disponíveis
+          productsData = productsData.map(product => {
+            // Verificar se o produto tem preços de mesa configurados
+            if (product.tableSizes && Array.isArray(product.tableSizes) && product.tableSizes.length > 0) {
+              // Aplicar os preços de mesa substituindo os preços padrão
+              return {
+                ...product,
+                sizes: product.tableSizes
+              }
+            }
+            return product
+          })
         } catch (e) {
           console.error("Erro ao carregar produtos:", e)
           productsData = []
