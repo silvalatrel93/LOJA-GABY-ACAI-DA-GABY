@@ -153,6 +153,52 @@ export const WhatsAppService = {
       console.error("Erro ao preparar confirmação via WhatsApp:", error);
       return null;
     }
+  },
+
+  /**
+   * Diagnóstica um pedido para verificar se está pronto para envio via WhatsApp
+   * @param order Dados do pedido
+   * @returns Objeto com resultado do diagnóstico
+   */
+  diagnoseOrder(order: Order): { isValid: boolean; issues: string[]; warnings: string[] } {
+    const issues: string[] = [];
+    const warnings: string[] = [];
+
+    // Verificar dados obrigatórios
+    if (!order.customerPhone) {
+      issues.push("Telefone do cliente não informado");
+    } else {
+      // Verificar formato do telefone
+      const phoneNumbers = order.customerPhone.replace(/\D/g, '');
+      if (phoneNumbers.length < 10) {
+        issues.push("Telefone do cliente inválido (muito curto)");
+      } else if (phoneNumbers.length > 15) {
+        warnings.push("Telefone do cliente pode estar com formato incorreto (muito longo)");
+      }
+    }
+
+    if (!order.customerName || order.customerName.trim() === '') {
+      warnings.push("Nome do cliente não informado");
+    }
+
+    if (!order.id) {
+      issues.push("ID do pedido não informado");
+    }
+
+    if (!order.date) {
+      warnings.push("Data do pedido não informada");
+    }
+
+    // Verificar se há itens no pedido
+    if (!order.items || order.items.length === 0) {
+      warnings.push("Pedido sem itens");
+    }
+
+    return {
+      isValid: issues.length === 0,
+      issues,
+      warnings
+    };
   }
 };
 
@@ -160,3 +206,4 @@ export const WhatsAppService = {
 export const sendOrderConfirmation = WhatsAppService.sendOrderConfirmation.bind(WhatsAppService);
 export const sendDeliveryNotification = WhatsAppService.sendDeliveryNotification.bind(WhatsAppService);
 export const prepareOrderConfirmation = WhatsAppService.prepareOrderConfirmation.bind(WhatsAppService);
+export const diagnoseOrder = WhatsAppService.diagnoseOrder.bind(WhatsAppService);

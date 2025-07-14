@@ -185,10 +185,26 @@ export default function ProductList({ products: _initialProducts = [], categorie
     return allProducts.filter((product) => product.categoryId === selectedCategory)
   }, [selectedCategory, allProducts])
 
-  // Coletar URLs das imagens dos produtos para preload
+  // Coletar URLs das imagens dos produtos para preload (apenas da categoria atual)
   const productImageUrls = useMemo(() => {
-    return allProducts.map(product => product.image).filter(Boolean)
-  }, [allProducts])
+    if (selectedCategory === 0) {
+      // Para "Todos", precarregar apenas as primeiras imagens de cada categoria
+      const firstProductsPerCategory = categories
+        .filter(cat => cat.id !== 0)
+        .map(cat => {
+          const categoryProducts = allProducts.filter(p => p.categoryId === cat.id)
+          return categoryProducts.slice(0, 2) // Apenas os 2 primeiros de cada categoria
+        })
+        .flat()
+        .map(product => product.image)
+        .filter(Boolean)
+
+      return firstProductsPerCategory
+    } else {
+      // Para categoria específica, precarregar todas as imagens da categoria
+      return filteredProducts.map(product => product.image).filter(Boolean)
+    }
+  }, [selectedCategory, allProducts, categories, filteredProducts])
 
   // Função para controlar a barra fixa durante o scroll
   const handleScroll = useCallback(() => {
@@ -345,8 +361,8 @@ export default function ProductList({ products: _initialProducts = [], categorie
             </div>
             <div className="grid grid-cols-2 gap-4">
               {categoryProducts.map((product, index) => (
-                <ProductCard 
-                  key={createSafeKey(product.id, 'product')} 
+                <ProductCard
+                  key={createSafeKey(product.id, 'product')}
                   product={product}
                   priority={index < 2} // Prioridade para os primeiros 2 produtos por categoria 
                 />
@@ -359,9 +375,13 @@ export default function ProductList({ products: _initialProducts = [], categorie
 
   return (
     <div className="w-full">
-      {/* Preloader de imagens (apenas as primeiras 8) */}
-      <ImagePreloader imageUrls={productImageUrls} maxPreload={8} />
-      
+      {/* Preloader de imagens otimizado */}
+      <ImagePreloader
+        imageUrls={productImageUrls}
+        maxPreload={6}
+        delay={2000} // Aguardar 2 segundos após o carregamento da página
+      />
+
       {/* Barra de categorias */}
       <div
         ref={categoriesBarRef}

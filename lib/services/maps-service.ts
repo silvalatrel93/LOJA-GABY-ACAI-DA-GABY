@@ -10,32 +10,32 @@ export const MapsService = {
    */
   formatAddressForMaps(address: Address): string {
     const parts: string[] = [];
-    
+
     // Adicionar rua e número
     if (address.street && address.number) {
       parts.push(`${address.street}, ${address.number}`);
     }
-    
+
     // Adicionar complemento se houver
     if (address.complement) {
       parts.push(address.complement);
     }
-    
+
     // Adicionar bairro
     if (address.neighborhood) {
       parts.push(address.neighborhood);
     }
-    
+
     // Adicionar cidade e estado
     if (address.city && address.state) {
       parts.push(`${address.city}, ${address.state}`);
     }
-    
+
     // Adicionar CEP se houver
     if (address.zipCode) {
       parts.push(address.zipCode);
     }
-    
+
     return parts.join(", ");
   },
 
@@ -59,11 +59,11 @@ export const MapsService = {
   generateRouteUrl(address: Address, origin?: string): string {
     const formattedAddress = this.formatAddressForMaps(address);
     const encodedDestination = encodeURIComponent(formattedAddress);
-    
+
     // Usar o endereço padrão da loja se não fornecido
     const originAddress = origin || DEFAULT_STORE_ADDRESS;
     const encodedOrigin = encodeURIComponent(originAddress);
-    
+
     return `https://www.google.com/maps/dir/?api=1&origin=${encodedOrigin}&destination=${encodedDestination}&travelmode=driving`;
   },
 
@@ -75,15 +75,15 @@ export const MapsService = {
   createDeliveryMessage(order: Order): string {
     const customerName = order.customerName.toUpperCase();
     const mapsUrl = this.generateRouteUrl(order.address);
-    
+
     return `🛵 ENTREGA - PEDIDO #${order.id}\n\n` +
-           `📍 Cliente: ${customerName}\n` +
-           `📞 Telefone: ${order.customerPhone}\n\n` +
-           `📍 Endereço:\n${this.formatAddressForMaps(order.address)}\n\n` +
-           `🗺️ Rota no Google Maps:\n${mapsUrl}\n\n` +
-           `💰 Total: R$ ${order.total.toFixed(2).replace('.', ',')}\n` +
-           `💳 Pagamento: ${order.paymentMethod}\n\n` +
-           `Boa entrega! 🚀`;
+      `📍 Cliente: ${customerName}\n` +
+      `📞 Telefone: ${order.customerPhone}\n\n` +
+      `📍 Endereço:\n${this.formatAddressForMaps(order.address)}\n\n` +
+      `🗺️ Rota no Google Maps:\n${mapsUrl}\n\n` +
+      `💰 Total: R$ ${order.total.toFixed(2).replace('.', ',')}\n` +
+      `💳 Pagamento: ${order.paymentMethod}\n\n` +
+      `Boa entrega! 🚀`;
   },
 
   /**
@@ -93,11 +93,11 @@ export const MapsService = {
    */
   formatPhoneNumber(phone: string): string {
     const numbers = phone.replace(/\D/g, '');
-    
+
     if (numbers.startsWith('55') && numbers.length >= 12) {
       return numbers;
     }
-    
+
     return `55${numbers}`;
   },
 
@@ -122,12 +122,12 @@ export const MapsService = {
   openMapsRoute(order: Order): boolean {
     try {
       const routeUrl = this.generateRouteUrl(order.address);
-      
+
       if (typeof window !== 'undefined') {
         window.open(routeUrl, '_blank');
         return true;
       }
-      
+
       console.log("URL da rota Google Maps:", routeUrl);
       return true;
     } catch (error) {
@@ -145,12 +145,12 @@ export const MapsService = {
   shareRouteWithDelivery(order: Order, deliveryPhone: string): boolean {
     try {
       const whatsappUrl = this.generateDeliveryWhatsAppUrl(order, deliveryPhone);
-      
+
       if (typeof window !== 'undefined') {
         window.open(whatsappUrl, '_blank');
         return true;
       }
-      
+
       console.log("URL do WhatsApp para entregador:", whatsappUrl);
       return true;
     } catch (error) {

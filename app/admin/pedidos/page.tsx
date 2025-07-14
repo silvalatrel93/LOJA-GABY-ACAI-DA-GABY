@@ -45,11 +45,11 @@ export default function OrdersPage() {
       if (!audioRef.current) {
         audioRef.current = new Audio('/sounds/new-order.mp3');
         audioRef.current.volume = 0.7; // Volume mais alto (70%)
-        
+
         // Configurar para tocar em loop
         audioRef.current.loop = true;
       }
-      
+
       // Adicionar um evento de clique ao documento para iniciar o som
       // (contorna a política de autoplay dos navegadores)
       const playSound = () => {
@@ -61,7 +61,7 @@ export default function OrdersPage() {
           document.removeEventListener('click', playSound);
         }
       };
-      
+
       // Tentar reproduzir diretamente (pode falhar devido à política de autoplay)
       audioRef.current.play().catch(err => {
         console.log('Aguardando interação do usuário para tocar o som...');
@@ -74,7 +74,7 @@ export default function OrdersPage() {
       console.error('Erro ao configurar som:', err);
     }
   }, [setShowSoundActivationMessage]);
-  
+
   // Função para parar o som
   const stopContinuousSound = useCallback(() => {
     if (audioRef.current) {
@@ -90,11 +90,11 @@ export default function OrdersPage() {
     try {
       if (!silent) setIsLoading(true);
       const ordersList = await OrderService.getDeliveryOrders();
-      
+
       if (!isMounted) return null;
-      
+
       // Ordenar por data, mais recentes primeiro
-      return [...ordersList].sort((a, b) => 
+      return [...ordersList].sort((a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
     } catch (error) {
@@ -108,21 +108,21 @@ export default function OrdersPage() {
   // Função para processar e atualizar pedidos
   const processOrders = React.useCallback(async (orders: Order[] | null, isMounted = true) => {
     if (!orders || !isMounted) return;
-    
+
     // Verificar se há novos pedidos que ainda não foram notificados
     // Em vez de comparar com a referência anterior, verificamos a propriedade notified
     const newOrders = orders.filter(order => !order.notified && order.status === "new");
-    
+
     // Enviar mensagem de WhatsApp para novos pedidos se o envio automático estiver ativado
     if (autoSendWhatsApp && newOrders.length > 0) {
       newOrders.forEach(order => {
         // Verificar se já enviamos mensagem para este pedido
         if (!sentWhatsAppMessagesRef.current.has(order.id)) {
           console.log(`Preparando para enviar mensagem WhatsApp para o pedido #${order.id}`);
-          
+
           // Marcar como enviado para evitar envios duplicados
           sentWhatsAppMessagesRef.current.add(order.id);
-          
+
           // Enviar a mensagem de WhatsApp
           const whatsappUrl = WhatsAppService.prepareOrderConfirmation(order);
           if (whatsappUrl && typeof window !== 'undefined') {
@@ -132,7 +132,7 @@ export default function OrdersPage() {
         }
       });
     }
-    
+
     // Se houver novos pedidos, marcá-los como notificados
     if (newOrders.length > 0) {
       try {
@@ -145,35 +145,35 @@ export default function OrdersPage() {
             })
           )
         );
-        
+
         // Atualizar os pedidos localmente para refletir a mudança
-        const updatedOrders = orders.map(order => 
-          newOrders.some(o => o.id === order.id) 
-            ? { ...order, notified: true } 
+        const updatedOrders = orders.map(order =>
+          newOrders.some(o => o.id === order.id)
+            ? { ...order, notified: true }
             : order
         );
-        
+
         // Usar atualização de estado em lote
         React.startTransition(() => {
           if (!isMounted) return;
-          
+
           // Tocar som e mostrar notificação para novos pedidos
           if (isSoundEnabled) {
             // Iniciar o som contínuo que tocará em loop até ser parado
             startContinuousSound();
           }
-          
+
           // Atualizar contador de novos pedidos
           setNewOrdersCount(prev => prev + newOrders.length);
-          
+
           // Mostrar notificação (permanecerá visível até ser fechada manualmente)
           setShowNewOrderNotification(true);
-          
+
           // Atualizar a referência para os pedidos atuais
           prevOrdersRef.current = updatedOrders;
           setOrders(updatedOrders);
         });
-        
+
       } catch (error) {
         console.error("Erro ao marcar pedidos como notificados:", error);
         // Continuar mesmo em caso de erro
@@ -203,7 +203,7 @@ export default function OrdersPage() {
       const phone = DeliveryConfigService.getDefaultDeliveryPhone();
       setDefaultDeliveryPhone(phone);
     };
-    
+
     loadDefaultDeliveryPhone();
   }, []);
 
@@ -211,12 +211,12 @@ export default function OrdersPage() {
   useEffect(() => {
     let isMounted = true;
     let isFetching = false;
-    
+
     // Função para carregar e processar pedidos
     const loadAndProcessOrders = async (silent = true) => {
       if (isFetching) return;
       isFetching = true;
-      
+
       try {
         const orders = await fetchOrders(silent, isMounted);
         if (orders && isMounted) {
@@ -228,29 +228,29 @@ export default function OrdersPage() {
         }
       }
     };
-    
+
     // Carregar pedidos iniciais
     void loadAndProcessOrders(false);
-    
+
     // Configurar polling a cada 5 segundos para verificar novos pedidos mais rapidamente
     const pollingInterval = setInterval(() => {
       if (isMounted) {
         void loadAndProcessOrders(true);
       }
     }, 5000); // Reduzido de 30000 para 5000 (5 segundos)
-    
+
     // Armazenar a referência do intervalo
     checkIntervalRef.current = pollingInterval;
-    
+
     // Limpar intervalos e timeouts ao desmontar
     return () => {
       isMounted = false;
-      
+
       if (checkIntervalRef.current) {
         clearInterval(checkIntervalRef.current);
         checkIntervalRef.current = null;
       }
-      
+
       if (notificationTimeoutRef.current) {
         clearInterval(notificationTimeoutRef.current);
         notificationTimeoutRef.current = null;
@@ -261,12 +261,69 @@ export default function OrdersPage() {
   // Função para enviar manualmente mensagem de WhatsApp para um pedido
   const handleSendWhatsApp = React.useCallback(async (order: Order): Promise<void> => {
     try {
-      await WhatsAppService.sendOrderConfirmation(order);
-      // Adicionar à lista de mensagens enviadas
-      sentWhatsAppMessagesRef.current.add(order.id);
+      console.log(`Iniciando envio de confirmação para pedido #${order.id}`);
+      console.log(`Dados do pedido:`, {
+        id: order.id,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        hasPhone: !!order.customerPhone,
+        phoneLength: order.customerPhone?.length || 0
+      });
+
+      // Executar diagnóstico completo do pedido
+      const diagnosis = WhatsAppService.diagnoseOrder(order);
+      console.log(`Diagnóstico do pedido #${order.id}:`, diagnosis);
+
+      // Se há problemas críticos, mostrar erro detalhado
+      if (!diagnosis.isValid) {
+        const errorMessage = `❌ Não é possível enviar confirmação para o pedido #${order.id}\n\n` +
+          `Problemas encontrados:\n${diagnosis.issues.map(issue => `• ${issue}`).join('\n')}` +
+          (diagnosis.warnings.length > 0 ? `\n\nAvisos:\n${diagnosis.warnings.map(warning => `• ${warning}`).join('\n')}` : '') +
+          `\n\nVerifique os dados do pedido e tente novamente.`;
+
+        console.error(`Pedido #${order.id}: Falha na validação:`, diagnosis.issues);
+        alert(errorMessage);
+        return;
+      }
+
+      // Se há avisos, mostrar mas continuar
+      if (diagnosis.warnings.length > 0) {
+        console.warn(`Pedido #${order.id}: Avisos encontrados:`, diagnosis.warnings);
+        const warningMessage = `⚠️ Avisos para o pedido #${order.id}:\n\n${diagnosis.warnings.map(warning => `• ${warning}`).join('\n')}\n\nDeseja continuar mesmo assim?`;
+
+        if (!confirm(warningMessage)) {
+          console.log(`Pedido #${order.id}: Envio cancelado pelo usuário devido aos avisos`);
+          return;
+        }
+      }
+
+      console.log(`Pedido #${order.id}: Enviando confirmação via WhatsApp...`);
+      const success = await WhatsAppService.sendOrderConfirmation(order);
+
+      if (success) {
+        console.log(`Pedido #${order.id}: Confirmação enviada com sucesso`);
+        // Adicionar à lista de mensagens enviadas
+        sentWhatsAppMessagesRef.current.add(order.id);
+
+        // Mostrar feedback visual de sucesso
+        const button = document.querySelector(`[data-order-id="${order.id}"] .whatsapp-button`);
+        if (button) {
+          button.classList.add('bg-green-200', 'text-green-800');
+          button.classList.remove('bg-green-100', 'text-green-700');
+          setTimeout(() => {
+            button.classList.remove('bg-green-200', 'text-green-800');
+            button.classList.add('bg-green-100', 'text-green-700');
+          }, 2000);
+        }
+
+        // Confirmação enviada silenciosamente
+      } else {
+        console.error(`Pedido #${order.id}: Falha ao enviar confirmação`);
+        alert(`❌ Erro ao enviar confirmação para o pedido #${order.id}.\n\nPossíveis causas:\n• Popup bloqueado pelo navegador\n• Problema na formatação do telefone\n• WhatsApp não instalado\n\nTelefone: ${order.customerPhone}\n\nVerifique o console para mais detalhes.`);
+      }
     } catch (error) {
-      console.error("Erro ao enviar mensagem de WhatsApp:", error);
-      alert("Erro ao enviar mensagem de WhatsApp. Verifique o console para mais detalhes.");
+      console.error(`Erro ao enviar mensagem de WhatsApp para pedido #${order.id}:`, error);
+      alert(`❌ Erro inesperado ao enviar mensagem de WhatsApp para o pedido #${order.id}.\n\nDetalhes: ${error instanceof Error ? error.message : 'Erro desconhecido'}\n\nVerifique o console para mais informações.`);
     }
   }, []);
 
@@ -310,7 +367,7 @@ export default function OrdersPage() {
           DeliveryConfigService.updateDefaultDeliveryPhone(deliveryPhone.trim());
           setDefaultDeliveryPhone(deliveryPhone.trim());
         }
-        
+
         MapsService.shareRouteWithDelivery(selectedDeliveryOrder, deliveryPhone.trim());
         setShowDeliveryModal(false);
         setSelectedDeliveryOrder(null);
@@ -320,7 +377,7 @@ export default function OrdersPage() {
       alert("Erro ao compartilhar rota com entregador. Verifique o console para mais detalhes.");
     }
   }, [selectedDeliveryOrder]);
-  
+
   // Função para abrir a página de impressão do pedido
   const openPrintPage = React.useCallback((order: Order) => {
     setSelectedOrder(order);
@@ -332,7 +389,7 @@ export default function OrdersPage() {
       await updateOrderStatus(orderId, status);
       // Atualizar a lista de pedidos
       await loadOrders(true); // Usar carregamento silencioso
-      
+
       // Se o status for 'completed' e temos o objeto do pedido, abrir a página de impressão automaticamente
       if (status === 'completed' && order) {
         console.log(`Abrindo página de impressão para o pedido #${orderId} após marcar como concluído`);
@@ -351,7 +408,7 @@ export default function OrdersPage() {
 
   const handleDeleteOrder = React.useCallback(async (order: Order, event: React.MouseEvent) => {
     event.stopPropagation(); // Impedir que o clique abra o modal do pedido
-    
+
     // Confirmar com o usuário antes de excluir
     const confirmDelete = window.confirm(
       `Tem certeza que deseja excluir o Pedido #${order.id}?\n\n` +
@@ -365,12 +422,12 @@ export default function OrdersPage() {
     try {
       console.log(`Excluindo pedido #${order.id}...`);
       const success = await OrderService.deleteOrder(order.id);
-      
+
       if (success) {
         console.log(`Pedido #${order.id} excluído com sucesso`);
         // Recarregar a lista de pedidos
         await loadOrders(true);
-        
+
         // Mostrar mensagem de sucesso
         alert(`Pedido #${order.id} excluído com sucesso!`);
       } else {
@@ -416,7 +473,7 @@ export default function OrdersPage() {
         return status
     }
   }
-  
+
   // Função para definir a cor da borda lateral com base no status do pedido
   const getOrderBorderColor = (status: OrderStatus): string => {
     // Usar a cor #92c730 para todos os status
@@ -437,7 +494,7 @@ export default function OrdersPage() {
       'bg-indigo-50',
       'bg-teal-50',
     ];
-    
+
     // Usar o módulo do ID para selecionar uma cor
     // Isso garante que o mesmo pedido sempre tenha a mesma cor
     const colorIndex = orderId % backgroundColors.length;
@@ -448,7 +505,7 @@ export default function OrdersPage() {
   const formatPhoneNumber = (phone: string): string => {
     // Remover todos os caracteres não numéricos
     const numbers = phone.replace(/\D/g, '');
-    
+
     // Verificar se é um número válido com DDD
     if (numbers.length === 11) {
       // Formato: (XX) XXXXX-XXXX
@@ -457,7 +514,7 @@ export default function OrdersPage() {
       // Formato: (XX) XXXX-XXXX (telefone fixo)
       return `(${numbers.substring(0, 2)}) ${numbers.substring(2, 6)}-${numbers.substring(6)}`;
     }
-    
+
     // Retornar o número original se não for possível formatar
     return phone;
   }
@@ -469,14 +526,14 @@ export default function OrdersPage() {
           <div className="flex items-center justify-between">
             {/* Lado esquerdo - Navegação */}
             <div className="flex items-center">
-              <Link 
-                href="/admin" 
+              <Link
+                href="/admin"
                 className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 transition-all duration-200 flex items-center justify-center active:scale-95"
                 aria-label="Voltar para o painel"
               >
                 <ArrowLeft size={20} className="text-white/90" />
               </Link>
-              
+
               <div className="flex items-center ml-2 sm:ml-3">
                 <Truck size={20} className="text-white/90 mr-2" />
                 <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight truncate max-w-[180px] sm:max-w-none">
@@ -484,12 +541,12 @@ export default function OrdersPage() {
                 </h1>
               </div>
             </div>
-            
+
             {/* Lado direito - Botões de ação */}
             <div className="flex items-center gap-2">
               {/* Botão de som - mobile */}
-              <button 
-                onClick={() => setIsSoundEnabled(!isSoundEnabled)} 
+              <button
+                onClick={() => setIsSoundEnabled(!isSoundEnabled)}
                 className="sm:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200 active:scale-95"
                 title={isSoundEnabled ? "Desativar notificações de som" : "Ativar notificações de som"}
                 aria-label={isSoundEnabled ? "Desativar som" : "Ativar som"}
@@ -502,8 +559,8 @@ export default function OrdersPage() {
               </button>
 
               {/* Botão de som - desktop */}
-              <button 
-                onClick={() => setIsSoundEnabled(!isSoundEnabled)} 
+              <button
+                onClick={() => setIsSoundEnabled(!isSoundEnabled)}
                 className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium text-sm sm:text-base transition-all duration-200 active:scale-[0.98] bg-white/10 hover:bg-white/20"
                 title={isSoundEnabled ? "Desativar notificações de som" : "Ativar notificações de som"}
                 aria-label={isSoundEnabled ? "Desativar som" : "Ativar som"}
@@ -520,7 +577,7 @@ export default function OrdersPage() {
                   </>
                 )}
               </button>
-              
+
               {/* Botão de atualizar - mobile */}
               <button
                 onClick={() => loadOrders(false)}
@@ -530,7 +587,7 @@ export default function OrdersPage() {
               >
                 <RefreshCw size={20} className="text-white/90" />
               </button>
-              
+
               {/* Botão de atualizar - desktop */}
               <button
                 onClick={() => loadOrders(false)}
@@ -554,11 +611,11 @@ export default function OrdersPage() {
                 <Bell className="mr-2 sm:mr-3 w-5 h-5 sm:w-6 sm:h-6 transition-all duration-200" />
                 <p className="font-bold text-xl">Novo Pedido Recebido!</p>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   // Parar o som contínuo
                   stopContinuousSound();
-                  
+
                   // Limpar o intervalo se existir
                   if (notificationTimeoutRef.current) {
                     clearInterval(notificationTimeoutRef.current);
@@ -573,10 +630,10 @@ export default function OrdersPage() {
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="bg-green-700 px-5 py-4 rounded-md mb-5">
               <p className="text-lg font-medium text-center">{newOrdersCount} novo{newOrdersCount > 1 ? 's' : ''} pedido{newOrdersCount > 1 ? 's' : ''} para preparo</p>
-              
+
               {showSoundActivationMessage && (
                 <div className="mt-3 bg-yellow-600 p-3 rounded-md animate-pulse">
                   <p className="text-white text-center font-medium">
@@ -585,13 +642,13 @@ export default function OrdersPage() {
                 </div>
               )}
             </div>
-            
+
             <div className="flex justify-center pt-2">
               <button
                 onClick={async () => {
                   // Parar o som contínuo
                   stopContinuousSound();
-                  
+
                   // Marcar como concluído e fechar notificação
                   if (notificationTimeoutRef.current) {
                     clearInterval(notificationTimeoutRef.current);
@@ -599,7 +656,7 @@ export default function OrdersPage() {
                   }
                   setShowNewOrderNotification(false);
                   setNewOrdersCount(0);
-                  
+
                   // Obter os novos pedidos e atualizar seus status para "completed"
                   // Vamos atualizar TODOS os pedidos visíveis na tela para "completed"
                   // Isso garante que o usuário veja a mudança imediatamente
@@ -607,7 +664,7 @@ export default function OrdersPage() {
                     // Indicar que estamos atualizando o status
                     setUpdatingStatus(true);
                     console.log('Atualizando todos os pedidos visíveis para "completed"...');
-                    
+
                     // Primeiro, vamos atualizar a interface imediatamente para feedback visual
                     const updatedOrders = orders.map(order => {
                       if (order.status === "new") {
@@ -616,14 +673,14 @@ export default function OrdersPage() {
                       }
                       return order;
                     });
-                    
+
                     // Atualizar o estado local imediatamente para feedback visual
                     setOrders(updatedOrders);
-                    
+
                     // Agora, atualizar no banco de dados
                     const ordersToUpdate = orders.filter(order => order.status === "new");
                     console.log(`Encontrados ${ordersToUpdate.length} pedidos para atualizar no banco de dados`);
-                    
+
                     if (ordersToUpdate.length > 0) {
                       // Atualizar cada pedido no banco de dados
                       for (const order of ordersToUpdate) {
@@ -631,12 +688,12 @@ export default function OrdersPage() {
                         const success = await updateOrderStatus(order.id, "completed");
                         console.log(`Pedido #${order.id} atualizado com sucesso: ${success}`);
                       }
-                      
+
                       // Recarregar os pedidos do servidor após a atualização
                       console.log('Recarregando pedidos do servidor...');
                       await loadOrders(true);
                       console.log('Pedidos recarregados com sucesso');
-                      
+
                       // Abrir automaticamente a página de impressão para o primeiro pedido atualizado
                       if (ordersToUpdate.length > 0) {
                         // Pequeno atraso para garantir que a interface seja atualizada primeiro
@@ -645,7 +702,7 @@ export default function OrdersPage() {
                           openPrintPage(ordersToUpdate[0]);
                         }, 500); // 500ms de atraso para garantir que a UI esteja atualizada
                       }
-                      
+
                       // Desativar o estado de atualização
                       setUpdatingStatus(false);
                     } else {
@@ -659,7 +716,7 @@ export default function OrdersPage() {
                     // Garantir que o estado de atualização seja desativado mesmo em caso de erro
                     setUpdatingStatus(false);
                   }
-                  
+
                   // Redirecionar para a seção de novos pedidos
                   const newOrdersSection = document.getElementById('new-orders-section');
                   if (newOrdersSection) {
@@ -701,13 +758,14 @@ export default function OrdersPage() {
           ) : (
             <div id="new-orders-section" className="space-y-5">
               {orders.map((order) => (
-                <div 
-                  key={order.id} 
+                <div
+                  key={order.id}
+                  data-order-id={order.id}
                   className={`relative border rounded-lg overflow-hidden shadow-sm transition-all duration-300 hover:shadow-md hover:translate-y-[-2px] cursor-pointer ${getOrderBackgroundColor(order.id)}`}
                   onClick={() => setSelectedOrder(order)}
                 >
                   {/* Borda lateral colorida baseada no status do pedido */}
-                  <div 
+                  <div
                     className={`absolute left-0 top-0 bottom-0 w-1.5 ${getOrderBorderColor(order.status)}`}
                     aria-hidden="true"
                   ></div>
@@ -768,8 +826,8 @@ export default function OrdersPage() {
                             </div>
                           </div>
                           <div className="flex space-x-2 ml-4">
-                            <a 
-                              href={`tel:${order.customerPhone}`} 
+                            <a
+                              href={`tel:${order.customerPhone}`}
                               className="text-xs flex items-center text-blue-600 hover:text-blue-800"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -779,14 +837,14 @@ export default function OrdersPage() {
                               </svg>
                               Ligar
                             </a>
-                            <a 
-                              href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}`} 
+                            <a
+                              href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}`}
                               className="text-xs flex items-center text-green-600 hover:text-green-800"
                               target="_blank"
                               rel="noopener noreferrer"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 448 512" fill="currentColor">
-                                <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
+                                <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z" />
                               </svg>
                               WhatsApp
                             </a>
@@ -837,15 +895,15 @@ export default function OrdersPage() {
                                         • {additional.quantity || 1}x {additional.name}
                                       </span>
                                       <span className="pl-4 sm:pl-0 text-right sm:text-left">
-                                        {additional.price > 0 ? formatCurrency(additional.price * (additional.quantity || 1)) : 
-                                        <span className="text-green-600 font-medium">Grátis</span>}
+                                        {additional.price > 0 ? formatCurrency(additional.price * (additional.quantity || 1)) :
+                                          <span className="text-green-600 font-medium">Grátis</span>}
                                       </span>
                                     </li>
                                   ))}
                                 </ul>
                               </div>
                             ) : null}
-                            
+
                             {/* Exibir informação de colher */}
                             {item.needsSpoon !== undefined && (
                               <div className={`mt-2 ${item.needsSpoon ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'} border-l-4 p-2 rounded-r-md`}>
@@ -854,8 +912,8 @@ export default function OrdersPage() {
                                   <div className="text-sm">
                                     <span className={`font-semibold ${item.needsSpoon ? 'text-green-800' : 'text-red-800'}`}>
                                       Precisa de colher: {item.needsSpoon ? (
-                                        item.spoonQuantity && item.spoonQuantity > 1 ? 
-                                          `Sim (${item.spoonQuantity} colheres)` : 
+                                        item.spoonQuantity && item.spoonQuantity > 1 ?
+                                          `Sim (${item.spoonQuantity} colheres)` :
                                           'Sim (1 colher)'
                                       ) : 'Não'}
                                     </span>
@@ -863,7 +921,7 @@ export default function OrdersPage() {
                                 </div>
                               </div>
                             )}
-                            
+
                             {/* Exibir observações do cliente */}
                             {item.notes && item.notes.trim() !== "" && (
                               <div className="mt-1 bg-yellow-50 border-l-4 border-yellow-400 p-2 rounded-r-md">
@@ -885,10 +943,10 @@ export default function OrdersPage() {
                       <div className="grid grid-cols-2 gap-2">
                         <span className="text-gray-700">Subtotal</span>
                         <span className="text-right font-medium">{formatCurrency(order.subtotal)}</span>
-                        
+
                         <span className="text-gray-700">Taxa de entrega</span>
                         <span className="text-right font-medium">{formatCurrency(order.deliveryFee)}</span>
-                        
+
                         {/* Explicação da taxa de entrega para picolés */}
                         {(() => {
                           const isPicoleOnlyOrder = order.items.every(item => {
@@ -896,7 +954,7 @@ export default function OrdersPage() {
                             const itemCategory = item.name || ""
                             return picoléTerms.some(term => itemCategory.toUpperCase().includes(term))
                           })
-                          
+
                           if (isPicoleOnlyOrder && order.deliveryFee > 0 && order.subtotal < 20) {
                             return (
                               <div className="col-span-2 text-center">
@@ -915,7 +973,7 @@ export default function OrdersPage() {
                             const itemCategory = item.name || ""
                             return itemCategory.toUpperCase().includes("MORENINHA")
                           })
-                          
+
                           if (isMoreninhaOnlyOrder && order.deliveryFee > 0 && order.subtotal < 17) {
                             return (
                               <div className="col-span-2 text-center">
@@ -927,23 +985,23 @@ export default function OrdersPage() {
                           }
                           return null
                         })()}
-                        
+
                         <span className="text-gray-900 font-bold">Total</span>
                         <span className="text-right font-bold text-purple-700">{formatCurrency(order.total)}</span>
                       </div>
-                      
+
                       <div className="mt-3 pt-3 border-t">
                         <div className="grid grid-cols-2 gap-2">
                           <span className="text-gray-700">Forma de pagamento</span>
                           <span className="text-right font-medium">
-                            {order.paymentMethod === "pix" 
-                              ? "Pix na Entrega" 
-                              : order.paymentMethod === "card" 
-                                ? "Cartão na Entrega" 
+                            {order.paymentMethod === "pix"
+                              ? "Pix na Entrega"
+                              : order.paymentMethod === "card"
+                                ? "Cartão na Entrega"
                                 : "Dinheiro"
                             }
                           </span>
-                        
+
                           {order.paymentMethod === "money" && order.paymentChange && parseFloat(order.paymentChange) > 0 && (
                             <>
                               <span className="text-sm text-gray-700">Valor pago</span>
@@ -958,28 +1016,28 @@ export default function OrdersPage() {
                           )}
                         </div>
                       </div>
-                      
+
                       <div className="mt-3 flex justify-between">
-                        <a 
-                          href={`https://wa.me/55${order.customerPhone?.replace(/\D/g, '')}`} 
-                          className="text-xs flex items-center text-green-600 hover:text-green-800" 
-                          target="_blank" 
+                        <a
+                          href={`https://wa.me/55${order.customerPhone?.replace(/\D/g, '')}`}
+                          className="text-xs flex items-center text-green-600 hover:text-green-800"
+                          target="_blank"
                           rel="noopener noreferrer"
                           data-component-name="OrdersPage"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 448 512" fill="currentColor">
-                            <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
+                            <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z" />
                           </svg>
                           WhatsApp
                         </a>
                         <div className="flex flex-col sm:flex-row gap-2">
-                        <button
-                          onClick={() => handleSendWhatsApp(order)}
-                          className="text-xs flex items-center bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1 rounded"
-                        >
-                          <MessageSquare className="h-3 w-3 mr-1" />
-                          Enviar Confirmação
-                        </button>
+                          <button
+                            onClick={() => handleSendWhatsApp(order)}
+                            className="whatsapp-button text-xs flex items-center bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1 rounded transition-colors duration-200"
+                          >
+                            <MessageSquare className="h-3 w-3 mr-1" />
+                            Enviar Confirmação
+                          </button>
                           <button
                             onClick={() => handleSendDeliveryNotification(order)}
                             className="text-xs flex items-center bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded"

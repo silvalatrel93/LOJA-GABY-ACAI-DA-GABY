@@ -45,13 +45,13 @@ export function useAdditionalsLogic(product?: Product) {
   useEffect(() => {
     if (product?.sizes) {
       updateSizeLimits(product.sizes)
-      console.log('🔍 DEBUG - Tamanhos atualizados no hook:', product.sizes)
+      // Debug removido para limpar console
     }
   }, [product?.sizes, updateSizeLimits])
 
   // Debug: Log quando selectedSize mudar
   useEffect(() => {
-    console.log('🔍 DEBUG - selectedSize mudou no hook:', selectedSize)
+    // Debug removido para limpar console
   }, [selectedSize])
 
   // Função para carregar adicionais e suas categorias
@@ -66,8 +66,7 @@ export function useAdditionalsLogic(product?: Product) {
         product?.id ? getActiveAdditionalsByProduct(product.id) : getAllAdditionals()
       ])
 
-      console.log('🔍 DEBUG - Hook: Categorias carregadas:', categories);
-      console.log('🔍 DEBUG - Hook: Adicionais carregados:', additionalsData);
+      // Debug removido para limpar console
 
       // Verificar se os dados foram carregados com sucesso
       if (!categories || !additionalsData) {
@@ -78,8 +77,8 @@ export function useAdditionalsLogic(product?: Product) {
       const additionalsByCategoryData = categories
         .map((category: AdditionalCategory) => {
           const categoryAdditionals = additionalsData.filter(
-            (additional: Additional) => 
-              additional.categoryId === category.id && 
+            (additional: Additional) =>
+              additional.categoryId === category.id &&
               (!product?.allowedAdditionals || product.allowedAdditionals.includes(additional.id))
           )
           return { category, additionals: categoryAdditionals }
@@ -90,7 +89,7 @@ export function useAdditionalsLogic(product?: Product) {
       setAdditionals(additionalsData)
       setAdditionalsByCategory(additionalsByCategoryData)
       setIsDataLoaded(true)
-      
+
       // Se não houver categoria selecionada e existirem categorias, selecionar a primeira
       if (selectedCategoryId === null && categories.length > 0) {
         setSelectedCategoryId(categories[0].id)
@@ -109,7 +108,7 @@ export function useAdditionalsLogic(product?: Product) {
 
     // Converter para array para ter controle sobre a ordem
     const additionalsList = Object.values(selectedAdditionals)
-    
+
     return additionalsList.reduce((total, { additional, quantity }, index) => {
       // Se o tamanho tem adicionais gratuitos e este adicional está dentro do limite gratuito
       if (hasFreeAdditionals && index < FREE_ADDITIONALS_LIMIT) {
@@ -123,11 +122,11 @@ export function useAdditionalsLogic(product?: Product) {
   // Função para obter adicionais da categoria selecionada
   const getSelectedCategoryAdditionals = (): Additional[] => {
     if (selectedCategoryId === null) return []
-    
+
     const categoryData = additionalsByCategory.find(
       item => item.category.id === selectedCategoryId
     )
-    
+
     return categoryData ? categoryData.additionals : []
   }
 
@@ -139,17 +138,17 @@ export function useAdditionalsLogic(product?: Product) {
   // Função para obter o texto de resumo dos adicionais
   const getAdditionalsCountText = (): string => {
     if (selectedAdditionalsCount === 0) return "Sem complementos premium"
-    
-    const remainingFree = hasFreeAdditionals 
+
+    const remainingFree = hasFreeAdditionals
       ? Math.max(0, FREE_ADDITIONALS_LIMIT - selectedAdditionalsCount)
       : 0
-      
+
     const remainingTotal = maxAdditionalsPerSize - selectedAdditionalsCount
-    
+
     if (hasFreeAdditionals && !reachedFreeAdditionalsLimit) {
       return `${selectedAdditionalsCount} complemento${selectedAdditionalsCount !== 1 ? 's' : ''} premium selecionado${selectedAdditionalsCount !== 1 ? 's' : ''} (${remainingFree} grátis restante${remainingFree !== 1 ? 's' : ''})`
     }
-    
+
     return `${selectedAdditionalsCount} complemento${selectedAdditionalsCount !== 1 ? 's' : ''} premium selecionado${selectedAdditionalsCount !== 1 ? 's' : ''} (${remainingTotal} restante${remainingTotal !== 1 ? 's' : ''})`
   }
 
@@ -160,7 +159,7 @@ export function useAdditionalsLogic(product?: Product) {
     // Criar um mapa de categorias
     const categoriesMap = new Map<number, {
       category: AdditionalCategory | null;
-      additionals: Array<{additional: Additional; quantity: number}>;
+      additionals: Array<{ additional: Additional; quantity: number }>;
     }>()
 
     // Inicializar com uma categoria "sem categoria" para adicionais sem categoria
@@ -172,18 +171,18 @@ export function useAdditionalsLogic(product?: Product) {
     // Agrupar adicionais por categoria
     Object.values(selectedAdditionals).forEach(({ additional, quantity }) => {
       const categoryId = additional.categoryId || 0
-      
+
       if (!categoriesMap.has(categoryId)) {
         const category = additionalsByCategory.find(
           item => item.category.id === categoryId
         )?.category || null
-        
+
         categoriesMap.set(categoryId, {
           category,
           additionals: []
         })
       }
-      
+
       categoriesMap.get(categoryId)?.additionals.push({ additional, quantity })
     })
 
@@ -202,7 +201,7 @@ export function useAdditionalsLogic(product?: Product) {
     isDataLoaded,
     error,
     loading,
-    
+
     // Valores calculados
     hasFreeAdditionals,
     selectedAdditionalsCount,
@@ -214,7 +213,7 @@ export function useAdditionalsLogic(product?: Product) {
     groupedAdditionals: groupAdditionalsByCategory(),
     selectedAdditionalsByCategory: useAdditionals().selectedAdditionalsByCategory,
     reachedCategoryLimit: useAdditionals().reachedCategoryLimit,
-    
+
     // Métodos
     setSelectedSize,
     setSelectedCategoryId,
@@ -223,12 +222,12 @@ export function useAdditionalsLogic(product?: Product) {
     resetAdditionalsBySize,
     loadAdditionalsData,
     isAdditionalSelected,
-    
+
     // Constantes
     maxAdditionalsPerSize,
     FREE_ADDITIONALS_LIMIT,
     SIZES_WITH_FREE_ADDITIONALS: useAdditionals().SIZES_WITH_FREE_ADDITIONALS,
-    
+
     // Acesso direto ao estado do contexto
     additionalsBySize: useAdditionals().additionalsBySize
   }

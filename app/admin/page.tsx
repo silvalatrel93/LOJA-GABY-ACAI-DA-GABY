@@ -59,7 +59,7 @@ export default function AdminPage() {
   const [deleteStatus, setDeleteStatus] = useState<{ id: number; status: "pending" | "success" | "error" } | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  
+
   // Estados para controlar collapse/expand das categorias
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
   const [allExpanded, setAllExpanded] = useState(false)
@@ -103,7 +103,7 @@ export default function AdminPage() {
       setCategories(categoriesList)
       setAdditionals(sortedAdditionals)
       setAdditionalCategories(additionalCategoriesList)
-      
+
       // Inicializar todas as categorias como colapsadas (padrão)
     } catch (error) {
       console.error("Erro ao carregar dados:", error)
@@ -137,10 +137,10 @@ export default function AdminPage() {
       } else {
         newSet.add(categoryId)
       }
-      
+
       // Atualizar estado de "todas expandidas"
       setAllExpanded(newSet.size === categories.length)
-      
+
       return newSet
     })
   }
@@ -245,7 +245,7 @@ export default function AdminPage() {
     } else if (field === "price") {
       updatedSizes[index].price = parseFloat(value) || 0;
     } else if (field === "additionalsLimit") {
-      updatedSizes[index].additionalsLimit = parseInt(value) || 5;
+      updatedSizes[index].additionalsLimit = value ? parseInt(value) : undefined;
     }
 
     setEditingProduct({ ...editingProduct, sizes: updatedSizes });
@@ -256,7 +256,7 @@ export default function AdminPage() {
 
     setEditingProduct({
       ...editingProduct,
-      sizes: [...editingProduct.sizes, { size: "", price: 0, additionalsLimit: 5 }],
+      sizes: [...editingProduct.sizes, { size: "", price: 0 }],
     });
   };
 
@@ -266,7 +266,7 @@ export default function AdminPage() {
     const updatedSizes = editingProduct.sizes.filter((_, i) => i !== index);
     // Garantir que sempre haja pelo menos um tamanho
     if (updatedSizes.length === 0) {
-      updatedSizes.push({ size: "300ml", price: 0, additionalsLimit: 5 });
+      updatedSizes.push({ size: "300ml", price: 0 });
     }
     setEditingProduct({ ...editingProduct, sizes: updatedSizes });
   };
@@ -334,7 +334,7 @@ export default function AdminPage() {
   const getAdditionalCount = (product: Product): string => {
     const totalAdditionals = additionals.length
     const allowedCount = product.allowedAdditionals.length
-    
+
     if (allowedCount === 0) {
       return "Nenhum"
     } else if (allowedCount === totalAdditionals) {
@@ -738,7 +738,7 @@ export default function AdminPage() {
                       >
                         <h3 className="text-base xs:text-lg font-medium mb-3 xs:mb-4 pb-2 flex items-center relative hover:bg-purple-50/50 rounded-lg p-2 -m-2 transition-colors duration-200">
                           <span className="bg-gradient-to-r from-purple-400 to-[#92c730] w-1 xs:w-1.5 h-5 xs:h-6 rounded-full mr-2 xs:mr-3 flex-shrink-0"></span>
-                          
+
                           {/* Ícone de expand/collapse */}
                           <div className="mr-2 xs:mr-3 transition-transform duration-200 text-purple-600 flex-shrink-0">
                             {isExpanded ? (
@@ -747,7 +747,7 @@ export default function AdminPage() {
                               <ChevronRight size={18} className="xs:w-5 xs:h-5" />
                             )}
                           </div>
-                          
+
                           <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-[#5a7c1e] font-semibold truncate min-w-0 flex-1">
                             {category.name}
                           </span>
@@ -759,11 +759,10 @@ export default function AdminPage() {
                       </button>
 
                       {/* Lista de produtos com animação */}
-                      <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                        isExpanded 
-                          ? 'max-h-[5000px] opacity-100' 
-                          : 'max-h-0 opacity-0'
-                      }`}>
+                      <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded
+                        ? 'max-h-[5000px] opacity-100'
+                        : 'max-h-0 opacity-0'
+                        }`}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 xs:gap-4 sm:gap-5">
                           {categoryProducts.map((product) => (
                             <div
@@ -897,7 +896,7 @@ export default function AdminPage() {
                   ))}
                 </select>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -908,19 +907,6 @@ export default function AdminPage() {
                 />
                 <label htmlFor="product-visibility" className="text-sm font-medium text-gray-700">
                   Produto visível para clientes
-                </label>
-              </div>
-              
-              <div className="flex items-center space-x-2 mt-3">
-                <input
-                  type="checkbox"
-                  id="product-needs-spoon"
-                  checked={editingProduct.needsSpoon}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, needsSpoon: e.target.checked })}
-                  className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                />
-                <label htmlFor="product-needs-spoon" className="text-sm font-medium text-gray-700">
-                  Precisa de Colher? (Pergunta ao cliente)
                 </label>
               </div>
 
@@ -973,10 +959,10 @@ export default function AdminPage() {
                 </div>
 
                 {editingProduct.sizes.map((size, index) => (
-                  <div key={createSafeKey(index, 'size-item')} className="border border-gray-200 rounded-lg p-3 mb-3 hover:border-purple-300 transition-colors">
-                    <div className="flex flex-wrap md:flex-nowrap gap-3 items-center">
+                  <div key={createSafeKey(index, 'size-item')} className="border border-gray-200 rounded-lg p-4 mb-3 hover:border-purple-300 transition-colors">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                       {/* Tamanho */}
-                      <div className="w-full md:w-1/4 lg:w-1/5">
+                      <div className="md:col-span-3">
                         <label className="block text-xs text-gray-500 mb-1 font-medium">Tamanho</label>
                         <input
                           type="text"
@@ -988,7 +974,7 @@ export default function AdminPage() {
                       </div>
 
                       {/* Preço */}
-                      <div className="w-full md:w-1/4 lg:w-1/5">
+                      <div className="md:col-span-4">
                         <label className="block text-xs text-gray-500 mb-1 font-medium">Preço</label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -1008,44 +994,32 @@ export default function AdminPage() {
                       </div>
 
                       {/* Limite de adicionais */}
-                      <div className="w-full md:w-1/3 lg:w-2/5">
-                        <label className="block text-xs text-gray-500 mb-1 font-medium">Limite de adicionais</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            value={size.additionalsLimit || ''}
-                            onChange={(e) => handleSizeChange(index, "additionalsLimit", e.target.value)}
-                            className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            placeholder="Vazio = sem limite"
-                            min="0"
-                            max="20"
-                          />
-                          <span className="text-xs whitespace-nowrap text-gray-500 hidden md:inline-block">
-                            vazio = sem limite
-                          </span>
-                        </div>
+                      <div className="md:col-span-3">
+                        <label className="block text-xs text-gray-500 mb-1 font-medium whitespace-nowrap">Limite de adicionais</label>
+                        <input
+                          type="number"
+                          value={size.additionalsLimit || ''}
+                          onChange={(e) => handleSizeChange(index, "additionalsLimit", e.target.value)}
+                          className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          placeholder="Vazio = sem limite"
+                          min="0"
+                          max="20"
+                        />
                       </div>
 
                       {/* Botão remover */}
-                      <div className="w-auto md:w-auto flex items-end justify-end md:justify-center md:pb-0.5 md:ml-auto">
+                      <div className="md:col-span-2 flex justify-center">
                         <button
                           type="button"
                           onClick={() => handleRemoveSize(index)}
                           disabled={editingProduct.sizes.length <= 1}
-                          className={`p-2 rounded-full transition-colors ${editingProduct.sizes.length <= 1 ? 'bg-gray-100 text-gray-400' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}
-                          title="Remover tamanho"
+                          className={`p-2 rounded-full transition-colors ${editingProduct.sizes.length <= 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer'}`}
+                          title={editingProduct.sizes.length <= 1 ? "Deve ter pelo menos um tamanho" : "Remover tamanho"}
                           aria-label="Remover tamanho"
                         >
                           <Trash2 size={18} />
                         </button>
                       </div>
-                    </div>
-
-                    {/* Mensagem para telas pequenas */}
-                    <div className="mt-1 md:hidden">
-                      <span className="text-xs text-gray-500">
-                        vazio = sem limite
-                      </span>
                     </div>
                   </div>
                 ))}

@@ -137,6 +137,10 @@ export const AdditionalCategoryService = {
             return { data: null, error: new Error(error.message) }
           }
 
+          if (!data) {
+            return { data: null, error: new Error("Nenhum dado retornado ao atualizar categoria") }
+          }
+
           const result: AdditionalCategory = {
             id: Number(data.id),
             name: String(data.name),
@@ -148,30 +152,30 @@ export const AdditionalCategoryService = {
           return { data: result, error: null }
         }
       }
-      
-      // Criar nova categoria (quando ID é 0 ou não existe)
-       if (!category.id || category.id <= 0) {
-         // Corrigir sequência antes de inserir
-         console.log('Corrigindo sequência de additional_categories antes da inserção...')
-         const { error: sequenceError } = await supabase.rpc('fix_additional_categories_sequence')
-         if (sequenceError) {
-           console.warn('Aviso: Não foi possível corrigir a sequência:', sequenceError)
-         }
 
-         // Criar nova categoria
-         const insertData = {
-           name: category.name,
-           display_order: category.order,
-           active: category.active,
-           selection_limit: category.selectionLimit || null,
-         }
-         
-         // Remover explicitamente qualquer propriedade id
-         delete (insertData as any).id
-         
-         console.log('Inserindo nova categoria de adicional:', insertData)
-         
-         const { data, error } = await supabase
+      // Criar nova categoria (quando ID é 0 ou não existe)
+      if (!category.id || category.id <= 0) {
+        // Corrigir sequência antes de inserir
+        console.log('Corrigindo sequência de additional_categories antes da inserção...')
+        const { error: sequenceError } = await supabase.rpc('fix_additional_categories_sequence')
+        if (sequenceError) {
+          console.warn('Aviso: Não foi possível corrigir a sequência:', sequenceError)
+        }
+
+        // Criar nova categoria
+        const insertData = {
+          name: category.name,
+          display_order: category.order,
+          active: category.active,
+          selection_limit: category.selectionLimit || null,
+        }
+
+        // Remover explicitamente qualquer propriedade id
+        delete (insertData as any).id
+
+        console.log('Inserindo nova categoria de adicional:', insertData)
+
+        const { data, error } = await supabase
           .from("additional_categories")
           .insert(insertData)
           .select()
@@ -180,6 +184,10 @@ export const AdditionalCategoryService = {
         if (error) {
           console.error("Erro ao criar categoria de adicional:", error)
           return { data: null, error: new Error(error.message) }
+        }
+
+        if (!data) {
+          return { data: null, error: new Error("Nenhum dado retornado ao criar categoria") }
         }
 
         const result: AdditionalCategory = {
@@ -192,6 +200,9 @@ export const AdditionalCategoryService = {
 
         return { data: result, error: null }
       }
+
+      // Fallback - não deveria chegar aqui
+      return { data: null, error: new Error("Erro inesperado ao processar categoria") }
     } catch (error) {
       console.error("Erro ao salvar categoria de adicional:", error)
       return { data: null, error: error instanceof Error ? error : new Error(String(error)) }

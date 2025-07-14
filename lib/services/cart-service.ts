@@ -2,64 +2,55 @@ import { createSupabaseClient } from "../supabase-client"
 import type { CartItem } from "../types"
 import { v4 as uuidv4 } from "uuid"
 import { cleanSizeDisplay } from "@/lib/utils"
-
-// ID da loja padrão como UUID - usando o ID da "Loja Principal" que existe no banco
-const DEFAULT_STORE_ID = "00000000-0000-0000-0000-000000000000"
+import { DEFAULT_STORE_ID } from "../constants"
 
 // Função para obter o ID da sessão do carrinho
 export function getCartSessionId(): string {
-  console.log("=== DEBUG getCartSessionId ===")
-  console.log("Window undefined?", typeof window === "undefined")
-  
+  // Debug removido para limpar console
+
   if (typeof window === "undefined") {
-    console.log("Retornando string vazia (SSR)")
     return ""
   }
 
   let sessionId = localStorage.getItem("cartSessionId")
-  console.log("SessionId do localStorage:", sessionId)
 
   if (!sessionId) {
     sessionId = uuidv4()
     localStorage.setItem("cartSessionId", sessionId)
-    console.log("Novo sessionId gerado:", sessionId)
   }
 
-  console.log("Retornando sessionId:", sessionId)
-  console.log("==============================")
   return sessionId
 }
 
 // Função para obter o ID da loja atual como UUID
 export function getCurrentStoreId(): string {
-  console.log("=== DEBUG getCurrentStoreId ===")
-  console.log("Window undefined?", typeof window === "undefined")
-  
+  // Verificar se DEFAULT_STORE_ID é válido
+  if (!DEFAULT_STORE_ID || !isValidUUID(DEFAULT_STORE_ID)) {
+    console.error("ERRO CRÍTICO: DEFAULT_STORE_ID inválido!", DEFAULT_STORE_ID)
+    throw new Error("DEFAULT_STORE_ID inválido: " + DEFAULT_STORE_ID)
+  }
+
   if (typeof window === "undefined") {
-    console.log("Retornando DEFAULT_STORE_ID (SSR):", DEFAULT_STORE_ID)
     return DEFAULT_STORE_ID
   }
 
   // Verificar se há um ID de loja armazenado no localStorage
   const storedStoreId = localStorage.getItem("currentStoreId")
-  console.log("StoredStoreId do localStorage:", storedStoreId)
 
   // Se existir e for um UUID válido, retornar
   if (storedStoreId && isValidUUID(storedStoreId)) {
-    console.log("Retornando storedStoreId válido:", storedStoreId)
     return storedStoreId
   }
 
   // Caso contrário, usar o ID padrão e armazená-lo
   localStorage.setItem("currentStoreId", DEFAULT_STORE_ID)
-  console.log("Retornando e salvando DEFAULT_STORE_ID:", DEFAULT_STORE_ID)
-  console.log("===============================")
   return DEFAULT_STORE_ID
 }
 
 // Função para validar se uma string é um UUID válido
 function isValidUUID(uuid: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  // Regex mais flexível que aceita qualquer UUID válido, incluindo nil UUID
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   return uuidRegex.test(uuid)
 }
 
@@ -111,7 +102,7 @@ function areAdditionalsEqual(additionals1: any[] = [], additionals2: any[] = [])
 
   // Se ambos estiverem vazios, são iguais
   if (additionals1.length === 0 && additionals2.length === 0) return true
-  
+
   // Se apenas um estiver vazio, são diferentes
   if (additionals1.length !== additionals2.length) return false
 
@@ -122,7 +113,7 @@ function areAdditionalsEqual(additionals1: any[] = [], additionals2: any[] = [])
     const idB = b && typeof b === 'object' && 'id' in b ? b.id : 0
     return Number(idA) - Number(idB)
   })
-  
+
   const sorted2 = [...additionals2].sort((a, b) => {
     const idA = a && typeof a === 'object' && 'id' in a ? a.id : 0
     const idB = b && typeof b === 'object' && 'id' in b ? b.id : 0
@@ -136,7 +127,7 @@ function areAdditionalsEqual(additionals1: any[] = [], additionals2: any[] = [])
 
     // Verificar se os objetos são válidos e têm as propriedades necessárias
     if (!a1 || !a2 || typeof a1 !== 'object' || typeof a2 !== 'object') return false
-    
+
     const id1 = 'id' in a1 ? Number(a1.id) : 0
     const id2 = 'id' in a2 ? Number(a2.id) : 0
     const qty1 = 'quantity' in a1 ? Number(a1.quantity) : 0
@@ -153,27 +144,15 @@ function areAdditionalsEqual(additionals1: any[] = [], additionals2: any[] = [])
 // Função para adicionar item ao carrinho
 export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | null> {
   // Log detalhado do item recebido
-  console.log("=== DEBUG addToCart ===")
-  console.log("Item recebido:", item)
-  console.log("Tipo do item:", typeof item)
-  console.log("Keys do item:", Object.keys(item || {}))
-  console.log("JSON.stringify do item:", JSON.stringify(item))
-  console.log("ProductId:", item?.productId, "tipo:", typeof item?.productId)
-  console.log("Name:", item?.name, "tipo:", typeof item?.name)
-  console.log("Price:", item?.price, "tipo:", typeof item?.price)
-  console.log("Size:", item?.size, "tipo:", typeof item?.size)
-  console.log("Quantity:", item?.quantity, "tipo:", typeof item?.quantity)
-  console.log("Additionals:", item?.additionals, "tipo:", typeof item?.additionals)
-  
+  // Debug removido para limpar console
+
   // Verificação específica para objeto vazio
   if (Object.keys(item || {}).length === 0) {
     console.error("ERRO CRÍTICO: Item recebido está vazio!")
     console.error("Dados tentando inserir:", JSON.stringify(item))
     return null
   }
-  
-  console.log("========================")
-  
+
   const sessionId = getCartSessionId()
   if (!sessionId) {
     console.error("Erro: sessionId não encontrado")
@@ -207,9 +186,6 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
   const storeId = getCurrentStoreId()
 
   try {
-    // Log para debug
-    console.log("Adicionando item ao carrinho com store_id:", storeId, "tipo:", typeof storeId)
-
     // Primeiro, vamos buscar todos os itens do carrinho com o mesmo produto
     const { data: existingItems, error: selectError } = await supabase
       .from("cart")
@@ -224,8 +200,7 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
     }
 
     // Verificar se existe um item com o mesmo tamanho e adicionais
-    console.log("Verificando itens existentes no carrinho:", existingItems?.length || 0, "itens encontrados")
-    
+
     // Verificar se existe um item com os mesmos adicionais, tamanho e escolha de colher
     // Ignoramos os sufixos únicos que podem ter sido adicionados ao tamanho
     const matchingItem = existingItems?.find((existingItem: any) => {
@@ -233,41 +208,29 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
       const existingSizeBase = String(existingItem.size).split('#')[0]
       const newSizeBase = String(item.size).split('#')[0]
       const isSameSizeBase = existingSizeBase === newSizeBase
-      
+
       // Verificar se os adicionais são os mesmos
       const areAdditionalsEquivalent = areAdditionalsEqual(existingItem.additionals, item.additionals)
-      
+
       // Verificar se a escolha de colher é a mesma
       const existingNeedsSpoon = existingItem.needs_spoon
       const newNeedsSpoon = item.needsSpoon
       const isSameSpoonChoice = existingNeedsSpoon === newNeedsSpoon
-      
+
       // Verificar se a quantidade de colheres é a mesma (se ambos precisam de colher)
       const existingSpoonQty = existingItem.spoon_quantity || 1
       const newSpoonQty = item.spoonQuantity || 1
       const isSameSpoonQuantity = (existingNeedsSpoon !== true && newNeedsSpoon !== true) || existingSpoonQty === newSpoonQty
-      
-      console.log(
-        `Comparando item - ID: ${existingItem.id}, ` +
-        `Produto: ${existingItem.product_id}, ` +
-        `Tamanho original: ${existingItem.size}, ` +
-        `Tamanho base: ${existingSizeBase}, ` +
-        `Novo tamanho base: ${newSizeBase}, ` +
-        `Tamanhos iguais: ${isSameSizeBase ? 'SIM' : 'NÃO'}, ` +
-        `Adicionais iguais: ${areAdditionalsEquivalent ? 'SIM' : 'NÃO'}, ` +
-        `Colher existente: ${existingNeedsSpoon}, ` +
-        `Colher nova: ${newNeedsSpoon}, ` +
-        `Escolha colher igual: ${isSameSpoonChoice ? 'SIM' : 'NÃO'}, ` +
-        `Qtd colher igual: ${isSameSpoonQuantity ? 'SIM' : 'NÃO'}`
-      )
-      
+
+      // Comparação de itens removida para limpar console
+
       // O item é considerado o mesmo se tamanho base, adicionais, escolha de colher e quantidade de colheres forem iguais
       return isSameSizeBase && areAdditionalsEquivalent && isSameSpoonChoice && isSameSpoonQuantity
     })
 
     if (matchingItem) {
-      console.log("Item encontrado no carrinho, atualizando quantidade", matchingItem.id)
-      
+      // Item encontrado no carrinho, atualizando quantidade
+
       // Item com mesmos adicionais existe, atualizar quantidade
       const { data, error: updateError } = await supabase
         .from("cart")
@@ -308,42 +271,58 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
       // e que o sufixo único seja sempre preservado
       const maxSizeLength = 20; // Tamanho máximo do campo no banco de dados
       const suffix = `#${itemId.substring(0, 8)}`; // Sufixo único para o tamanho
-      
+
       // Calcular quanto espaço temos para o tamanho original
       const availableSpace = maxSizeLength - suffix.length;
-      
+
       // Truncar o tamanho original se necessário e adicionar o sufixo
       const originalSize = String(item.size).trim();
       const truncatedSize = originalSize.substring(0, availableSpace);
       const uniqueSize = truncatedSize + suffix;
-      
-      console.log("Gerando tamanho único para o item:", {
-        originalSize,
-        truncatedSize,
-        suffix,
-        uniqueSize,
-        length: uniqueSize.length
-      });
+
+      // Gerando tamanho único para o item
+
+      // Validar dados antes da inserção
+      if (!isValidUUID(storeId)) {
+        throw new Error(`store_id inválido: ${storeId}`)
+      }
+
+      if (!sessionId || typeof sessionId !== 'string') {
+        throw new Error(`session_id inválido: ${sessionId}`)
+      }
+
+      if (!item.productId || typeof item.productId !== 'number') {
+        throw new Error(`product_id inválido: ${item.productId}`)
+      }
 
       // Inserir novo item com o tamanho único
       const insertData: any = {
         session_id: sessionId,
         store_id: storeId,
-        product_id: item.productId,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
+        product_id: Number(item.productId),
+        name: String(item.name) || '',
+        price: Number(item.price) || 0,
+        quantity: Number(item.quantity) || 1,
         image: item.image || null,
         size: uniqueSize, // Usar o tamanho único gerado com sufixo garantido
-        additionals: item.additionals || [],
-        needs_spoon: item.needsSpoon,
-        spoon_quantity: item.needsSpoon === true ? (item.spoonQuantity || 1) : null,
+        additionals: Array.isArray(item.additionals) ? item.additionals : [],
+        needs_spoon: Boolean(item.needsSpoon),
+        spoon_quantity: item.needsSpoon === true ? Number(item.spoonQuantity || 1) : null,
       }
 
       // Incluir notes apenas se a propriedade existir no item (para compatibilidade)
       if (item.notes !== undefined) {
-        insertData.notes = item.notes || ""
+        insertData.notes = String(item.notes) || ""
       }
+
+
+
+      // Log temporário para debug
+      console.log("=== DEBUG INSERÇÃO CARRINHO ===")
+      console.log("insertData completo:", JSON.stringify(insertData, null, 2))
+      console.log("store_id específico:", insertData.store_id, "tipo:", typeof insertData.store_id)
+      console.log("session_id:", insertData.session_id, "tipo:", typeof insertData.session_id)
+      console.log("product_id:", insertData.product_id, "tipo:", typeof insertData.product_id)
 
       const { data, error: insertError } = await supabase
         .from("cart")
@@ -352,37 +331,31 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
         .single()
 
       if (insertError) {
-        console.error("Erro ao adicionar item ao carrinho:", {
-          message: insertError.message,
-          details: insertError.details,
-          hint: insertError.hint,
-          code: insertError.code
-        })
-        console.error("Dados tentando inserir:", insertData)
-        console.error("Item original recebido:", item)
-        console.error("SessionId:", sessionId)
-        console.error("StoreId:", storeId)
-        console.error("ItemId gerado:", itemId)
-        console.error("Size processado:", uniqueSize)
-        console.error("Tipo do insertData:", typeof insertData)
-        console.error("Keys do insertData:", Object.keys(insertData || {}))
-        
+        console.log("=== ERRO NA INSERÇÃO ===")
+        console.log("Erro completo:", JSON.stringify(insertError, null, 2))
+        console.log("Código do erro:", insertError.code)
+        console.log("Mensagem:", insertError.message)
+        console.log("Detalhes:", insertError.details)
+      }
+
+      if (insertError) {
+        console.error("Erro ao adicionar item ao carrinho:", insertError.message)
+
         // Se o erro for sobre coluna inexistente (notes), tenta sem a coluna
         if (insertError.message?.includes('column "notes" of relation "cart" does not exist')) {
-          console.log("Tentando inserir sem a coluna notes...")
           const { notes, ...insertDataWithoutNotes } = insertData
-          
+
           const { data: retryData, error: retryError } = await supabase
             .from("cart")
             .insert(insertDataWithoutNotes)
             .select()
             .single()
-            
+
           if (retryError) {
             console.error("Erro na segunda tentativa:", retryError)
             return null
           }
-          
+
           // Usar os dados da segunda tentativa
           const typedRetryData = retryData as any
           return {
@@ -400,7 +373,7 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
             notes: "", // Usar string vazia se a coluna não existir
           }
         }
-        
+
         return null
       }
 
@@ -467,32 +440,25 @@ export async function updateCartItemQuantity(id: number, quantity: number, updat
     .eq("id", id)
 
   if (error) {
-    console.error(`Erro ao atualizar item ${id}:`, {
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code,
-      updateData
-    })
-    
+    console.error(`Erro ao atualizar item ${id}:`, error.message)
+
     // Se o erro for sobre coluna inexistente (notes), tenta sem a coluna
     if (error.message?.includes('column "notes" of relation "cart" does not exist')) {
-      console.log("Tentando atualizar sem a coluna notes...")
       const { notes, ...updateDataWithoutNotes } = updateData
-      
+
       const { error: retryError } = await supabase
         .from("cart")
         .update(updateDataWithoutNotes)
         .eq("id", id)
-        
+
       if (retryError) {
         console.error(`Erro na segunda tentativa ao atualizar item ${id}:`, retryError)
         return false
       }
-      
+
       return true
     }
-    
+
     return false
   }
 

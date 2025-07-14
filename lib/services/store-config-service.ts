@@ -1,28 +1,6 @@
 import { createSupabaseClient, testSupabaseConnection } from "../supabase-client"
-import type { StoreConfig, OperatingHours, SpecialDate } from "../types"
+import type { StoreConfig, OperatingHours, SpecialDate, SupabaseStoreConfig } from "../types"
 import type { RealtimeChannel } from '@supabase/supabase-js'
-
-// Interface para tipar os dados do Supabase
-interface SupabaseStoreConfig {
-  id: string
-  store_id: string
-  name: string
-  logo_url: string | null
-  delivery_fee: number
-  maringa_delivery_fee?: number // Taxa de entrega específica para Maringá
-  picole_delivery_fee?: number // Taxa de entrega específica para picolés
-  minimum_picole_order?: number // Valor mínimo para isenção da taxa de entrega de picolés
-  moreninha_delivery_fee?: number // Taxa de entrega específica para moreninha
-  minimum_moreninha_order?: number // Valor mínimo para isenção da taxa de entrega de moreninha
-  is_open: boolean
-  operating_hours: OperatingHours
-  special_dates: SpecialDate[]
-  whatsapp_number: string | null
-  pix_key: string | null
-  last_updated: string
-  carousel_initialized: boolean
-  max_picoles_per_order?: number
-}
 
 // Configuração padrão para usar como fallback
 const DEFAULT_STORE_CONFIG: StoreConfig = {
@@ -53,8 +31,7 @@ const DEFAULT_STORE_CONFIG: StoreConfig = {
   maxPicolesPerOrder: 20
 }
 
-// ID da loja padrão (Loja Principal)
-const DEFAULT_STORE_ID = "00000000-0000-0000-0000-000000000000"
+import { DEFAULT_STORE_ID } from "../constants"
 
 // Serviço para gerenciar configurações da loja
 export const StoreConfigService = {
@@ -69,8 +46,7 @@ export const StoreConfigService = {
       }
 
       const supabase = createSupabaseClient()
-      console.log(`Buscando configuração da loja com store_id: ${DEFAULT_STORE_ID}`)
-      
+
       const { data, error } = await supabase
         .from("store_config")
         .select("*")
@@ -84,7 +60,7 @@ export const StoreConfigService = {
           details: error.details,
           hint: error.hint
         })
-        
+
         // Se o erro for "PGRST116" (nenhum registro encontrado), tentar criar a configuração padrão
         if (error.code === 'PGRST116') {
           console.log("Nenhuma configuração encontrada, tentando criar configuração padrão...")
@@ -93,7 +69,7 @@ export const StoreConfigService = {
             return createdConfig
           }
         }
-        
+
         // Caso haja múltiplos registros, buscar o primeiro manualmente
         if (error.details && error.details.includes('multiple')) {
           console.log("Múltiplos registros encontrados, buscando o primeiro...")
@@ -102,15 +78,15 @@ export const StoreConfigService = {
             .select("*")
             .eq("store_id", DEFAULT_STORE_ID)
             .limit(1)
-          
+
           if (!limitError && multipleData && multipleData.length > 0) {
             const config = multipleData[0] as unknown as SupabaseStoreConfig
             return {
               id: typeof config.id === 'string' ? config.id : 'main',
               name: typeof config.name === 'string' ? config.name : 'Heai Açai e Sorvetes',
               logoUrl: typeof config.logo_url === 'string' ? config.logo_url : '',
-              deliveryFee: typeof config.delivery_fee === 'number' 
-                ? config.delivery_fee 
+              deliveryFee: typeof config.delivery_fee === 'number'
+                ? config.delivery_fee
                 : Number(config.delivery_fee) || 0,
               maringaDeliveryFee: typeof config.maringa_delivery_fee === 'number'
                 ? config.maringa_delivery_fee
@@ -129,19 +105,19 @@ export const StoreConfigService = {
                 : Number(config.minimum_moreninha_order) || 17.0,
               isOpen: Boolean(config.is_open),
               operatingHours: config.operating_hours && typeof config.operating_hours === 'object'
-                ? config.operating_hours 
+                ? config.operating_hours
                 : {},
-              specialDates: Array.isArray(config.special_dates) 
-                ? config.special_dates 
+              specialDates: Array.isArray(config.special_dates)
+                ? config.special_dates
                 : [],
-              whatsappNumber: typeof config.whatsapp_number === 'string' 
-                ? config.whatsapp_number 
+              whatsappNumber: typeof config.whatsapp_number === 'string'
+                ? config.whatsapp_number
                 : '5511999999999',
-              pixKey: typeof config.pix_key === 'string' 
-                ? config.pix_key 
+              pixKey: typeof config.pix_key === 'string'
+                ? config.pix_key
                 : '09300021990',
-              lastUpdated: typeof config.last_updated === 'string' 
-                ? config.last_updated 
+              lastUpdated: typeof config.last_updated === 'string'
+                ? config.last_updated
                 : new Date().toISOString(),
               carousel_initialized: typeof config.carousel_initialized === 'boolean'
                 ? config.carousel_initialized
@@ -152,7 +128,7 @@ export const StoreConfigService = {
             }
           }
         }
-        
+
         console.log("Retornando configuração padrão devido ao erro")
         return this.getDefaultConfig()
       }
@@ -168,14 +144,14 @@ export const StoreConfigService = {
       }
 
       const config = data as unknown as SupabaseStoreConfig
-      
+
       // Garantir que temos valores padrão para todos os campos obrigatórios
       return {
         id: typeof config.id === 'string' ? config.id : 'main',
         name: typeof config.name === 'string' ? config.name : 'Heai Açai e Sorvetes',
         logoUrl: typeof config.logo_url === 'string' ? config.logo_url : '',
-        deliveryFee: typeof config.delivery_fee === 'number' 
-          ? config.delivery_fee 
+        deliveryFee: typeof config.delivery_fee === 'number'
+          ? config.delivery_fee
           : Number(config.delivery_fee) || 0,
         maringaDeliveryFee: typeof config.maringa_delivery_fee === 'number'
           ? config.maringa_delivery_fee
@@ -194,19 +170,19 @@ export const StoreConfigService = {
           : Number(config.minimum_moreninha_order) || 17.0,
         isOpen: Boolean(config.is_open),
         operatingHours: config.operating_hours && typeof config.operating_hours === 'object'
-          ? config.operating_hours 
+          ? config.operating_hours
           : {},
-        specialDates: Array.isArray(config.special_dates) 
-          ? config.special_dates 
+        specialDates: Array.isArray(config.special_dates)
+          ? config.special_dates
           : [],
-        whatsappNumber: typeof config.whatsapp_number === 'string' 
-          ? config.whatsapp_number 
+        whatsappNumber: typeof config.whatsapp_number === 'string'
+          ? config.whatsapp_number
           : '5511999999999',
-        pixKey: typeof config.pix_key === 'string' 
-          ? config.pix_key 
+        pixKey: typeof config.pix_key === 'string'
+          ? config.pix_key
           : '09300021990',
-        lastUpdated: typeof config.last_updated === 'string' 
-          ? config.last_updated 
+        lastUpdated: typeof config.last_updated === 'string'
+          ? config.last_updated
           : new Date().toISOString(),
         carousel_initialized: typeof config.carousel_initialized === 'boolean'
           ? config.carousel_initialized
@@ -231,7 +207,7 @@ export const StoreConfigService = {
     try {
       console.log("Criando/atualizando configuração padrão da loja no banco de dados...")
       const supabase = createSupabaseClient()
-      
+
       const defaultConfigData = {
         id: 'main',
         store_id: DEFAULT_STORE_ID,
@@ -272,7 +248,7 @@ export const StoreConfigService = {
         console.log("Configuração padrão criada/atualizada com sucesso!")
         return DEFAULT_STORE_CONFIG
       }
-      
+
       return null
     } catch (error) {
       console.error("Erro ao criar configuração padrão da loja:", error)
@@ -304,8 +280,8 @@ export const StoreConfigService = {
         minimumMoreninhaOrder: typeof config.minimumMoreninhaOrder === 'number' ? config.minimumMoreninhaOrder : 17.0,
         isOpen: Boolean(config.isOpen),
         maxPicolesPerOrder: typeof config.maxPicolesPerOrder === 'number' ? config.maxPicolesPerOrder : 20,
-        operatingHours: config.operatingHours && typeof config.operatingHours === 'object' 
-          ? config.operatingHours 
+        operatingHours: config.operatingHours && typeof config.operatingHours === 'object'
+          ? config.operatingHours
           : {},
         specialDates: Array.isArray(config.specialDates) ? config.specialDates : [],
         whatsappNumber: typeof config.whatsappNumber === 'string' ? config.whatsappNumber : '',
@@ -319,7 +295,7 @@ export const StoreConfigService = {
       // Preparar os dados para salvar no formato do Supabase
       const configData: Omit<SupabaseStoreConfig, 'store_id' | 'id'> = {
         name: validatedConfig.name,
-        logo_url: validatedConfig.logoUrl || null, // Pode ser undefined no StoreConfig
+        logo_url: validatedConfig.logoUrl || '', // Garante que seja string
         delivery_fee: validatedConfig.deliveryFee,
         maringa_delivery_fee: validatedConfig.maringaDeliveryFee,
         picole_delivery_fee: validatedConfig.picoleDeliveryFee,
@@ -329,12 +305,12 @@ export const StoreConfigService = {
         is_open: validatedConfig.isOpen,
         operating_hours: validatedConfig.operatingHours,
         special_dates: validatedConfig.specialDates || [], // Garante um array vazio se for undefined
-        whatsapp_number: validatedConfig.whatsappNumber || null, // Garante que seja string | null
+        whatsapp_number: validatedConfig.whatsappNumber, // Pode ser undefined
         pix_key: validatedConfig.pixKey || '09300021990', // Adiciona a chave PIX
         last_updated: validatedConfig.lastUpdated || new Date().toISOString(), // Garante uma data válida
         carousel_initialized: validatedConfig.carousel_initialized ?? false, // Controle de inicialização do carrossel
-        max_picoles_per_order: typeof config.maxPicolesPerOrder === 'number' 
-          ? config.maxPicolesPerOrder 
+        max_picoles_per_order: typeof config.maxPicolesPerOrder === 'number'
+          ? config.maxPicolesPerOrder
           : 20, // Valor padrão de 20 se não estiver definido
       }
 
@@ -343,13 +319,13 @@ export const StoreConfigService = {
       const configId = validatedConfig.id
 
       // Preparar dados finais para o upsert
-      const finalData = { 
-        ...configData, 
+      const finalData = {
+        ...configData,
         id: configId,
-        store_id: DEFAULT_STORE_ID 
+        store_id: DEFAULT_STORE_ID
       };
-      
-      console.log("Dados finais para upsert:", { id: finalData.id, name: finalData.name })
+
+      console.log("Dados finais para upsert:", { id: finalData.id, name: (finalData as any).name || 'N/A' })
 
       // Atualizar ou inserir os dados no Supabase
       const { data, error } = await supabase
@@ -370,14 +346,14 @@ export const StoreConfigService = {
 
       // Converter os dados do formato do Supabase para o formato da aplicação
       const savedConfig = data as unknown as SupabaseStoreConfig
-      
+
       // Garantir que temos valores padrão para todos os campos obrigatórios
       const result: StoreConfig = {
         id: typeof savedConfig.id === 'string' ? savedConfig.id : 'main',
         name: typeof savedConfig.name === 'string' ? savedConfig.name : 'Loja',
         logoUrl: typeof savedConfig.logo_url === 'string' ? savedConfig.logo_url : '',
-        deliveryFee: typeof savedConfig.delivery_fee === 'number' 
-          ? savedConfig.delivery_fee 
+        deliveryFee: typeof savedConfig.delivery_fee === 'number'
+          ? savedConfig.delivery_fee
           : Number(savedConfig.delivery_fee) || 0,
         maringaDeliveryFee: typeof savedConfig.maringa_delivery_fee === 'number'
           ? savedConfig.maringa_delivery_fee
@@ -396,16 +372,16 @@ export const StoreConfigService = {
           : Number(savedConfig.minimum_moreninha_order) || 17.0,
         isOpen: Boolean(savedConfig.is_open),
         operatingHours: savedConfig.operating_hours && typeof savedConfig.operating_hours === 'object'
-          ? savedConfig.operating_hours 
+          ? savedConfig.operating_hours
           : {},
-        specialDates: Array.isArray(savedConfig.special_dates) 
-          ? savedConfig.special_dates 
+        specialDates: Array.isArray(savedConfig.special_dates)
+          ? savedConfig.special_dates
           : [],
-        whatsappNumber: typeof savedConfig.whatsapp_number === 'string' 
-          ? savedConfig.whatsapp_number 
+        whatsappNumber: typeof savedConfig.whatsapp_number === 'string'
+          ? savedConfig.whatsapp_number
           : '',
-        lastUpdated: typeof savedConfig.last_updated === 'string' 
-          ? savedConfig.last_updated 
+        lastUpdated: typeof savedConfig.last_updated === 'string'
+          ? savedConfig.last_updated
           : new Date().toISOString(),
         maxPicolesPerOrder: typeof savedConfig.max_picoles_per_order === 'number'
           ? savedConfig.max_picoles_per_order
@@ -423,7 +399,7 @@ export const StoreConfigService = {
   async isStoreOpen(): Promise<boolean> {
     try {
       const config = await this.getStoreConfig()
-      
+
       // Se não houver configuração ou a loja estiver fechada, retornar falso
       if (!config || !config.isOpen) {
         console.log('Loja fechada: sem configuração ou isOpen = false')
@@ -432,7 +408,7 @@ export const StoreConfigService = {
 
       // Verificar horário de funcionamento
       const now = new Date()
-      const dayOfWeek = now.toLocaleDateString("pt-BR", { 
+      const dayOfWeek = now.toLocaleDateString("pt-BR", {
         weekday: "long",
         timeZone: 'America/Sao_Paulo' // Garantir o fuso horário correto
       }).toLowerCase()
@@ -441,7 +417,7 @@ export const StoreConfigService = {
       const dayConfig = config.operatingHours && typeof config.operatingHours === 'object'
         ? config.operatingHours[dayOfWeek]
         : null
-      
+
       if (!dayConfig || !dayConfig.open) {
         console.log(`Loja fechada: sem configuração para ${dayOfWeek} ou dia fechado`)
         return false
@@ -460,7 +436,7 @@ export const StoreConfigService = {
       }
 
       const [openTime, closeTime] = hours
-      
+
       // Converter horários para minutos
       const parseTime = (timeStr: string): number | null => {
         const [hours, minutes] = timeStr.split(':').map(Number)
@@ -472,7 +448,7 @@ export const StoreConfigService = {
 
       const openTimeInMinutes = parseTime(openTime)
       const closeTimeInMinutes = parseTime(closeTime)
-      
+
       if (openTimeInMinutes === null || closeTimeInMinutes === null) {
         console.log('Horário de funcionamento inválido')
         return false
@@ -484,11 +460,11 @@ export const StoreConfigService = {
 
       // Verificar se o horário atual está dentro do horário de funcionamento
       const isOpen = currentTimeInMinutes >= openTimeInMinutes && currentTimeInMinutes <= closeTimeInMinutes
-      
+
       if (!isOpen) {
         console.log(`Fora do horário de funcionamento. Aberto das ${openTime} às ${closeTime}`)
       }
-      
+
       return isOpen
     } catch (error) {
       console.error("Erro ao verificar status da loja:", error)
@@ -503,10 +479,10 @@ export const StoreConfigService = {
   ): RealtimeChannel | null {
     try {
       const supabase = createSupabaseClient()
-      
+
       // Configurar o canal para escutar mudanças no status da loja
       const channel = supabase.channel('store_status')
-      
+
       // Configurar o handler para mudanças no banco de dados
       channel.on(
         'postgres_changes',
@@ -524,7 +500,7 @@ export const StoreConfigService = {
           }
         }
       )
-    
+
       // Inscrever no canal
       channel.subscribe((status) => {
         // Verificar se o status é de sucesso ou erro
@@ -541,7 +517,7 @@ export const StoreConfigService = {
           console.log('Status da subscrição:', status)
         }
       })
-    
+
       // Configurar o handler de erros do sistema
       channel.on('system', { event: 'error' }, (payload: any) => {
         // Verificar se é realmente um erro ou apenas uma mensagem informativa
@@ -553,7 +529,7 @@ export const StoreConfigService = {
           // Não tratamos isso como erro, pois muitas vezes são apenas mensagens informativas
         }
       })
-      
+
       return channel
     } catch (error) {
       console.error('Erro ao configurar subscrição de status da loja:', error)

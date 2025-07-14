@@ -2,6 +2,9 @@ import { createSupabaseClient } from "../supabase-client"
 import type { Category } from "../types"
 import { DEFAULT_STORE_ID } from "../constants"
 
+// Exportar o tipo Category para uso em outros arquivos
+export type { Category }
+
 // Serviço para gerenciar categorias
 export const CategoryService = {
   // Obter todas as categorias
@@ -78,10 +81,10 @@ export const CategoryService = {
         return null;
       }
 
-      console.log('Categoria encontrada:', { 
-        id: data.id, 
-        name: data.name, 
-        store_id: data.store_id 
+      console.log('Categoria encontrada:', {
+        id: data.id,
+        name: data.name,
+        store_id: data.store_id
       });
 
       // Garantir que os tipos estejam corretos
@@ -103,16 +106,16 @@ export const CategoryService = {
   async saveCategory(category: Category): Promise<{ data: Category | null; error: Error | null }> {
     try {
       console.log('=== Iniciando saveCategory ===');
-      console.log('Dados da categoria recebidos:', { 
-        categoryId: category.id, 
+      console.log('Dados da categoria recebidos:', {
+        categoryId: category.id,
         storeId: DEFAULT_STORE_ID,
         categoryName: category.name,
         isNew: !(category.id && category.id > 0),
         category: JSON.stringify(category, null, 2)
       });
-      
+
       const supabase = createSupabaseClient();
-      
+
       // Verificar sessão atual
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       console.log('Sessão atual:', {
@@ -120,7 +123,7 @@ export const CategoryService = {
         user: sessionData?.session?.user,
         sessionError: sessionError?.message
       });
-      
+
       // Verificar se o cliente Supabase foi inicializado corretamente
       if (!supabase) {
         console.error('Erro: Cliente Supabase não inicializado');
@@ -137,9 +140,9 @@ export const CategoryService = {
 
         if (fetchExistingError) {
           console.error("Erro ao verificar categoria existente:", fetchExistingError);
-          return { 
-            data: null, 
-            error: new Error(`Erro ao verificar categoria: ${fetchExistingError.message}`) 
+          return {
+            data: null,
+            error: new Error(`Erro ao verificar categoria: ${fetchExistingError.message}`)
           };
         }
 
@@ -148,13 +151,14 @@ export const CategoryService = {
           // Se a categoria não existe, trata como uma nova categoria
           // Resetar o ID e seguir o fluxo de criação
           category.id = 0;
+          // Continue to the creation flow below
         } else {
           // Verificar se a categoria pertence à loja correta
           if (existingCategory.store_id !== DEFAULT_STORE_ID) {
             console.error(`Categoria com ID ${category.id} pertence a outra loja.`);
-            return { 
-              data: null, 
-              error: new Error(`Esta categoria pertence a outra loja e não pode ser modificada.`) 
+            return {
+              data: null,
+              error: new Error(`Esta categoria pertence a outra loja e não pode ser modificada.`)
             };
           }
 
@@ -178,17 +182,17 @@ export const CategoryService = {
 
           if (updateError) {
             console.error("Erro ao atualizar categoria:", updateError);
-            return { 
-              data: null, 
-              error: new Error(`Erro ao atualizar categoria: ${updateError.message}`) 
+            return {
+              data: null,
+              error: new Error(`Erro ao atualizar categoria: ${updateError.message}`)
             };
           }
 
           if (!updatedData) {
             console.error("Nenhum dado retornado ao atualizar categoria");
-            return { 
-              data: null, 
-              error: new Error("Falha ao atualizar categoria. Nenhum dado retornado.") 
+            return {
+              data: null,
+              error: new Error("Falha ao atualizar categoria. Nenhum dado retornado.")
             };
           }
 
@@ -202,7 +206,7 @@ export const CategoryService = {
           return { data: result, error: null }
         }
       }
-      
+
       // Criar nova categoria (quando ID é 0 ou não existe)
       if (!category.id || category.id <= 0) {
         // Validar dados antes de criar nova categoria
@@ -215,11 +219,11 @@ export const CategoryService = {
         const order = typeof category.order === 'number' ? category.order : 0;
         const active = category.active !== undefined ? Boolean(category.active) : true;
 
-        console.log('Criando nova categoria:', { 
-          name: category.name, 
-          order, 
-          active, 
-          storeId: DEFAULT_STORE_ID 
+        console.log('Criando nova categoria:', {
+          name: category.name,
+          order,
+          active,
+          storeId: DEFAULT_STORE_ID
         });
 
         try {
@@ -240,21 +244,21 @@ export const CategoryService = {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           };
-          
+
           // Garantir que não há ID nos dados de inserção
           if ('id' in insertData) {
             delete (insertData as any).id;
           }
-          
+
           console.log('Inserindo nova categoria:', insertData);
-          
+
           // Verificar se há ID nos dados (não deveria haver)
           console.log('Verificação de ID nos dados:', {
             hasId: 'id' in insertData,
             insertDataKeys: Object.keys(insertData),
             originalCategoryId: category.id
           });
-          
+
           // Inserir a nova categoria
           console.log('Enviando dados para o Supabase:', {
             table: 'categories',
@@ -263,7 +267,7 @@ export const CategoryService = {
             store_id_type: typeof insertData.store_id,
             store_id_length: insertData.store_id?.length
           });
-          
+
           const { data, error } = await supabase
             .from("categories")
             .insert(insertData)
@@ -287,7 +291,7 @@ export const CategoryService = {
           }
 
           console.log('Dados da nova categoria:', data);
-          
+
           // Criar o objeto de resultado
           const result: Category = {
             id: Number(data.id),
@@ -295,15 +299,15 @@ export const CategoryService = {
             order: Number(data.order || 0),
             active: data.active !== undefined ? Boolean(data.active) : true,
           };
-          
+
           console.log('Categoria criada com sucesso:', result);
           return { data: result, error: null };
-          
+
         } catch (error) {
           console.error("Erro ao processar criação de categoria:", error);
-          return { 
-            data: null, 
-            error: error instanceof Error ? error : new Error("Erro desconhecido ao criar categoria") 
+          return {
+            data: null,
+            error: error instanceof Error ? error : new Error("Erro desconhecido ao criar categoria")
           };
         }
       }
@@ -311,6 +315,9 @@ export const CategoryService = {
       console.error("Erro ao salvar categoria:", error)
       return { data: null, error: error instanceof Error ? error : new Error(String(error)) }
     }
+
+    // Fallback return statement (should not reach here)
+    return { data: null, error: new Error("Unexpected error: function reached end without returning") };
   },
 
   // Excluir categoria

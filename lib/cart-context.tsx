@@ -53,18 +53,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       const currentPath = window.location.pathname
       const mesaAtual = localStorage.getItem('mesa_atual')
-      
+
       // console.log('CartContext - Verificando contexto:', { currentPath, mesaAtual: !!mesaAtual })
-      
+
       // Verifica se temos dados de mesa no localStorage
       if (mesaAtual) {
         try {
           const mesa = JSON.parse(mesaAtual) as TableInfo
-          
+
           // Se estivermos na rota de mesa OU em rotas relacionadas ao pedido de mesa (checkout, carrinho)
-          if (currentPath.startsWith('/mesa/') || 
-              currentPath === '/checkout' || 
-              currentPath === '/carrinho') {
+          if (currentPath.startsWith('/mesa/') ||
+            currentPath === '/checkout' ||
+            currentPath === '/carrinho') {
             console.log('CartContext - Configurando como mesa:', mesa)
             setTableInfo(mesa)
             setIsTableOrder(true)
@@ -87,7 +87,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           console.log('CartContext - Na rota de mesa mas sem dados no localStorage, aguardando...')
           // Se estivermos na rota de mesa mas ainda não tiver dados, aguardar
         } else {
-          console.log('CartContext - Configurando como delivery')
           setTableInfo(null)
           setIsTableOrder(false)
         }
@@ -106,16 +105,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     // Listener para evento customizado de mesa configurada
     const handleMesaConfigurada = () => {
-      console.log('CartContext - Evento mesa-configurada recebido, verificando contexto...')
       checkTableContext()
     }
 
     // Escutar mudanças na URL
     window.addEventListener('popstate', handleRouteChange)
-    
+
     // Escutar evento customizado de mesa configurada
     window.addEventListener('mesa-configurada', handleMesaConfigurada)
-    
+
     // Verificar periodicamente mudanças na URL (para navegação SPA)
     // Aumentei o intervalo para 2 segundos para ser menos agressivo
     const intervalId = setInterval(checkTableContext, 2000)
@@ -137,12 +135,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const handleAddToCart = useCallback(
     async (item: Omit<CartItem, "id">) => {
       try {
-        console.log("=== DEBUG handleAddToCart ===")
-        console.log("Item recebido no context:", item)
-        console.log("Tipo do item no context:", typeof item)
-        console.log("Keys do item no context:", Object.keys(item || {}))
-        console.log("==============================")
-        
         await addToCart(item)
         await loadCart()
       } catch (error) {

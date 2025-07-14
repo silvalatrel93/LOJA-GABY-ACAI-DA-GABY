@@ -200,6 +200,28 @@ export interface PageContent {
   lastUpdated: Date
 }
 
+// Interface para dados do Supabase (snake_case)
+export interface SupabaseStoreConfig {
+  id: string
+  store_id: string
+  name: string
+  logo_url: string
+  delivery_fee: number
+  maringa_delivery_fee?: number
+  picole_delivery_fee?: number
+  minimum_picole_order?: number
+  moreninha_delivery_fee?: number
+  minimum_moreninha_order?: number
+  is_open: boolean
+  operating_hours?: OperatingHours
+  special_dates?: SpecialDate[]
+  whatsapp_number?: string
+  pix_key?: string
+  last_updated: string
+  carousel_initialized?: boolean
+  max_picoles_per_order?: number
+}
+
 // Notificação
 export interface Notification {
   id: number

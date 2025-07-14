@@ -29,7 +29,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, priority = false }: ProductCardProps) {
   return (
-    <AdditionalsProvider 
+    <AdditionalsProvider
       maxAdditionalsLimit={999} // Não usar limite geral, apenas limites por tamanho
       productSizes={product.sizes}
     >
@@ -47,7 +47,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
   const [isAddingToCart, setIsAddingToCart] = useState(false) // Novo estado para loading
   const [needsSpoon, setNeedsSpoon] = useState<boolean | undefined>(undefined)
   const [spoonQuantity, setSpoonQuantity] = useState(1)
-  
+
   // Estados específicos para COMBO 2 COPOS
   const [isCombo2Copos, setIsCombo2Copos] = useState(false)
   const [firstCupAdded, setFirstCupAdded] = useState(false)
@@ -59,13 +59,13 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
     [additionalId: number]: { additional: Additional; quantity: number }
   }>({})
   const [currentCupStep, setCurrentCupStep] = useState<"first" | "second">("first")
-  
+
   // Acesso ao contexto do carrinho
   const { addToCart } = useCart()
-  
+
   // Acesso ao contexto de adicionais
-  const { 
-    selectedSize, 
+  const {
+    selectedSize,
     setSelectedSize,
     selectedAdditionals,
     additionalsTotalPrice,
@@ -89,7 +89,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
   useEffect(() => {
     const productNameUpper = product.name.toUpperCase()
     const isCombo = productNameUpper.includes("COMBO 2 COPOS") ||
-                   productNameUpper.includes("2 MARMITA MINI")
+      productNameUpper.includes("2 MARMITA MINI")
     // Excluir especificamente o produto "2 Copos 300ml de açaí com: leite em pó + leite condensado."
     // que não deve ter sistema combo
     setIsCombo2Copos(isCombo)
@@ -123,13 +123,13 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
   }, [isModalOpen])
 
   // Informações do tamanho selecionado
-  const selectedSizeInfo = selectedSize 
+  const selectedSizeInfo = selectedSize
     ? product.sizes.find((s) => s.size === selectedSize)
     : product.sizes.length > 0 ? product.sizes[0] : undefined
 
   // Estado para controlar a quantidade do produto
   const [quantity, setQuantity] = useState(1)
-  
+
   // Buscar configurações da loja
   const [maxPicolesPerOrder, setMaxPicolesPerOrder] = useState(20)
   const [picoleDeliveryFee, setPicoleDeliveryFee] = useState(5.0)
@@ -177,13 +177,13 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
   // Função para adicionar ao carrinho com loading state
   const handleAddToCart = async () => {
     if (!selectedSize || !selectedSizeInfo) return
-    
+
     setIsAddingToCart(true)
-    
+
     try {
       // Simular um pequeno delay para mostrar o loading (opcional)
       await new Promise(resolve => setTimeout(resolve, 300))
-      
+
       // Lógica especial para produtos combo (primeiro pago, segundo grátis)
       if (isCombo2Copos) {
         if (currentCupStep === "first") {
@@ -197,7 +197,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
             categoryName: additional.categoryName,
             active: additional.active || true
           }))
-          
+
           const firstCupItem = {
             productId: product.id,
             name: product.name,
@@ -211,19 +211,19 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
             needsSpoon: needsSpoon,
             spoonQuantity: needsSpoon === true ? spoonQuantity : undefined
           }
-          
+
           // Adicionar primeiro copo ao carrinho
           addToCart(firstCupItem)
-          
+
           // Salvar dados do primeiro copo
           setFirstCupAdded(true)
           setFirstCupSize(selectedSize)
           setFirstCupAdditionals(selectedAdditionals)
           setCurrentCupStep("second")
-          
+
           // Limpar seleções para o segundo copo
           resetAdditionalsBySize()
-          
+
         } else if (currentCupStep === "second") {
           // Adicionar o segundo copo (grátis)
           const selectedAdditionalsArray = Object.values(selectedAdditionals).map(({ additional, quantity }) => ({
@@ -235,7 +235,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
             categoryName: additional.categoryName,
             active: additional.active || true
           }))
-          
+
           const secondCupItem = {
             productId: product.id,
             name: product.name,
@@ -249,10 +249,10 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
             needsSpoon: needsSpoon,
             spoonQuantity: needsSpoon === true ? spoonQuantity : undefined
           }
-          
+
           // Adicionar segundo copo ao carrinho
           addToCart(secondCupItem)
-          
+
           // Resetar o combo para permitir nova compra
           setFirstCupAdded(false)
           setFirstCupSize("")
@@ -260,7 +260,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
           setSecondCupAdditionals({})
           setCurrentCupStep("first")
           resetAdditionalsBySize()
-          
+
           // Fechar o modal
           setIsModalOpen(false)
         }
@@ -275,7 +275,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
           categoryName: additional.categoryName,
           active: additional.active || true
         }))
-        
+
         const cartItem = {
           productId: product.id,
           name: product.name,
@@ -289,25 +289,19 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
           needsSpoon: needsSpoon,
           spoonQuantity: needsSpoon === true ? spoonQuantity : undefined
         }
-        
-        console.log("=== DEBUG ProductCard ===")
-        console.log("CartItem construído:", cartItem)
-        console.log("Product:", product)
-        console.log("SelectedSize:", selectedSize)
-        console.log("SelectedSizeInfo:", selectedSizeInfo)
-        console.log("SelectedAdditionalsArray:", selectedAdditionalsArray)
-        console.log("=========================")
-        
+
+        // Debug removido para limpar console
+
         addToCart(cartItem)
         resetAdditionalsBySize()
       }
-      
+
       // Mostrar feedback visual
       setShowSuccess(true)
       setTimeout(() => {
         setShowSuccess(false)
       }, 2000)
-      
+
     } catch (error) {
       console.error('Erro ao adicionar ao carrinho:', error)
     } finally {
@@ -334,7 +328,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
       "popsicle", "gelinho", "geladinho", "din din",
       "sacolé", "dindin"
     ]
-    return picoleCategoryKeywords.some(keyword => 
+    return picoleCategoryKeywords.some(keyword =>
       categoryName.toLowerCase().includes(keyword.toLowerCase())
     )
   }
@@ -351,13 +345,13 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
     if (!storeStatus.isOpen) return "Loja fechada - Não é possível adicionar"
     if (!selectedSize || selectedSize === '') return "Selecione um tamanho"
     if (product.needsSpoon && needsSpoon === undefined) return "Selecione se precisa de colher"
-    
+
     const total = calculateTotal()
     const isPicoléProduct = isPicolé(product.categoryName)
     const isMoreninhaProduct = isMoreninha(product.categoryName)
     const hasQuantitySelector = isPicoléProduct || isMoreninhaProduct
     const totalPrice = hasQuantitySelector ? total * quantity : total
-    
+
     // Texto especial para produtos combo (primeiro pago, segundo grátis)
     if (isCombo2Copos) {
       if (currentCupStep === "first") {
@@ -366,25 +360,25 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
         return `Adicionar ao Carrinho • ${formatCurrency(additionalsTotalPrice)}`
       }
     }
-    
+
     if (hasQuantitySelector && quantity > 1) {
       return `Adicionar ${quantity} un. • ${formatCurrency(totalPrice)}`
     }
-    
+
     return `Adicionar ao Carrinho • ${formatCurrency(totalPrice)}`
   }
 
   // Função para verificar se o botão deve estar desabilitado
   const isButtonDisabled = () => {
-    return !storeStatus.isOpen || 
-           !selectedSize || 
-           (product.needsSpoon && needsSpoon === undefined) ||
-           isAddingToCart
+    return !storeStatus.isOpen ||
+      !selectedSize ||
+      (product.needsSpoon && needsSpoon === undefined) ||
+      isAddingToCart
   }
 
   return (
     <>
-      <div 
+      <div
         className="relative bg-gradient-to-br from-purple-50 via-white to-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
         onClick={() => setIsModalOpen(true)}
         data-component-name="ProductCard"
@@ -393,16 +387,16 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
         <div className="absolute inset-0 bg-gradient-to-br from-purple-50/80 via-white/80 to-white/80 rounded-xl z-0" />
         <AcaiPattern className="text-purple-200" />
         <div className="relative z-10">
-        {/* Componente de imagem do produto */}
-        <ProductImage 
-          image={product.image || "/placeholder.svg"} 
-          alt={product.name} 
-          onOpenViewer={handleOpenImageViewer} 
-          size="small"
-          priority={priority}
-          loading={priority ? "eager" : "lazy"}
-        />
-        
+          {/* Componente de imagem do produto */}
+          <ProductImage
+            image={product.image || "/placeholder.svg"}
+            alt={product.name}
+            onOpenViewer={handleOpenImageViewer}
+            size="small"
+            priority={priority}
+            loading={priority ? "eager" : "lazy"}
+          />
+
           {/* Componente de informações do produto */}
           <ProductInfo product={product} />
         </div>
@@ -416,24 +410,24 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
             <div className="relative z-10">
               <div className="flex justify-between items-center border-b sticky top-0 bg-white z-10">
                 <h2 className="font-semibold text-lg sm:text-xl p-3 sm:p-4 break-words leading-tight">{product.name}</h2>
-                <button 
-                  onClick={() => setIsModalOpen(false)} 
+                <button
+                  onClick={() => setIsModalOpen(false)}
                   className="text-gray-500 hover:text-gray-700 p-3 sm:p-4 flex-shrink-0"
                   aria-label="Fechar"
                 >
                   <X size={20} />
                 </button>
               </div>
-              
+
               <div className="p-3 sm:p-4">
                 {/* Componente de imagem do produto */}
-                <ProductImage 
-                  image={product.image || "/placeholder.svg"} 
-                  alt={product.name} 
-                  onOpenViewer={handleOpenImageViewer} 
-                  size="large" 
+                <ProductImage
+                  image={product.image || "/placeholder.svg"}
+                  alt={product.name}
+                  onOpenViewer={handleOpenImageViewer}
+                  size="large"
                 />
-                
+
                 {/* Categoria e descrição */}
                 {product.categoryName && (
                   <p className="text-sm text-purple-700 mb-1">{product.categoryName}</p>
@@ -443,22 +437,22 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
                     <p className="whitespace-pre-line break-words text-sm sm:text-base leading-snug sm:leading-normal">{product.description}</p>
                   </div>
                 )}
-              
+
                 {/* Componente de seleção de tamanho */}
-                <SizeSelector 
-                  sizes={product.sizes} 
-                  selectedSize={selectedSize || ""} 
-                  onSizeSelect={setSelectedSize} 
+                <SizeSelector
+                  sizes={product.sizes}
+                  selectedSize={selectedSize || ""}
+                  onSizeSelect={setSelectedSize}
                 />
-                
-                
+
+
                 {/* Opção de colher */}
                 {product.needsSpoon && (
                   <div className="mt-3 sm:mt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Precisa de colher? <span className="text-red-500">*</span>
                     </label>
-                    
+
                     <div className="flex items-center space-x-4 mb-3">
                       <label className="flex items-center cursor-pointer">
                         <input
@@ -471,7 +465,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
                         />
                         <span className="ml-2 text-sm text-gray-700">Sim</span>
                       </label>
-                      
+
                       <label className="flex items-center cursor-pointer">
                         <input
                           type="radio"
@@ -562,16 +556,16 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Mensagem sobre limite de picolés */}
                     {isPicolé(product.categoryName) && quantity >= maxPicolesPerOrder - 2 && (
                       <p className="text-[9px] sm:text-xs absolute -top-4 left-0 text-amber-600 leading-tight">
-                        {quantity >= maxPicolesPerOrder 
+                        {quantity >= maxPicolesPerOrder
                           ? `Limite de ${maxPicolesPerOrder} itens atingido`
                           : `Restam ${maxPicolesPerOrder - quantity} itens disponíveis`}
                       </p>
                     )}
-                    
+
                     {/* Botão melhorado de adicionar ao carrinho */}
                     <button
                       onClick={handleAddToCart}
@@ -596,7 +590,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
                     >
                       {/* Gradiente animado de fundo */}
                       <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-purple-700 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-gradient-x" />
-                      
+
                       {/* Conteúdo do botão */}
                       <div className="relative flex items-center justify-center gap-2">
                         {isAddingToCart ? (
@@ -611,12 +605,12 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
                           </>
                         )}
                       </div>
-                      
+
                       {/* Efeito de brilho */}
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
                     </button>
                   </div>
-                  
+
                   {/* Mensagem sobre taxa de entrega para picolés */}
                   {isPicolé(product.categoryName) && picoleDeliveryFee > 0 && (
                     <div className="mt-2 p-1 bg-amber-50 border border-amber-200 rounded-md max-w-full overflow-hidden">
@@ -638,7 +632,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Feedback de sucesso melhorado */}
                   {showSuccess && (
                     <div className="absolute inset-0 flex items-center justify-center">

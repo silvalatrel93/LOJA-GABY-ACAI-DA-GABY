@@ -14,7 +14,7 @@ const SIZES_WITH_FREE_ADDITIONALS = ["1 Litro", "2 Litros", "2 Litro"]
 type AdditionalsContextType = {
   // Estado
   additionals: Additional[]
-  additionalsByCategory: {category: AdditionalCategory, additionals: Additional[]}[]
+  additionalsByCategory: { category: AdditionalCategory, additionals: Additional[] }[]
   additionalsBySize: {
     [size: string]: {
       [additionalId: number]: { additional: Additional; quantity: number }
@@ -24,12 +24,12 @@ type AdditionalsContextType = {
   selectedCategoryId: number | null
   selectedAdditionals: Record<number, { additional: Additional; quantity: number }>
   isDataLoaded: boolean
-  
+
   // Constantes
   maxAdditionalsPerSize: number // Limite dinâmico baseado no tamanho selecionado
   FREE_ADDITIONALS_LIMIT: number
   SIZES_WITH_FREE_ADDITIONALS: string[]
-  
+
   // Valores calculados
   hasFreeAdditionals: boolean
   selectedAdditionalsCount: number
@@ -37,10 +37,10 @@ type AdditionalsContextType = {
   reachedMaxAdditionalsLimit: boolean
   selectedAdditionalsByCategory: Record<number, number> // Contagem de adicionais selecionados por categoria
   reachedCategoryLimit: (categoryId: number) => boolean // Verifica se atingiu o limite da categoria
-  
+
   // Métodos
   setAdditionals: (additionals: Additional[]) => void
-  setAdditionalsByCategory: (additionalsByCategory: {category: AdditionalCategory, additionals: Additional[]}[]) => void
+  setAdditionalsByCategory: (additionalsByCategory: { category: AdditionalCategory, additionals: Additional[] }[]) => void
   setSelectedSize: (size: string) => void
   setSelectedCategoryId: (categoryId: number | null) => void
   toggleAdditional: (additional: Additional) => void
@@ -60,28 +60,28 @@ const defaultContext: AdditionalsContextType = {
   selectedCategoryId: null,
   selectedAdditionals: {},
   isDataLoaded: false,
-  
+
   maxAdditionalsPerSize: DEFAULT_MAX_ADDITIONALS_PER_SIZE,
   FREE_ADDITIONALS_LIMIT,
   SIZES_WITH_FREE_ADDITIONALS,
-  
+
   hasFreeAdditionals: false,
   selectedAdditionalsCount: 0,
   reachedFreeAdditionalsLimit: false,
   reachedMaxAdditionalsLimit: false,
   selectedAdditionalsByCategory: {},
   reachedCategoryLimit: () => false,
-  
-  setAdditionals: () => {},
-  setAdditionalsByCategory: () => {},
-  setSelectedSize: () => {},
-  setSelectedCategoryId: () => {},
-  toggleAdditional: () => {},
-  removeAdditional: () => {},
-  setIsDataLoaded: () => {},
-  resetAdditionalsBySize: () => {},
-  setMaxAdditionalsPerSize: () => {},
-  updateSizeLimits: () => {}
+
+  setAdditionals: () => { },
+  setAdditionalsByCategory: () => { },
+  setSelectedSize: () => { },
+  setSelectedCategoryId: () => { },
+  toggleAdditional: () => { },
+  removeAdditional: () => { },
+  setIsDataLoaded: () => { },
+  resetAdditionalsBySize: () => { },
+  setMaxAdditionalsPerSize: () => { },
+  updateSizeLimits: () => { }
 }
 
 // Criação do contexto
@@ -91,12 +91,12 @@ const AdditionalsContext = createContext<AdditionalsContextType>(defaultContext)
 export const useAdditionals = () => useContext(AdditionalsContext)
 
 // Provedor do contexto
-export function AdditionalsProvider({ 
+export function AdditionalsProvider({
   children,
   initialSize = "",
   maxAdditionalsLimit = DEFAULT_MAX_ADDITIONALS_PER_SIZE,
   productSizes = []
-}: { 
+}: {
   children: ReactNode,
   initialSize?: string,
   maxAdditionalsLimit?: number,
@@ -104,7 +104,7 @@ export function AdditionalsProvider({
 }) {
   // Estados
   const [additionals, setAdditionals] = useState<Additional[]>([])
-  const [additionalsByCategory, setAdditionalsByCategory] = useState<{category: AdditionalCategory, additionals: Additional[]}[]>([])
+  const [additionalsByCategory, setAdditionalsByCategory] = useState<{ category: AdditionalCategory, additionals: Additional[] }[]>([])
   const [additionalsBySize, setAdditionalsBySize] = useState<{
     [size: string]: {
       [additionalId: number]: { additional: Additional; quantity: number }
@@ -115,25 +115,17 @@ export function AdditionalsProvider({
   const [isDataLoaded, setIsDataLoaded] = useState(false)
   const [maxAdditionalsPerSize, setMaxAdditionalsPerSize] = useState(maxAdditionalsLimit)
   const [sizeLimits, setSizeLimits] = useState<ProductSize[]>(productSizes)
-  
+
   // Função para obter o limite específico do tamanho selecionado
   const getCurrentSizeLimit = () => {
     const currentSizeInfo = sizeLimits.find(size => size.size === selectedSize)
     const limit = currentSizeInfo?.additionalsLimit ?? 999
-    
-    // Debug logs
-    console.log('🔍 DEBUG - getCurrentSizeLimit:', {
-      selectedSize,
-      sizeLimits,
-      currentSizeInfo,
-      limit
-    })
-    
+
     // APENAS usar o limite específico do tamanho se estiver definido
     // Se não estiver definido, usar um limite alto (sem limite efetivo)
     return limit // 999 = sem limite prático
   }
-  
+
   // Atualizar maxAdditionalsPerSize quando o selectedSize mudar
   useEffect(() => {
     if (selectedSize && sizeLimits.length > 0) {
@@ -154,16 +146,16 @@ export function AdditionalsProvider({
   const reachedFreeAdditionalsLimit = hasFreeAdditionals && selectedAdditionalsCount >= FREE_ADDITIONALS_LIMIT
   const currentLimit = getCurrentSizeLimit()
   const reachedMaxAdditionalsLimit = selectedAdditionalsCount >= currentLimit
-  
+
   // Calcular contagem de adicionais por categoria
   const calculateSelectedAdditionalsByCategory = () => {
     const countByCategory: Record<number, number> = {}
-    
+
     // Inicializar contagem para todas as categorias como 0
     additionalsByCategory.forEach(({ category }) => {
       countByCategory[category.id] = 0
     })
-    
+
     // Contar adicionais selecionados por categoria
     Object.values(selectedAdditionals).forEach(({ additional }) => {
       const categoryId = additional.categoryId
@@ -171,113 +163,95 @@ export function AdditionalsProvider({
         countByCategory[categoryId] = (countByCategory[categoryId] || 0) + 1
       }
     })
-    
+
     return countByCategory
   }
-  
+
   const selectedAdditionalsByCategory = calculateSelectedAdditionalsByCategory()
-  
+
   // Verificar se atingiu o limite da categoria
   const reachedCategoryLimit = (categoryId: number) => {
     const category = additionalsByCategory.find(item => item.category.id === categoryId)?.category
     if (!category || !category.selectionLimit) return false
-    
+
     const count = selectedAdditionalsByCategory[categoryId] || 0
     return count >= category.selectionLimit
   }
-  
+
   // Métodos
   const toggleAdditional = (additional: Additional) => {
     // Verificar se este adicional já está selecionado para o tamanho atual
     const isSelected = !!selectedAdditionals[additional.id]
-    
-    // Debug logs
-    console.log('🔍 DEBUG - toggleAdditional:', {
-      additionalName: additional.name,
-      selectedSize,
-      isSelected,
-      selectedAdditionalsCount,
-      currentLimit,
-      reachedMaxAdditionalsLimit,
-      sizeLimits
-    })
-    
+
     // Se estiver selecionado, remover
     if (isSelected) {
-      console.log('➖ Removendo adicional:', additional.name)
       setAdditionalsBySize(prev => {
         const newState = { ...prev }
         const newSizeAdditionals = { ...newState[selectedSize] }
         delete newSizeAdditionals[additional.id]
-        
+
         // Se não houver mais complementos premium para este tamanho, remover o tamanho
         if (Object.keys(newSizeAdditionals).length === 0) {
           delete newState[selectedSize]
         } else {
           newState[selectedSize] = newSizeAdditionals
         }
-        
+
         return newState
       })
-    } 
+    }
     // Se não estiver selecionado e não atingiu o limite máximo de adicionais ou da categoria, adicionar
     else if (!reachedMaxAdditionalsLimit && !reachedCategoryLimit(additional.categoryId)) {
-      console.log('➕ Adicionando adicional:', additional.name)
       setAdditionalsBySize(prev => {
         const newState = { ...prev }
         if (!newState[selectedSize]) {
           newState[selectedSize] = {}
         }
-        
-        newState[selectedSize][additional.id] = { 
-          additional, 
-          quantity: 1 
+
+        newState[selectedSize][additional.id] = {
+          additional,
+          quantity: 1
         }
-        
+
         return newState
       })
-    } else {
-      const isCategoryLimitReached = reachedCategoryLimit(additional.categoryId)
-      const limitType = isCategoryLimitReached ? 'da categoria' : 'geral'
-      console.log(`🚫 Limite ${limitType} atingido! Não é possível adicionar:`, additional.name)
     }
   }
-  
+
   const removeAdditional = (additionalId: number) => {
     setAdditionalsBySize(prev => {
       const newState = { ...prev }
       const newSizeAdditionals = { ...newState[selectedSize] }
       delete newSizeAdditionals[additionalId]
-      
+
       // Se não houver mais complementos premium para este tamanho, remover o tamanho
       if (Object.keys(newSizeAdditionals).length === 0) {
         delete newState[selectedSize]
       } else {
         newState[selectedSize] = newSizeAdditionals
       }
-      
+
       return newState
     })
   }
-  
+
   // Função para limpar todos os adicionais do tamanho selecionado
   const resetAdditionalsBySize = () => {
-    console.log('🧹 Limpando todos os adicionais do tamanho:', selectedSize)
     setAdditionalsBySize(prev => {
       const newState = { ...prev }
-      
+
       // Remove os adicionais do tamanho atual
       if (newState[selectedSize]) {
         delete newState[selectedSize]
       }
-      
+
       return newState
     })
   }
-  
+
   const updateSizeLimits = (sizes: ProductSize[]) => {
     setSizeLimits(sizes)
-    
+
     // Atualiza o maxAdditionalsPerSize com base no tamanho atualmente selecionado
     if (selectedSize) {
       const currentSizeInfo = sizes.find(size => size.size === selectedSize)
@@ -286,7 +260,7 @@ export function AdditionalsProvider({
       }
     }
   }
-  
+
   // Valor do contexto
   const contextValue: AdditionalsContextType = {
     additionals,
@@ -296,18 +270,18 @@ export function AdditionalsProvider({
     selectedCategoryId,
     selectedAdditionals,
     isDataLoaded,
-    
+
     maxAdditionalsPerSize: currentLimit, // Retorna o limite atual baseado no tamanho
     FREE_ADDITIONALS_LIMIT,
     SIZES_WITH_FREE_ADDITIONALS,
-    
+
     hasFreeAdditionals,
     selectedAdditionalsCount,
     reachedFreeAdditionalsLimit,
     reachedMaxAdditionalsLimit,
     selectedAdditionalsByCategory,
     reachedCategoryLimit,
-    
+
     setAdditionals,
     setAdditionalsByCategory,
     setSelectedSize,
@@ -319,7 +293,7 @@ export function AdditionalsProvider({
     setMaxAdditionalsPerSize,
     updateSizeLimits
   }
-  
+
   return (
     <AdditionalsContext.Provider value={contextValue}>
       {children}

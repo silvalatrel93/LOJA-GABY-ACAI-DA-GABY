@@ -74,7 +74,7 @@ export default function CategoriesAdminPage() {
 
     try {
       const result = await saveCategory(editingCategory)
-      
+
       if (result.error) {
         console.error("Erro ao salvar categoria:", result.error)
         alert(`Erro ao salvar categoria: ${result.error.message}`)
@@ -94,13 +94,13 @@ export default function CategoriesAdminPage() {
     try {
       const updatedCategory = { ...category, active: !category.active }
       const result = await saveCategory(updatedCategory)
-      
+
       if (result.error) {
         console.error("Erro ao atualizar status da categoria:", result.error)
         alert(`Erro ao atualizar status da categoria: ${result.error.message}`)
         return
       }
-      
+
       await loadCategories()
     } catch (error) {
       console.error("Erro ao atualizar status da categoria:", error)
@@ -125,7 +125,7 @@ export default function CategoriesAdminPage() {
         alert(`Erro ao reordenar categorias: ${result1.error.message}`)
         return
       }
-      
+
       const result2 = await saveCategory(updatedPrevCategory)
       if (result2.error) {
         console.error("Erro ao mover categoria para cima:", result2.error)
@@ -157,7 +157,7 @@ export default function CategoriesAdminPage() {
         alert(`Erro ao reordenar categorias: ${result1.error.message}`)
         return
       }
-      
+
       const result2 = await saveCategory(updatedNextCategory)
       if (result2.error) {
         console.error("Erro ao mover categoria para baixo:", result2.error)
@@ -297,9 +297,9 @@ export default function CategoriesAdminPage() {
                           onClick={() => handleDeleteCategory(category.id)}
                           className="p-2 bg-red-100 text-red-700 rounded-full"
                           title="Excluir categoria"
-                          disabled={deleteStatus?.id === category.id && deleteStatus.status === "pending"}
+                          disabled={deleteStatus?.id === category.id && deleteStatus?.status === "pending"}
                         >
-                          {deleteStatus?.id === category.id && deleteStatus.status === "pending" ? (
+                          {deleteStatus?.id === category.id && deleteStatus?.status === "pending" ? (
                             <span className="animate-pulse">...</span>
                           ) : (
                             <Trash2 size={18} />

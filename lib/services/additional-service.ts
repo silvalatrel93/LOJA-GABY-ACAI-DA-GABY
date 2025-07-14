@@ -9,7 +9,7 @@ export const AdditionalService = {
   async getAllAdditionals(): Promise<Additional[]> {
     try {
       console.log("Iniciando getAllAdditionals")
-      
+
       const supabase = createSupabaseClient()
       const { data, error } = await supabase
         .from("additionals")
@@ -28,7 +28,7 @@ export const AdditionalService = {
       }
 
       console.log("Dados brutos de adicionais:", JSON.stringify(data))
-      
+
       // Converter explicitamente os tipos para evitar erros de tipagem
       const result = data.map((item: any) => ({
         id: Number(item.id),
@@ -39,7 +39,7 @@ export const AdditionalService = {
         active: Boolean(item.active),
         image: item.image ? String(item.image) : "",
       }))
-      
+
       console.log("Adicionais processados:", JSON.stringify(result))
       return result
     } catch (error) {
@@ -133,8 +133,8 @@ export const AdditionalService = {
         active: Boolean(item.active),
         image: item.image ? String(item.image) : "",
       }))
-      
-      console.log('🔍 DEBUG - Serviço: Dados processados para produto', productId, ':', result);
+
+      // Debug removido para limpar console
       return result
     } catch (error) {
       console.error(`Erro ao buscar adicionais para o produto ${productId}:`, error)
@@ -143,10 +143,10 @@ export const AdditionalService = {
   },
 
   // Obter adicionais ativos agrupados por categoria
-  async getActiveAdditionalsByProductGroupedByCategory(productId: number): Promise<{category: AdditionalCategory, additionals: Additional[]}[]> {
+  async getActiveAdditionalsByProductGroupedByCategory(productId: number): Promise<{ category: AdditionalCategory, additionals: Additional[] }[]> {
     try {
       console.log("Iniciando getActiveAdditionalsByProductGroupedByCategory para produto ID:", productId)
-      
+
       // Primeiro, obter o produto para verificar os adicionais permitidos
       const supabase = createSupabaseClient()
       const { data: productData, error: productError } = await supabase
