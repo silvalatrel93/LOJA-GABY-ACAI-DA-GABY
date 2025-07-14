@@ -658,20 +658,7 @@ function CheckoutPageContent() {
                     </label>
                   </div>
                 </div>
-                <div>
-                  <label htmlFor="complement" className="block text-sm font-medium text-gray-700 mb-1">
-                    Complemento (opcional)
-                  </label>
-                  <input
-                    type="text"
-                    id="complement"
-                    name="complement"
-                    value={formData.complement}
-                    onChange={handleChange}
-                    placeholder="Ex: Bloco A, Apt 101, Portão azul..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
+
               </div>
               
               <div>

@@ -290,6 +290,14 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
           spoonQuantity: needsSpoon === true ? spoonQuantity : undefined
         }
         
+        console.log("=== DEBUG ProductCard ===")
+        console.log("CartItem construído:", cartItem)
+        console.log("Product:", product)
+        console.log("SelectedSize:", selectedSize)
+        console.log("SelectedSizeInfo:", selectedSizeInfo)
+        console.log("SelectedAdditionalsArray:", selectedAdditionalsArray)
+        console.log("=========================")
+        
         addToCart(cartItem)
         resetAdditionalsBySize()
       }

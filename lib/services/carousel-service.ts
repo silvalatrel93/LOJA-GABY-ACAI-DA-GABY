@@ -1,4 +1,5 @@
 import { createSupabaseClient } from "../supabase-client"
+import { DEFAULT_STORE_ID } from "../constants"
 import type { CarouselSlide } from "../types"
 
 export const CarouselService = {
@@ -98,6 +99,20 @@ export const CarouselService = {
       const supabase = createSupabaseClient()
 
       if (slide.id && slide.id > 0) {
+        // Verificar se o slide existe antes de tentar atualizar
+        const { data: existingSlide } = await supabase
+          .from("carousel_slides")
+          .select("id")
+          .eq("id", slide.id)
+          .single()
+
+        if (!existingSlide) {
+          // Se o slide não existe, definir id como 0 para criar um novo
+          slide.id = 0
+        }
+      }
+
+      if (slide.id && slide.id > 0) {
         // Atualizar slide existente
         const { data, error } = await supabase
           .from("carousel_slides")
@@ -114,7 +129,8 @@ export const CarouselService = {
 
         if (error) {
           console.error("Erro ao atualizar slide:", error)
-          return { data: null, error: new Error(error.message) }
+          const errorObj = new Error(error.message || "Erro desconhecido ao atualizar slide")
+          throw errorObj
         }
 
         const result: CarouselSlide = {
@@ -128,22 +144,30 @@ export const CarouselService = {
 
         return { data: result, error: null }
       } else {
+        // Corrigir sequência antes de inserir novo slide
+        await supabase.rpc('fix_carousel_slides_sequence')
+        console.log('Sequência carousel_slides corrigida antes da inserção')
+        
         // Criar novo slide
+        const insertData = {
+          title: slide.title,
+          subtitle: slide.subtitle,
+          image: slide.image,
+          active: slide.active !== undefined ? slide.active : true,
+          order: slide.order || 0,
+          store_id: DEFAULT_STORE_ID,
+        }
+        
         const { data, error } = await supabase
           .from("carousel_slides")
-          .insert({
-            title: slide.title,
-            subtitle: slide.subtitle,
-            image: slide.image,
-            active: slide.active !== undefined ? slide.active : true,
-            order: slide.order || 0,
-          })
+          .insert(insertData)
           .select()
           .single()
 
         if (error) {
           console.error("Erro ao criar slide:", error)
-          return { data: null, error: new Error(error.message) }
+          const errorObj = new Error(error.message || "Erro desconhecido ao criar slide")
+          throw errorObj
         }
 
         const result: CarouselSlide = {
@@ -159,7 +183,12 @@ export const CarouselService = {
       }
     } catch (error) {
       console.error("Erro ao salvar slide:", error)
-      return { data: null, error: error instanceof Error ? error : new Error(String(error)) }
+      // Se o erro já foi lançado acima, relançar
+      if (error instanceof Error) {
+        throw error
+      }
+      // Caso contrário, criar um novo erro
+      throw new Error(String(error) || "Erro desconhecido ao salvar slide")
     }
   },
 

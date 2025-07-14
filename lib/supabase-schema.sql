@@ -4,8 +4,10 @@ CREATE TABLE IF NOT EXISTS categories (
   name TEXT NOT NULL,
   "order" INTEGER NOT NULL,
   active BOOLEAN NOT NULL DEFAULT TRUE,
+  store_id TEXT NOT NULL DEFAULT 'default-store',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  CONSTRAINT categories_name_store_id_unique UNIQUE (name, store_id)
 );
 
 -- Tabela de produtos

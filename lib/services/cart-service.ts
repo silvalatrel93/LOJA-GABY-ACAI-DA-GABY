@@ -8,36 +8,52 @@ const DEFAULT_STORE_ID = "00000000-0000-0000-0000-000000000000"
 
 // Função para obter o ID da sessão do carrinho
 export function getCartSessionId(): string {
+  console.log("=== DEBUG getCartSessionId ===")
+  console.log("Window undefined?", typeof window === "undefined")
+  
   if (typeof window === "undefined") {
+    console.log("Retornando string vazia (SSR)")
     return ""
   }
 
   let sessionId = localStorage.getItem("cartSessionId")
+  console.log("SessionId do localStorage:", sessionId)
 
   if (!sessionId) {
     sessionId = uuidv4()
     localStorage.setItem("cartSessionId", sessionId)
+    console.log("Novo sessionId gerado:", sessionId)
   }
 
+  console.log("Retornando sessionId:", sessionId)
+  console.log("==============================")
   return sessionId
 }
 
 // Função para obter o ID da loja atual como UUID
 export function getCurrentStoreId(): string {
+  console.log("=== DEBUG getCurrentStoreId ===")
+  console.log("Window undefined?", typeof window === "undefined")
+  
   if (typeof window === "undefined") {
+    console.log("Retornando DEFAULT_STORE_ID (SSR):", DEFAULT_STORE_ID)
     return DEFAULT_STORE_ID
   }
 
   // Verificar se há um ID de loja armazenado no localStorage
   const storedStoreId = localStorage.getItem("currentStoreId")
+  console.log("StoredStoreId do localStorage:", storedStoreId)
 
   // Se existir e for um UUID válido, retornar
   if (storedStoreId && isValidUUID(storedStoreId)) {
+    console.log("Retornando storedStoreId válido:", storedStoreId)
     return storedStoreId
   }
 
   // Caso contrário, usar o ID padrão e armazená-lo
   localStorage.setItem("currentStoreId", DEFAULT_STORE_ID)
+  console.log("Retornando e salvando DEFAULT_STORE_ID:", DEFAULT_STORE_ID)
+  console.log("===============================")
   return DEFAULT_STORE_ID
 }
 
@@ -136,12 +152,54 @@ function areAdditionalsEqual(additionals1: any[] = [], additionals2: any[] = [])
 
 // Função para adicionar item ao carrinho
 export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | null> {
+  // Log detalhado do item recebido
+  console.log("=== DEBUG addToCart ===")
+  console.log("Item recebido:", item)
+  console.log("Tipo do item:", typeof item)
+  console.log("Keys do item:", Object.keys(item || {}))
+  console.log("JSON.stringify do item:", JSON.stringify(item))
+  console.log("ProductId:", item?.productId, "tipo:", typeof item?.productId)
+  console.log("Name:", item?.name, "tipo:", typeof item?.name)
+  console.log("Price:", item?.price, "tipo:", typeof item?.price)
+  console.log("Size:", item?.size, "tipo:", typeof item?.size)
+  console.log("Quantity:", item?.quantity, "tipo:", typeof item?.quantity)
+  console.log("Additionals:", item?.additionals, "tipo:", typeof item?.additionals)
+  
+  // Verificação específica para objeto vazio
+  if (Object.keys(item || {}).length === 0) {
+    console.error("ERRO CRÍTICO: Item recebido está vazio!")
+    console.error("Dados tentando inserir:", JSON.stringify(item))
+    return null
+  }
+  
+  console.log("========================")
+  
   const sessionId = getCartSessionId()
-  if (!sessionId) return null
+  if (!sessionId) {
+    console.error("Erro: sessionId não encontrado")
+    return null
+  }
+
+  // Verificar se o item é válido
+  if (!item || typeof item !== 'object') {
+    console.error("Erro: item inválido ou não é um objeto", item)
+    return null
+  }
 
   // Verificar se productId está definido
   if (!item.productId) {
     console.error("Erro: productId não definido ao adicionar item ao carrinho", item)
+    return null
+  }
+
+  // Verificar se campos obrigatórios estão presentes
+  if (!item.name || item.price === undefined || !item.size || item.quantity === undefined) {
+    console.error("Erro: campos obrigatórios ausentes", {
+      name: item.name,
+      price: item.price,
+      size: item.size,
+      quantity: item.quantity
+    })
     return null
   }
 
@@ -301,6 +359,13 @@ export async function addToCart(item: Omit<CartItem, "id">): Promise<CartItem | 
           code: insertError.code
         })
         console.error("Dados tentando inserir:", insertData)
+        console.error("Item original recebido:", item)
+        console.error("SessionId:", sessionId)
+        console.error("StoreId:", storeId)
+        console.error("ItemId gerado:", itemId)
+        console.error("Size processado:", uniqueSize)
+        console.error("Tipo do insertData:", typeof insertData)
+        console.error("Keys do insertData:", Object.keys(insertData || {}))
         
         // Se o erro for sobre coluna inexistente (notes), tenta sem a coluna
         if (insertError.message?.includes('column "notes" of relation "cart" does not exist')) {

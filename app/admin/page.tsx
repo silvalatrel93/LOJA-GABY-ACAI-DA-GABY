@@ -25,6 +25,8 @@ import {
   EyeOff,
   Users,
   QrCode,
+  Shield,
+  LogOut,
 } from "lucide-react"
 import { ProductVisibilityToggle } from "@/components/admin/product-visibility-toggle"
 import SocialShare from "@/components/social-share"
@@ -387,6 +389,17 @@ export default function AdminPage() {
               <RefreshCw size={18} className="sm:hidden" />
               <RefreshCw size={20} className="hidden sm:block" />
             </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem("admin_authenticated")
+                window.location.href = "/admin/login"
+              }}
+              className="bg-red-500/80 hover:bg-red-600 p-1.5 sm:p-2 rounded-lg transition-colors"
+              title="Sair do painel"
+            >
+              <LogOut size={18} className="sm:hidden" />
+              <LogOut size={20} className="hidden sm:block" />
+            </button>
             <div className="hidden sm:block">
               <SocialShare />
             </div>
@@ -496,7 +509,20 @@ export default function AdminPage() {
               <Settings size={22} className="text-gray-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-600 mb-0.5">Configuração de Senha</h2>
+              <h2 className="text-lg font-semibold text-gray-600 mb-0.5">Configurações da Loja</h2>
+              <p className="text-sm text-gray-600">Configurar informações e dados da loja</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/configuracoes/senha"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-red-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-red-200"
+          >
+            <div className="bg-red-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <Shield size={22} className="text-red-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-red-600 mb-0.5">Configuração de Senha</h2>
               <p className="text-sm text-gray-600">Defina ou altere a senha do painel administrativo</p>
             </div>
           </Link>

@@ -36,12 +36,10 @@ export default function CategoriesAdminPage() {
   }
 
   const handleAddCategory = () => {
-    // Encontrar o maior ID e ordem para a nova categoria
-    const maxId = categories.length > 0 ? Math.max(...categories.map((c) => c.id)) : 0
     const maxOrder = categories.length > 0 ? Math.max(...categories.map((c) => c.order)) : 0
 
     setEditingCategory({
-      id: maxId + 1,
+      id: 0, // ID 0 indica nova categoria - o banco gerará automaticamente
       name: "",
       order: maxOrder + 1,
       active: true,

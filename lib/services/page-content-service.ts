@@ -25,7 +25,7 @@ export const PageContentService = {
   // Obter conteúdo da página por ID
   async getPageContent(id: string): Promise<PageContent | null> {
     const supabase = createSupabaseClient()
-    const { data, error } = await supabase.from("page_content").select("*").eq("id", id).single()
+    const { data, error } = await supabase.from("page_content").select("*").eq("id", id).maybeSingle()
 
     if (error) {
       console.error(`Erro ao buscar conteúdo da página ${id}:`, error)
@@ -45,7 +45,7 @@ export const PageContentService = {
   // Obter conteúdo da página por slug
   async getPageContentBySlug(slug: string): Promise<PageContent | null> {
     const supabase = createSupabaseClient()
-    const { data, error } = await supabase.from("page_content").select("*").eq("id", slug).single()
+    const { data, error } = await supabase.from("page_content").select("*").eq("id", slug).maybeSingle()
 
     if (error) {
       console.error(`Erro ao buscar conteúdo da página com slug ${slug}:`, error)
@@ -74,7 +74,7 @@ export const PageContentService = {
       store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
     }
 
-    const { data, error } = await supabase.from("page_content").upsert(pageContentData).select().single()
+    const { data, error } = await supabase.from("page_content").upsert(pageContentData).select().maybeSingle()
 
     if (error) {
       console.error("Erro ao salvar conteúdo da página:", error)

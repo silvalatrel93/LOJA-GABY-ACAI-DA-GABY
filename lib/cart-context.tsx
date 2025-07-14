@@ -137,6 +137,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const handleAddToCart = useCallback(
     async (item: Omit<CartItem, "id">) => {
       try {
+        console.log("=== DEBUG handleAddToCart ===")
+        console.log("Item recebido no context:", item)
+        console.log("Tipo do item no context:", typeof item)
+        console.log("Keys do item no context:", Object.keys(item || {}))
+        console.log("==============================")
+        
         await addToCart(item)
         await loadCart()
       } catch (error) {

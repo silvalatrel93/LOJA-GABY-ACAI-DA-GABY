@@ -72,7 +72,7 @@ export const AdditionalCategoryService = {
         .from("additional_categories")
         .select("*")
         .eq("id", id)
-        .single()
+        .maybeSingle()
 
       if (error) {
         console.error(`Erro ao buscar categoria de adicional ${id}:`, error)
@@ -102,45 +102,80 @@ export const AdditionalCategoryService = {
       const supabase = createSupabaseClient()
 
       if (category.id && category.id > 0) {
-        // Atualizar categoria existente
-        const { data, error } = await supabase
+        // Verificar se a categoria existe antes de tentar atualizar
+        const { data: existingCategory, error: fetchError } = await supabase
           .from("additional_categories")
-          .update({
-            name: category.name,
-            display_order: category.order,
-            active: category.active,
-            selection_limit: category.selectionLimit || null,
-          })
+          .select("*")
           .eq("id", category.id)
-          .select()
-          .single()
+          .maybeSingle()
 
-        if (error) {
-          console.error("Erro ao atualizar categoria de adicional:", error)
-          return { data: null, error: new Error(error.message) }
+        if (fetchError) {
+          console.error("Erro ao verificar categoria de adicional existente:", fetchError)
+          return { data: null, error: new Error(`Erro ao verificar categoria: ${fetchError.message}`) }
         }
 
-        const result: AdditionalCategory = {
-          id: Number(data.id),
-          name: String(data.name),
-          order: Number(data.display_order),
-          active: Boolean(data.active),
-          selectionLimit: data.selection_limit ? Number(data.selection_limit) : undefined,
-        }
+        if (!existingCategory) {
+          console.log(`Categoria de adicional com ID ${category.id} não encontrada. Criando nova categoria.`)
+          // Se a categoria não existe, trata como uma nova categoria
+          category.id = 0
+        } else {
+          // Atualizar categoria existente
+          const { data, error } = await supabase
+            .from("additional_categories")
+            .update({
+              name: category.name,
+              display_order: category.order,
+              active: category.active,
+              selection_limit: category.selectionLimit || null,
+            })
+            .eq("id", category.id)
+            .select()
+            .maybeSingle()
 
-        return { data: result, error: null }
-      } else {
-        // Criar nova categoria
-        const { data, error } = await supabase
+          if (error) {
+            console.error("Erro ao atualizar categoria de adicional:", error)
+            return { data: null, error: new Error(error.message) }
+          }
+
+          const result: AdditionalCategory = {
+            id: Number(data.id),
+            name: String(data.name),
+            order: Number(data.display_order),
+            active: Boolean(data.active),
+            selectionLimit: data.selection_limit ? Number(data.selection_limit) : undefined,
+          }
+
+          return { data: result, error: null }
+        }
+      }
+      
+      // Criar nova categoria (quando ID é 0 ou não existe)
+       if (!category.id || category.id <= 0) {
+         // Corrigir sequência antes de inserir
+         console.log('Corrigindo sequência de additional_categories antes da inserção...')
+         const { error: sequenceError } = await supabase.rpc('fix_additional_categories_sequence')
+         if (sequenceError) {
+           console.warn('Aviso: Não foi possível corrigir a sequência:', sequenceError)
+         }
+
+         // Criar nova categoria
+         const insertData = {
+           name: category.name,
+           display_order: category.order,
+           active: category.active,
+           selection_limit: category.selectionLimit || null,
+         }
+         
+         // Remover explicitamente qualquer propriedade id
+         delete (insertData as any).id
+         
+         console.log('Inserindo nova categoria de adicional:', insertData)
+         
+         const { data, error } = await supabase
           .from("additional_categories")
-          .insert({
-            name: category.name,
-            display_order: category.order,
-            active: category.active !== undefined ? category.active : true,
-            selection_limit: category.selectionLimit || null,
-          })
+          .insert(insertData)
           .select()
-          .single()
+          .maybeSingle()
 
         if (error) {
           console.error("Erro ao criar categoria de adicional:", error)

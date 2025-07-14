@@ -146,58 +146,65 @@ export const CategoryService = {
         if (!existingCategory) {
           console.log(`Categoria com ID ${category.id} não encontrada. Criando nova categoria.`);
           // Se a categoria não existe, trata como uma nova categoria
-          category.id = 0; // Resetar o ID para forçar a criação de um novo registro
-        } else if (existingCategory.store_id !== DEFAULT_STORE_ID) {
-          console.error(`Categoria com ID ${category.id} pertence a outra loja.`);
-          return { 
-            data: null, 
-            error: new Error(`Esta categoria pertence a outra loja e não pode ser modificada.`) 
+          // Resetar o ID e seguir o fluxo de criação
+          category.id = 0;
+        } else {
+          // Verificar se a categoria pertence à loja correta
+          if (existingCategory.store_id !== DEFAULT_STORE_ID) {
+            console.error(`Categoria com ID ${category.id} pertence a outra loja.`);
+            return { 
+              data: null, 
+              error: new Error(`Esta categoria pertence a outra loja e não pode ser modificada.`) 
+            };
+          }
+
+          // Atualizar categoria existente
+          const updateData = {
+            name: category.name.trim(),
+            order: category.order || 0,
+            active: category.active !== undefined ? Boolean(category.active) : true,
+            updated_at: new Date().toISOString()
           };
+
+          console.log('Atualizando categoria existente:', { id: category.id, ...updateData });
+
+          // Fazer o update e retornar os dados atualizados em uma única operação
+          const { data: updatedData, error: updateError } = await supabase
+            .from("categories")
+            .update(updateData)
+            .eq("id", category.id)
+            .select()
+            .maybeSingle();
+
+          if (updateError) {
+            console.error("Erro ao atualizar categoria:", updateError);
+            return { 
+              data: null, 
+              error: new Error(`Erro ao atualizar categoria: ${updateError.message}`) 
+            };
+          }
+
+          if (!updatedData) {
+            console.error("Nenhum dado retornado ao atualizar categoria");
+            return { 
+              data: null, 
+              error: new Error("Falha ao atualizar categoria. Nenhum dado retornado.") 
+            };
+          }
+
+          const result: Category = {
+            id: Number(updatedData.id),
+            name: String(updatedData.name || ''),
+            order: Number(updatedData.order || 0),
+            active: updatedData.active !== undefined ? Boolean(updatedData.active) : true,
+          }
+
+          return { data: result, error: null }
         }
-
-        // Atualizar categoria existente
-        const updateData = {
-          name: category.name.trim(),
-          order: category.order || 0,
-          active: category.active !== undefined ? Boolean(category.active) : true,
-          updated_at: new Date().toISOString()
-        };
-
-        console.log('Atualizando categoria existente:', { id: category.id, ...updateData });
-
-        // Fazer o update e retornar os dados atualizados em uma única operação
-        const { data: updatedData, error: updateError } = await supabase
-          .from("categories")
-          .update(updateData)
-          .eq("id", category.id)
-          .select()
-          .single();
-
-        if (updateError) {
-          console.error("Erro ao atualizar categoria:", updateError);
-          return { 
-            data: null, 
-            error: new Error(`Erro ao atualizar categoria: ${updateError.message}`) 
-          };
-        }
-
-        if (!updatedData) {
-          console.error("Nenhum dado retornado ao atualizar categoria");
-          return { 
-            data: null, 
-            error: new Error("Falha ao atualizar categoria. Nenhum dado retornado.") 
-          };
-        }
-
-        const result: Category = {
-          id: Number(updatedData.id),
-          name: String(updatedData.name || ''),
-          order: Number(updatedData.order || 0),
-          active: updatedData.active !== undefined ? Boolean(updatedData.active) : true,
-        }
-
-        return { data: result, error: null }
-      } else {
+      }
+      
+      // Criar nova categoria (quando ID é 0 ou não existe)
+      if (!category.id || category.id <= 0) {
         // Validar dados antes de criar nova categoria
         if (!category.name || !category.name.trim()) {
           console.error("Erro: Nome da categoria é obrigatório");
@@ -216,7 +223,15 @@ export const CategoryService = {
         });
 
         try {
-          // Preparar os dados para inserção
+          // Corrigir a sequência antes de inserir
+          console.log('Corrigindo sequência categories_id_seq...');
+          const { error: sequenceError } = await supabase.rpc('fix_categories_sequence');
+          if (sequenceError) {
+            console.warn('Aviso: Não foi possível corrigir a sequência automaticamente:', sequenceError);
+          } else {
+            console.log('Sequência corrigida com sucesso');
+          }
+          // Preparar os dados para inserção (sem incluir ID para deixar o banco gerar automaticamente)
           const insertData = {
             name: category.name.trim(),
             order: order,
@@ -226,7 +241,19 @@ export const CategoryService = {
             updated_at: new Date().toISOString()
           };
           
+          // Garantir que não há ID nos dados de inserção
+          if ('id' in insertData) {
+            delete (insertData as any).id;
+          }
+          
           console.log('Inserindo nova categoria:', insertData);
+          
+          // Verificar se há ID nos dados (não deveria haver)
+          console.log('Verificação de ID nos dados:', {
+            hasId: 'id' in insertData,
+            insertDataKeys: Object.keys(insertData),
+            originalCategoryId: category.id
+          });
           
           // Inserir a nova categoria
           console.log('Enviando dados para o Supabase:', {
@@ -241,7 +268,7 @@ export const CategoryService = {
             .from("categories")
             .insert(insertData)
             .select()
-            .single();
+            .maybeSingle();
 
           if (error) {
             console.error("Erro ao inserir categoria:", {
