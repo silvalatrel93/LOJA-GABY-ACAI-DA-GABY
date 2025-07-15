@@ -15,8 +15,6 @@ export default function AutoInitializer() {
 
         if (error) {
           console.error("Erro ao conectar com Supabase:", error)
-        } else {
-          console.log("Conexão com Supabase estabelecida com sucesso")
         }
 
         setInitialized(true)

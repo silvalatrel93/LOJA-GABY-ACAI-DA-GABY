@@ -18,14 +18,12 @@ export default function SupabaseInitializer() {
   useEffect(() => {
     const initializeData = async () => {
       try {
-        console.log("Verificando conexão com Supabase...")
         const supabase = createSupabaseClient()
 
         // Verificar se o Supabase está disponível
         try {
           const { data, error } = await supabase.from("categories").select("count")
           if (error) throw error
-          console.log("Conexão com Supabase estabelecida com sucesso")
         } catch (err) {
           console.error("Erro ao conectar com Supabase:", err)
           setError("Não foi possível conectar ao Supabase. Verifique as variáveis de ambiente.")
@@ -42,7 +40,6 @@ export default function SupabaseInitializer() {
         await initializePageContent()
         await initializeNotifications()
 
-        console.log("Inicialização de dados concluída com sucesso!")
         setInitialized(true)
       } catch (err) {
         console.error("Erro durante a inicialização de dados:", err)
@@ -55,11 +52,9 @@ export default function SupabaseInitializer() {
 
   // Inicializar categorias
   const initializeCategories = async () => {
-    console.log("Verificando categorias...")
     const categories = await CategoryService.getAllCategories()
 
     if (categories.length === 0) {
-      console.log("Inicializando categorias padrão...")
 
       // Categoria de Açaí Tradicional
       await CategoryService.saveCategory({
@@ -85,19 +80,14 @@ export default function SupabaseInitializer() {
         active: true,
       })
 
-      console.log("Categorias padrão inicializadas com sucesso!")
-    } else {
-      console.log(`${categories.length} categorias encontradas, pulando inicialização.`)
     }
   }
 
   // Inicializar produtos
   const initializeProducts = async () => {
-    console.log("Verificando produtos...")
     const products = await ProductService.getAllProducts()
 
     if (products.length === 0) {
-      console.log("Inicializando produtos padrão...")
 
       // Buscar categorias para obter os IDs
       const categories = await CategoryService.getAllCategories()
@@ -141,19 +131,14 @@ export default function SupabaseInitializer() {
         allowedAdditionals: [],
       })
 
-      console.log("Produtos padrão inicializados com sucesso!")
-    } else {
-      console.log(`${products.length} produtos encontrados, pulando inicialização.`)
     }
   }
 
   // Inicializar adicionais
   const initializeAdditionals = async () => {
-    console.log("Verificando adicionais...")
     const additionals = await AdditionalService.getAllAdditionals()
 
     if (additionals.length === 0) {
-      console.log("Inicializando adicionais padrão...")
 
       // Buscar categoria de adicionais
       const categories = await CategoryService.getAllCategories()
@@ -194,29 +179,22 @@ export default function SupabaseInitializer() {
         image: "/can-condensed-milk.png",
       })
 
-      console.log("Adicionais padrão inicializados com sucesso!")
-    } else {
-      console.log(`${additionals.length} adicionais encontrados, pulando inicialização.`)
     }
   }
 
   // Inicializar slides do carrossel
   const initializeCarouselSlides = async () => {
-    console.log("Verificando slides do carrossel...")
-    
     // Verificar se o carrossel já foi inicializado anteriormente
     const storeConfig = await StoreConfigService.getStoreConfig()
     
     // Se a configuração indicar que o carrossel já foi inicializado, não reinicializar
     if (storeConfig?.carousel_initialized) {
-      console.log("Carrossel já foi inicializado anteriormente, respeitando as alterações do usuário.")
       return
     }
     
     const slides = await CarouselService.getAllSlides()
 
     if (slides.length === 0) {
-      console.log("Inicializando slides do carrossel padrão...")
 
       // Slide 1
       await CarouselService.saveSlide({
@@ -246,10 +224,7 @@ export default function SupabaseInitializer() {
         })
       }
 
-      console.log("Slides do carrossel padrão inicializados com sucesso!")
     } else {
-      console.log(`${slides.length} slides encontrados, pulando inicialização.`)
-      
       // Mesmo que já existam slides, marcar como inicializado para evitar reinicialização futura
       if (storeConfig && !storeConfig.carousel_initialized) {
         await StoreConfigService.saveStoreConfig({
@@ -262,13 +237,10 @@ export default function SupabaseInitializer() {
 
   // Inicializar frases
   const initializePhrases = async () => {
-    console.log("Verificando frases...")
-
     // Verificar se já existem frases no banco
     const existingPhrases = await phraseExists()
 
     if (!existingPhrases) {
-      console.log("Inicializando frases padrão...")
 
       try {
         // Frase 1
@@ -295,22 +267,17 @@ export default function SupabaseInitializer() {
           active: true,
         })
 
-        console.log("Frases padrão inicializadas com sucesso!")
       } catch (error) {
         console.error("Erro ao inicializar frases padrão:", error)
       }
-    } else {
-      console.log("Frases já existem no banco, pulando inicialização.")
     }
   }
 
   // Inicializar configuração da loja
   const initializeStoreConfig = async () => {
-    console.log("Verificando configuração da loja...")
     const config = await StoreConfigService.getStoreConfig()
 
     if (!config) {
-      console.log("Inicializando configuração da loja padrão...")
 
       await StoreConfigService.saveStoreConfig({
         id: "main",
@@ -330,26 +297,20 @@ export default function SupabaseInitializer() {
         specialDates: [],
       })
 
-      console.log("Configuração da loja padrão inicializada com sucesso!")
-    } else {
-      console.log("Configuração da loja encontrada, pulando inicialização.")
     }
   }
 
   // Inicializar conteúdo das páginas
   const initializePageContent = async () => {
-    console.log("Verificando conteúdo das páginas...")
     // Usar a função initializeDefaultPageContent do PageContentService
     await PageContentService.initializeDefaultPageContent()
   }
 
   // Inicializar notificações
   const initializeNotifications = async () => {
-    console.log("Verificando notificações...")
     const notifications = await NotificationService.getAllNotifications()
 
     if (notifications.length === 0) {
-      console.log("Inicializando notificações padrão...")
 
       // Notificação de boas-vindas
       const now = new Date()
@@ -369,9 +330,6 @@ export default function SupabaseInitializer() {
         createdAt: now,
       })
 
-      console.log("Notificações padrão inicializadas com sucesso!")
-    } else {
-      console.log(`${notifications.length} notificações encontradas, pulando inicialização.`)
     }
   }
 

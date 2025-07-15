@@ -8,8 +8,6 @@ export const AdditionalService = {
   // Obter todos os adicionais
   async getAllAdditionals(): Promise<Additional[]> {
     try {
-      console.log("Iniciando getAllAdditionals")
-
       const supabase = createSupabaseClient()
       const { data, error } = await supabase
         .from("additionals")
@@ -23,11 +21,8 @@ export const AdditionalService = {
 
       // Verificar se data existe
       if (!data || !Array.isArray(data)) {
-        console.log("Nenhum dado de adicionais encontrado ou data não é um array")
         return []
       }
-
-      console.log("Dados brutos de adicionais:", JSON.stringify(data))
 
       // Converter explicitamente os tipos para evitar erros de tipagem
       const result = data.map((item: any) => ({
@@ -40,7 +35,6 @@ export const AdditionalService = {
         image: item.image ? String(item.image) : "",
       }))
 
-      console.log("Adicionais processados:", JSON.stringify(result))
       return result
     } catch (error) {
       console.error("Erro ao buscar adicionais:", error)
@@ -145,8 +139,6 @@ export const AdditionalService = {
   // Obter adicionais ativos agrupados por categoria
   async getActiveAdditionalsByProductGroupedByCategory(productId: number): Promise<{ category: AdditionalCategory, additionals: Additional[] }[]> {
     try {
-      console.log("Iniciando getActiveAdditionalsByProductGroupedByCategory para produto ID:", productId)
-
       // Primeiro, obter o produto para verificar os adicionais permitidos
       const supabase = createSupabaseClient()
       const { data: productData, error: productError } = await supabase
@@ -162,7 +154,6 @@ export const AdditionalService = {
 
       // Verificar se o produto tem adicionais permitidos
       if (!productData.allowed_additionals || !Array.isArray(productData.allowed_additionals) || productData.allowed_additionals.length === 0) {
-        console.log("Produto não tem adicionais permitidos")
         return []
       }
 
@@ -179,7 +170,6 @@ export const AdditionalService = {
       }
 
       if (!data || !Array.isArray(data)) {
-        console.log("Nenhum adicional encontrado ou data não é um array")
         return []
       }
 
@@ -215,7 +205,6 @@ export const AdditionalService = {
           additionals: additionalsByCategory[category.id] || []
         }))
 
-      console.log("Adicionais agrupados por categoria processados:", JSON.stringify(result))
       return result
     } catch (error) {
       console.error("Erro ao buscar adicionais agrupados por categoria:", error)
@@ -260,7 +249,6 @@ export const AdditionalService = {
   // Salvar adicional
   async saveAdditional(additional: Additional): Promise<{ data: Additional | null; error: Error | null }> {
     try {
-      console.log("Salvando adicional:", additional)
       const supabase = createSupabaseClient()
 
       // Se o adicional tem ID, atualizamos; se não, criamos
