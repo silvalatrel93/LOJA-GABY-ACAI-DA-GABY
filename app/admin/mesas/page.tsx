@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Plus, Edit, Trash2, QrCode, BarChart3, RefreshCw, Users, Eye, EyeOff } from "lucide-react"
@@ -8,12 +8,35 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogPortal, DialogOverlay } from "@/components/ui/dialog"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
+import { cn } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { TableService } from "@/lib/services/table-service"
 import QRCodeGenerator from "@/components/qr-code-generator"
 import type { Table } from "@/lib/types"
+
+// DialogContent customizado sem botão X
+const DialogContentWithoutX = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+>(({ className, children, ...props }, ref) => (
+  <DialogPortal>
+    <DialogOverlay />
+    <DialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </DialogPrimitive.Content>
+  </DialogPortal>
+))
+DialogContentWithoutX.displayName = "DialogContentWithoutX"
 
 export default function MesasAdminPage() {
   const router = useRouter()
@@ -438,7 +461,7 @@ export default function MesasAdminPage() {
                             <QrCode size={14} />
                           </Button>
                         </div>
-                        
+
                         <div className="flex gap-2">
                           <Button
                             onClick={() => handleEdit(table)}
@@ -540,8 +563,8 @@ export default function MesasAdminPage() {
               >
                 Cancelar
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isSubmitting}
                 className="w-full sm:w-auto order-1 sm:order-2"
               >
@@ -554,7 +577,7 @@ export default function MesasAdminPage() {
 
       {/* Modal de QR Code */}
       <Dialog open={isQRModalOpen} onOpenChange={setIsQRModalOpen}>
-        <DialogContent className="w-[95vw] max-w-sm mx-auto">
+        <DialogContentWithoutX className="w-[95vw] max-w-md mx-auto">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl text-center">
               QR Code - {selectedTable?.name}
@@ -575,14 +598,14 @@ export default function MesasAdminPage() {
             <div className="text-xs text-gray-500 break-all text-center px-2">
               {typeof window !== 'undefined' && `${window.location.origin}/mesa/${selectedTable?.number}`}
             </div>
-            <Button 
+            <Button
               onClick={() => setIsQRModalOpen(false)}
               className="w-full mt-4"
             >
               Fechar
             </Button>
           </div>
-        </DialogContent>
+        </DialogContentWithoutX>
       </Dialog>
     </div>
   )

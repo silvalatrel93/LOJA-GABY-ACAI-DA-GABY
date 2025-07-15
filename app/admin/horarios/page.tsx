@@ -314,37 +314,37 @@ export default function OperatingHoursPage() {
             </div>
 
             {/* Horários Regulares */}
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
               <h2 className="text-lg font-semibold text-purple-900 mb-4 flex items-center">
                 <Clock size={20} className="mr-2" />
                 Horários Regulares
               </h2>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
                   const config = storeConfig.operatingHours[day] || { open: false, hours: "10:00 - 22:00" };
                   return (
-                    <div key={day} className="flex items-center justify-between border-b pb-3">
+                    <div key={day} className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b pb-3 gap-2 sm:gap-0">
                       <div className="flex items-center">
                         <input
                           type="checkbox"
                           id={`day-${day}`}
                           checked={config.open}
                           onChange={() => handleDayToggle(day)}
-                          className="h-5 w-5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          className="h-5 w-5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded flex-shrink-0"
                         />
-                        <label htmlFor={`day-${day}`} className="ml-2 block text-gray-700">
+                        <label htmlFor={`day-${day}`} className="ml-2 block text-gray-700 text-sm sm:text-base font-medium">
                           {getDayName(day)}
                         </label>
                       </div>
 
-                      <div className="flex items-center">
+                      <div className="flex items-center ml-7 sm:ml-0">
                         <input
                           type="text"
                           value={config.hours}
                           onChange={(e) => handleHoursChange(day, e.target.value)}
                           placeholder="10:00 - 22:00"
-                          className={`px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 ${!config.open ? "bg-gray-100 text-gray-500" : ""
+                          className={`w-full sm:w-auto px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${!config.open ? "bg-gray-100 text-gray-500" : "bg-white"
                             }`}
                           disabled={!config.open}
                         />
@@ -354,7 +354,7 @@ export default function OperatingHoursPage() {
                 })}
               </div>
 
-              {/* Informações de formato removidas */}
+
             </div>
 
 
