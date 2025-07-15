@@ -534,7 +534,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       
       // Verificar se é pedido de mesa
         if (order.orderType === 'table' || order.tableId) {
-          const tableNumber = order.tableNumber || order.tableId
+          const tableNumber = order.tableId
           const formattedTableNumber = tableNumber ? String(tableNumber).padStart(2, '0') : '00'
           doc.text(`Tipo: ${order.tableName || `Mesa ${formattedTableNumber}`}`, margin, yPos)
           yPos += 5
@@ -562,6 +562,8 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
         doc.text(`${normalizeForThermalPrint(order.address.street)}, ${order.address.number}`, margin, yPos)
         yPos += 5
         doc.text(`Bairro: ${normalizeForThermalPrint(order.address.neighborhood)}`, margin, yPos)
+        yPos += 5
+        doc.text(`Cidade: ${normalizeForThermalPrint(order.address.city)}`, margin, yPos)
         yPos += 5
         if (order.address.complement) {
           doc.text(`Complemento: ${normalizeForThermalPrint(order.address.complement)}`, margin, yPos)
@@ -817,7 +819,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
             {/* Verificar se é pedido de mesa */}
             {order.orderType === 'table' || order.tableId ? (
               <div>
-                Tipo: {order.tableName || `Mesa ${String(order.tableNumber || order.tableId || 0).padStart(2, '0')}`}
+                Tipo: {order.tableName || `Mesa ${String(order.tableId || 0).padStart(2, '0')}`}
               </div>
             ) : (
               <>
@@ -834,6 +836,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
                   {normalizeForThermalPrint(order.address.street)}, {order.address.number}
                 </div>
                 <div>Bairro: {normalizeForThermalPrint(order.address.neighborhood)}</div>
+                <div>Cidade: {normalizeForThermalPrint(order.address.city)}</div>
                 {order.address.complement && <div>Complemento: {normalizeForThermalPrint(order.address.complement)}</div>}
               </>
             )}
