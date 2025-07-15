@@ -329,7 +329,12 @@ export function usePushNotifications() {
         if (!response.ok) {
           throw new Error(`Falha ao obter chave pública VAPID: ${response.status} ${response.statusText}`);
         }
-        vapidPublicKey = await response.text();
+        const data = await response.json();
+        vapidPublicKey = data.vapidPublicKey;
+        
+        if (!vapidPublicKey) {
+          throw new Error('Chave VAPID não encontrada na resposta do servidor');
+        }
       } catch (error) {
         logError('Erro ao obter chave VAPID', error);
         return null;
@@ -408,16 +413,30 @@ export function usePushNotifications() {
 
   // Função auxiliar para converter chave VAPID
   const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
-    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-    const rawData = atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
+    if (!base64String || typeof base64String !== 'string') {
+      throw new Error('String base64 inválida ou vazia');
     }
     
-    return outputArray;
+    try {
+      const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+      
+      // Validar se a string base64 é válida
+      if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64)) {
+        throw new Error('Formato de string base64 inválido');
+      }
+      
+      const rawData = atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      
+      return outputArray;
+    } catch (error) {
+      throw new Error(`Erro ao converter chave VAPID: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
   };
 
   // Enviar inscrição para o servidor
