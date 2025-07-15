@@ -89,11 +89,16 @@ export default function MesaPage() {
 
         try {
           productsData = await getActiveProducts()
-          
+
           // Aplicar preços da mesa quando disponíveis
           productsData = productsData.map(product => {
             // Verificar se o produto tem preços de mesa configurados
+            // Usar tableSizes (camelCase) que é como está definido no tipo
             if (product.tableSizes && Array.isArray(product.tableSizes) && product.tableSizes.length > 0) {
+              console.log(`🍽️ Aplicando preços de mesa para: ${product.name}`);
+              console.log('📦 Preços originais:', product.sizes[0]?.price);
+              console.log('🍽️ Preços de mesa:', product.tableSizes[0]?.price);
+
               // Aplicar os preços de mesa substituindo os preços padrão
               return {
                 ...product,

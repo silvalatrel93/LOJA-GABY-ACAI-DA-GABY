@@ -10,6 +10,8 @@ const urlsToCache = [
   '/placeholder.svg',
   '/placeholder.svg',
   '/placeholder-logo.svg',
+  '/sounds/new-order.mp3',
+  '/sounds/new-table-order.mp3'
 ];
 
 // Instalação do Service Worker
@@ -41,6 +43,22 @@ self.addEventListener('activate', (event) => {
 
 // Estratégia de cache: Network First, fallback para cache
 self.addEventListener('fetch', (event) => {
+  // Para arquivos de áudio, sempre buscar da rede para garantir reprodução
+  if (event.request.url.includes('/sounds/') && event.request.url.match(/\.(mp3|wav|ogg)$/)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          console.log('Arquivo de áudio carregado da rede:', event.request.url);
+          return response;
+        })
+        .catch(() => {
+          console.log('Tentando carregar áudio do cache:', event.request.url);
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -61,12 +79,12 @@ self.addEventListener('fetch', (event) => {
             if (response) {
               return response;
             }
-            
+
             // Para navegação, retorne a página offline
             if (event.request.mode === 'navigate') {
               return caches.match('/offline.html');
             }
-            
+
             return new Response('Não foi possível conectar ao servidor.');
           });
       })
@@ -132,7 +150,7 @@ self.addEventListener('push', (event) => {
 // Ação ao clicar na notificação
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
+
   event.waitUntil(
     clients.openWindow(event.notification.data.url)
   );

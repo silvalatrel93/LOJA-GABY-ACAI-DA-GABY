@@ -50,10 +50,10 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
 
     // Adicionar listener para detectar rolagem
     window.addEventListener('scroll', handleScroll, { passive: true })
-    
+
     // Verificar posição inicial da rolagem
     handleScroll()
-    
+
     // Limpar listener ao desmontar o componente
     return () => {
       window.removeEventListener('scroll', handleScroll)
@@ -69,14 +69,13 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
       <div className="min-h-screen flex flex-col bg-gray-50 overflow-x-hidden w-full">
         {/* Cabeçalho com efeito de transição e glassmorphism */}
         <header
-          className={`text-white fixed top-0 left-0 right-0 w-full z-30 transition-all duration-300 ease-in-out header-animation py-3 ${
-            scrolled 
-              ? 'bg-gradient-to-r from-purple-800 to-purple-950 backdrop-blur-md shadow-lg shadow-purple-900/30' 
+          className={`text-white fixed top-0 left-0 right-0 w-full z-30 transition-all duration-300 ease-in-out header-animation py-3 ${scrolled
+              ? 'bg-gradient-to-r from-purple-800 to-purple-950 backdrop-blur-md shadow-lg shadow-purple-900/30'
               : 'bg-gradient-to-r from-purple-800 to-purple-950'
-          }`}
-          style={{ 
-            width: "100vw", 
-            marginLeft: "calc(-50vw + 50%)", 
+            }`}
+          style={{
+            width: "100vw",
+            marginLeft: "calc(-50vw + 50%)",
             marginRight: "calc(-50vw + 50%)",
             height: "56px",
           }}
@@ -121,10 +120,10 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
 
         {/* Espaçador mínimo para compensar o cabeçalho fixo */}
         <div className="h-[56px]"></div>
-        
+
         {/* Carrossel */}
         {carouselSlides.length > 0 && <HeroCarousel slides={carouselSlides} />}
-        
+
         {/* Estilo global para animações */}
         <style jsx global>{`
           @keyframes fadeIn {
@@ -147,7 +146,7 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
             -webkit-backdrop-filter: blur(8px);
           }
         `}</style>
-        
+
         {/* Conteúdo principal */}
         <main className="flex-1 flex flex-col overflow-x-hidden w-full">{children}</main>
 

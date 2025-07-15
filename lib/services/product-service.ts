@@ -38,8 +38,8 @@ export const ProductService = {
         sizes: Array.isArray(item.sizes) ? item.sizes : [],
         tableSizes: Array.isArray(item.table_sizes) ? item.table_sizes : undefined,
         categoryId: Number(item.category_id),
-        categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories 
-          ? String((item.categories as any).name) 
+        categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories
+          ? String((item.categories as any).name)
           : "",
         active: Boolean(item.active),
         hidden: Boolean(item.hidden || false),
@@ -91,8 +91,8 @@ export const ProductService = {
         sizes: Array.isArray(item.sizes) ? item.sizes : [],
         tableSizes: Array.isArray(item.table_sizes) ? item.table_sizes : undefined,
         categoryId: Number(item.category_id),
-        categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories 
-          ? String((item.categories as any).name) 
+        categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories
+          ? String((item.categories as any).name)
           : "",
         active: Boolean(item.active),
         hidden: Boolean(item.hidden || false),
@@ -145,8 +145,8 @@ export const ProductService = {
         sizes: Array.isArray(item.sizes) ? item.sizes : [],
         tableSizes: Array.isArray(item.table_sizes) ? item.table_sizes : undefined,
         categoryId: Number(item.category_id),
-        categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories 
-          ? String((item.categories as any).name) 
+        categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories
+          ? String((item.categories as any).name)
           : "",
         active: Boolean(item.active),
         hidden: Boolean(item.hidden || false),
@@ -202,8 +202,8 @@ export const ProductService = {
         sizes: Array.isArray(data.sizes) ? data.sizes : [],
         tableSizes: Array.isArray(data.table_sizes) ? data.table_sizes : undefined,
         categoryId: Number(data.category_id),
-        categoryName: data.categories && typeof data.categories === 'object' && data.categories !== null && 'name' in data.categories 
-          ? String((data.categories as any).name) 
+        categoryName: data.categories && typeof data.categories === 'object' && data.categories !== null && 'name' in data.categories
+          ? String((data.categories as any).name)
           : "",
         active: Boolean(data.active),
         hidden: Boolean(data.hidden || false),
@@ -376,7 +376,7 @@ export const ProductService = {
   async toggleProductVisibility(id: number): Promise<boolean> {
     try {
       const supabase = createSupabaseClient()
-      
+
       // Primeiro buscar o produto atual
       const { data: currentProduct, error: fetchError } = await supabase
         .from("products")

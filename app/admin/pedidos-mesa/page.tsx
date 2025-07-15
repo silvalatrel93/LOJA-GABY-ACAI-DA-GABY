@@ -43,31 +43,50 @@ export default function PedidosMesaPage() {
     if (!isSoundEnabled) return;
 
     try {
+      console.log('🔊 Iniciando reprodução do som de mesa...');
+      
       // Criar um novo elemento de áudio se não existir
       if (!audioRef.current) {
+        console.log('📱 Criando novo elemento de áudio para mesa...');
         audioRef.current = new Audio('/sounds/new-table-order.mp3');
         audioRef.current.volume = 0.8; // Volume um pouco mais alto para diferenciar
         audioRef.current.loop = true;
+        audioRef.current.preload = 'auto';
 
         // Configurar eventos de erro
         audioRef.current.addEventListener('error', (e) => {
-          console.error('Erro ao carregar áudio de mesa:', e);
+          console.error('❌ Erro ao carregar áudio de mesa:', e);
+          console.error('❌ Detalhes do erro:', {
+            error: e.error,
+            src: audioRef.current?.src,
+            networkState: audioRef.current?.networkState,
+            readyState: audioRef.current?.readyState
+          });
         });
 
         // Configurar evento de carregamento
         audioRef.current.addEventListener('canplaythrough', () => {
-          console.log('Áudio de mesa carregado com sucesso');
+          console.log('✅ Áudio de mesa carregado com sucesso');
+        });
+
+        audioRef.current.addEventListener('loadstart', () => {
+          console.log('🔄 Iniciando carregamento do som de mesa...');
+        });
+
+        audioRef.current.addEventListener('loadeddata', () => {
+          console.log('📊 Dados do som de mesa carregados');
         });
       }
 
       // Função para reproduzir o som após interação do usuário
       const playSound = () => {
+        console.log('🎵 Tentando reproduzir som após interação do usuário...');
         if (audioRef.current && isSoundEnabled) {
           audioRef.current.currentTime = 0; // Reiniciar do início
           audioRef.current.play().then(() => {
-            console.log('Som de mesa reproduzido com sucesso');
+            console.log('✅ Som de mesa reproduzido com sucesso após interação');
           }).catch(err => {
-            console.error('Erro ao reproduzir som de mesa após interação:', err);
+            console.error('❌ Erro ao reproduzir som de mesa após interação:', err);
           });
           // Remover o listener após o primeiro clique
           document.removeEventListener('click', playSound);
@@ -75,22 +94,34 @@ export default function PedidosMesaPage() {
         }
       };
 
+      console.log('🔍 Verificando estado do áudio:', {
+        readyState: audioRef.current.readyState,
+        networkState: audioRef.current.networkState,
+        src: audioRef.current.src,
+        volume: audioRef.current.volume,
+        loop: audioRef.current.loop,
+        isSoundEnabled
+      });
+
       // Tentar reproduzir diretamente
       if (audioRef.current.readyState >= 2) { // HAVE_CURRENT_DATA
+        console.log('🎯 Áudio pronto, tentando reproduzir automaticamente...');
         audioRef.current.currentTime = 0;
         audioRef.current.play().then(() => {
-          console.log('Som de mesa reproduzido automaticamente');
+          console.log('✅ Som de mesa reproduzido automaticamente');
         }).catch(err => {
-          console.log('Aguardando interação do usuário para tocar o som de mesa...');
+          console.log('⚠️ Reprodução automática bloqueada, aguardando interação do usuário...', err);
           setShowSoundActivationMessage(true);
           document.addEventListener('click', playSound, { once: true });
         });
       } else {
+        console.log('⏳ Áudio ainda não está pronto, aguardando carregamento...');
         // Aguardar o carregamento do áudio
         audioRef.current.addEventListener('canplaythrough', () => {
+          console.log('🎯 Áudio carregado, tentando reproduzir...');
           if (audioRef.current && isSoundEnabled) {
             audioRef.current.play().catch(err => {
-              console.log('Aguardando interação do usuário para tocar o som de mesa...');
+              console.log('⚠️ Reprodução bloqueada após carregamento, aguardando interação...', err);
               setShowSoundActivationMessage(true);
               document.addEventListener('click', playSound, { once: true });
             });
@@ -229,8 +260,11 @@ export default function PedidosMesaPage() {
 
           // Tocar som e mostrar notificação para novos pedidos de mesa
           if (isSoundEnabled) {
-            console.log(`Reproduzindo som para ${newOrders.length} novo(s) pedido(s) de mesa`);
+            console.log(`🔔 Reproduzindo som para ${newOrders.length} novo(s) pedido(s) de mesa`);
+            console.log('🎵 Estado do som:', { isSoundEnabled, hasAudioRef: !!audioRef.current });
             startTableSound();
+          } else {
+            console.log(`🔇 Som desabilitado - ${newOrders.length} novo(s) pedido(s) de mesa detectado(s)`);
           }
 
           // Definir contador exato de novos pedidos
@@ -671,6 +705,43 @@ export default function PedidosMesaPage() {
                 )}
               </Button>
               <Button
+                onClick={() => {
+                  console.log('🧪 Teste manual do som iniciado...');
+                  if (audioRef.current) {
+                    console.log('🔍 Estado atual do áudio:', {
+                      readyState: audioRef.current.readyState,
+                      networkState: audioRef.current.networkState,
+                      src: audioRef.current.src,
+                      volume: audioRef.current.volume,
+                      paused: audioRef.current.paused,
+                      currentTime: audioRef.current.currentTime
+                    });
+                    audioRef.current.currentTime = 0;
+                    audioRef.current.play().then(() => {
+                      console.log('✅ Teste manual: Som reproduzido com sucesso');
+                      setTimeout(() => {
+                        if (audioRef.current) {
+                          audioRef.current.pause();
+                          audioRef.current.currentTime = 0;
+                          console.log('⏹️ Teste manual: Som parado');
+                        }
+                      }, 3000);
+                    }).catch(err => {
+                      console.error('❌ Teste manual: Erro ao reproduzir som:', err);
+                    });
+                  } else {
+                    console.log('❌ Teste manual: audioRef.current é null');
+                    startTableSound();
+                  }
+                }}
+                variant="outline"
+                size="sm"
+                className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-100 border-blue-400/30"
+                title="Teste manual do som"
+              >
+                Teste Som
+              </Button>
+              <Button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
                 variant="outline"
@@ -758,30 +829,7 @@ export default function PedidosMesaPage() {
                   Sistema de notificação sonora ativo para pedidos de mesa
                 </span>
               </div>
-              <Button
-                onClick={() => {
-                  // Teste manual do som
-                  if (audioRef.current) {
-                    audioRef.current.currentTime = 0;
-                    audioRef.current.play().then(() => {
-                      setTimeout(() => {
-                        if (audioRef.current) {
-                          audioRef.current.pause();
-                          audioRef.current.currentTime = 0;
-                        }
-                      }, 1500);
-                    }).catch(err => {
-                      console.error('Erro no teste de som:', err);
-                      setShowSoundActivationMessage(true);
-                    });
-                  }
-                }}
-                variant="outline"
-                size="sm"
-                className="text-green-700 border-green-300 hover:bg-green-50"
-              >
-                Testar Som
-              </Button>
+
             </div>
           </div>
         )}

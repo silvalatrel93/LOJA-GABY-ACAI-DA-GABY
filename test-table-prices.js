@@ -16,31 +16,31 @@ async function testTablePrices() {
     console.log('🔍 Testando consulta de produtos com preços de mesa...')
     console.log('Supabase URL:', supabaseUrl ? 'Configurado' : 'Não configurado')
     console.log('Supabase Key:', supabaseKey ? 'Configurado' : 'Não configurado')
-    
+
     // Buscar produto específico com ID 199
     const { data: product, error } = await supabase
       .from('products')
       .select('id, name, sizes, table_sizes')
       .eq('id', 199)
       .single()
-    
+
     if (error) {
       console.error('❌ Erro na consulta:', error)
       return
     }
-    
+
     if (!product) {
       console.log('❌ Produto não encontrado')
       return
     }
-    
+
     console.log('✅ Produto encontrado:')
     console.log('ID:', product.id)
     console.log('Nome:', product.name)
     console.log('Preços padrão:', JSON.stringify(product.sizes, null, 2))
     console.log('Preços de mesa:', JSON.stringify(product.table_sizes, null, 2))
     console.log('Tem preços de mesa?', !!product.table_sizes)
-    
+
     // Testar a função getActiveProducts
     console.log('\n🔍 Testando função getActiveProducts...')
     const { data: products, error: productsError } = await supabase
@@ -62,12 +62,12 @@ async function testTablePrices() {
       `)
       .eq('active', true)
       .eq('id', 199)
-    
+
     if (productsError) {
       console.error('❌ Erro na consulta de produtos ativos:', productsError)
       return
     }
-    
+
     if (products && products.length > 0) {
       const prod = products[0]
       console.log('✅ Produto via getActiveProducts:')
@@ -75,7 +75,7 @@ async function testTablePrices() {
       console.log('table_sizes type:', typeof prod.table_sizes)
       console.log('table_sizes isArray:', Array.isArray(prod.table_sizes))
     }
-    
+
   } catch (error) {
     console.error('❌ Erro geral:', error)
   }
