@@ -410,6 +410,65 @@ export const ProductService = {
   },
 }
 
+/**
+ * Detecta se estamos em contexto de mesa através da URL e localStorage
+ */
+function isTableContext(): boolean {
+  if (typeof window === 'undefined') return false
+  
+  const currentPath = window.location.pathname
+  const mesaAtual = localStorage.getItem('mesa_atual')
+  
+  // Verificar se estamos na rota de mesa OU se há dados de mesa no localStorage
+  return currentPath.startsWith('/mesa/') || !!mesaAtual
+}
+
+/**
+ * Aplica preços de mesa automaticamente se estivermos em contexto de mesa
+ */
+function applyTablePricesIfNeeded(products: Product[]): Product[] {
+  // Só aplicar se estivermos em contexto de mesa
+  if (!isTableContext()) {
+    return products
+  }
+  
+  console.log('🍽️ Contexto de mesa detectado - aplicando preços de mesa automaticamente')
+  
+  return products.map(product => {
+    // Verificar se o produto tem preços de mesa configurados
+    if (product.tableSizes && Array.isArray(product.tableSizes) && product.tableSizes.length > 0) {
+      console.log(`🍽️ ✅ Aplicando preços de mesa para: ${product.name}`)
+      console.log(`📦 Preço delivery: R$ ${product.sizes[0]?.price}`)
+      console.log(`🍽️ Preço mesa: R$ ${product.tableSizes[0]?.price}`)
+      
+      // Aplicar os preços de mesa substituindo os preços padrão
+      return {
+        ...product,
+        sizes: product.tableSizes
+      }
+    } else {
+      console.log(`🍽️ ❌ SEM preços de mesa para: ${product.name} - usando preços padrão`)
+      return product
+    }
+  })
+}
+
+/**
+ * Buscar produtos ativos com aplicação automática de preços de mesa
+ */
+export async function getActiveProductsWithContext(): Promise<Product[]> {
+  const products = await getActiveProducts()
+  return applyTablePricesIfNeeded(products)
+}
+
+/**
+ * Buscar produtos visíveis com aplicação automática de preços de mesa
+ */
+export async function getVisibleProductsWithContext(): Promise<Product[]> {
+  const products = await getVisibleProducts()
+  return applyTablePricesIfNeeded(products)
+}
+
 // Exportar funções individuais para facilitar o uso
 export const getAllProducts = ProductService.getAllProducts.bind(ProductService)
 export const getActiveProducts = ProductService.getActiveProducts.bind(ProductService)

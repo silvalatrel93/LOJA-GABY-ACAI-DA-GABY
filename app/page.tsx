@@ -8,7 +8,7 @@ import StoreClosedNotice from "@/components/store-closed-notice"
 import FloatingCartButton from "@/components/floating-cart-button"
 import { getActiveSlides } from "@/lib/services/carousel-service"
 import { getActiveCategories } from "@/lib/services/category-service"
-import { getActiveProducts } from "@/lib/services/product-service"
+import { getActiveProductsWithContext } from "@/lib/services/product-service"
 import { getActivePhrases } from "@/lib/services/phrase-service"
 import { getStoreConfig } from "@/lib/services/store-config-service"
 import { getStoreStatus } from "@/lib/store-utils"
@@ -57,7 +57,7 @@ export default function Home() {
         }
 
         try {
-          productsData = await getActiveProducts()
+          productsData = await getActiveProductsWithContext()
         } catch (e) {
           console.error("Erro ao carregar produtos:", e)
           productsData = []

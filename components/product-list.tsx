@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import { getVisibleProducts } from "@/lib/services/product-service"
+import { getVisibleProductsWithContext } from "@/lib/services/product-service"
 import { getActiveCategories } from "@/lib/services/category-service"
 import ProductCard from "@/components/product-card"
 import { ImagePreloader } from "@/components/image-preloader"
@@ -161,7 +161,7 @@ export default function ProductList({ products: _initialProducts = [], categorie
         setCategories(categoriesWithAll)
 
         // Carregar todos os produtos de uma vez
-        const allProductsList = await getVisibleProducts()
+        const allProductsList = await getVisibleProductsWithContext()
         setAllProducts(allProductsList)
 
         // Selecionar a primeira categoria por padrão

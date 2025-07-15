@@ -54,20 +54,29 @@ function TablePricingManager({ product, onUpdate }: TablePricingManagerProps) {
 
   const saveTablePricing = async () => {
     setIsLoading(true)
+    console.log(`💾 Salvando preços de mesa para produto: ${product.name}`)
+    console.log(`🔢 Quantidade de preços de mesa a salvar: ${tableSizes.length}`)
+    console.log(`📋 Preços de mesa detalhados:`, tableSizes)
+    
     try {
       const updatedProduct = {
         ...product,
         tableSizes: tableSizes.length > 0 ? tableSizes : undefined
       }
+      
+      console.log(`🔄 Produto atualizado com tableSizes:`, updatedProduct.tableSizes)
 
       const { data, error } = await ProductService.saveProduct(updatedProduct)
       
       if (error) {
+        console.error(`❌ Erro ao salvar preços de mesa para ${product.name}:`, error)
         toast.error("Erro ao salvar preços da mesa: " + error.message)
         return
       }
 
       if (data) {
+        console.log(`✅ Preços de mesa salvos com sucesso para ${product.name}`)
+        console.log(`📋 Dados salvos:`, data.tableSizes)
         onUpdate(data)
         setHasChanges(false)
         toast.success("Preços da mesa salvos com sucesso!")

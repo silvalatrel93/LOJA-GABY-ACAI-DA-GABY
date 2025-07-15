@@ -171,6 +171,7 @@ export default function NotificationBell() {
   useEffect(() => {
     // Variável para controlar se o componente está montado
     let isMounted = true;
+    let hasCheckedPushNotifications = false;
     
     // Função para carregar notificações com verificação de montagem
     const safeLoadNotifications = async () => {
@@ -178,8 +179,22 @@ export default function NotificationBell() {
       await loadNotifications();
     };
     
+    // Verificar suporte a push notifications apenas uma vez na inicialização
+    const checkPushSupport = () => {
+      if (!hasCheckedPushNotifications) {
+        hasCheckedPushNotifications = true;
+        const isSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+        setIsPushSupported(isSupported);
+        
+        if (isSupported) {
+          setIsPushEnabled(isSubscribed);
+        }
+      }
+    };
+    
     // Carregar notificações iniciais
     safeLoadNotifications();
+    checkPushSupport();
 
     // Adicionar listener para novas notificações
     notificationListeners.push(safeLoadNotifications);
@@ -204,7 +219,14 @@ export default function NotificationBell() {
         audioRef.current = null;
       }
     };
-  }, [])
+  }, []) // Remover isSubscribed da dependência para evitar verificações desnecessárias
+
+  // Efeito separado para gerenciar o estado das push notifications
+  useEffect(() => {
+    if (isPushSupported) {
+      setIsPushEnabled(isSubscribed);
+    }
+  }, [isPushSupported, isSubscribed]);
 
   useEffect(() => {
     // Fechar o dropdown quando clicar fora dele

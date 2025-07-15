@@ -46,10 +46,12 @@ export default function PushNotificationManager({
   // Verificar inscrição ao carregar o componente
   useEffect(() => {
     let isMounted = true;
+    let hasInitialized = false;
     
     const verifySubscription = async () => {
       try {
-        if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !hasInitialized) {
+          hasInitialized = true;
           await checkSubscription();
           
           // Mostrar prompt após 5 segundos se o usuário não estiver inscrito e não tiver negado permissão
@@ -68,7 +70,7 @@ export default function PushNotificationManager({
     
     verifySubscription();
     
-    // Adicionar listener para detectar rolagem
+    // Adicionar listener para detectar rolagem apenas uma vez
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll(); // Verificar posição inicial
     
@@ -76,7 +78,7 @@ export default function PushNotificationManager({
       isMounted = false;
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [checkSubscription, isSubscribed, permission, hasInteracted, handleScroll]);
+  }, []); // Remover dependências desnecessárias que causam re-execuções
 
   // Lidar com a inscrição automática
   useEffect(() => {

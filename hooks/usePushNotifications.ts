@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createSupabaseClient } from '@/lib/supabase-client';
 
 type NotificationPermission = 'default' | 'granted' | 'denied';
@@ -19,13 +19,29 @@ enum LogLevel {
   ERROR = 'error'
 }
 
-// Função para log condicional com níveis de severidade
+// Função para log condicional com níveis de severidade e throttling
+const logCache = new Map<string, number>();
+const LOG_THROTTLE_TIME = 30000; // 30 segundos de throttle para logs repetitivos
+
 const log = (level: LogLevel, message: string, data?: any) => {
   const prefix = `[PushNotifications]`;
   
-  // Em produção, não exibir logs de debug
-  if (level === LogLevel.DEBUG && process.env.NODE_ENV !== 'development') {
+  // Em produção, apenas logs de ERROR e WARN importantes
+  if (process.env.NODE_ENV === 'production' && level === LogLevel.DEBUG) {
     return;
+  }
+  
+  // Throttling para logs repetitivos (especialmente INFO)
+  if (level === LogLevel.INFO) {
+    const cacheKey = message;
+    const lastLogTime = logCache.get(cacheKey) || 0;
+    const now = Date.now();
+    
+    if (now - lastLogTime < LOG_THROTTLE_TIME) {
+      return; // Pular este log se foi registrado recentemente
+    }
+    
+    logCache.set(cacheKey, now);
   }
   
   // Formatar dados para exibição mais limpa
@@ -33,7 +49,9 @@ const log = (level: LogLevel, message: string, data?: any) => {
   
   switch (level) {
     case LogLevel.DEBUG:
-      console.log(`${prefix} ${message}`, formattedData);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`${prefix} ${message}`, formattedData);
+      }
       break;
     case LogLevel.INFO:
       console.info(`${prefix} ${message}`, formattedData);
@@ -92,6 +110,10 @@ export function usePushNotifications() {
     error: null,
     isSupported: false
   });
+  
+  // Cache para evitar verificações repetitivas
+  const lastCheckRef = useRef<number>(0);
+  const CHECK_THROTTLE_TIME = 5000; // 5 segundos entre verificações
   
   // Função auxiliar para atualizar apenas parte do estado
   const updateState = useCallback((newState: Partial<PushNotificationState>) => {
@@ -209,6 +231,14 @@ export function usePushNotifications() {
       return null;
     }
 
+    // Throttling para evitar verificações excessivas
+    const now = Date.now();
+    if (now - lastCheckRef.current < CHECK_THROTTLE_TIME) {
+      logDebug('Verificação de inscrição pulada devido ao throttling');
+      return state.subscription;
+    }
+    
+    lastCheckRef.current = now;
     updateState({ isLoading: true, error: null });
     
     try {
@@ -225,7 +255,9 @@ export function usePushNotifications() {
           endpoint: existingSubscription.endpoint.substring(0, 50) + '...'
         });
       } else {
-        logInfo('Nenhuma inscrição existente encontrada');
+        // Apenas logar uma vez quando verificar pela primeira vez
+        // Não logar repetidamente quando não há inscrição
+        logDebug('Verificação de inscrição concluída - nenhuma inscrição ativa');
       }
       
       return existingSubscription;
