@@ -199,11 +199,16 @@ export function usePushNotifications() {
             if (registration.installing) {
               logInfo('Aguardando Service Worker ser instalado...');
               await new Promise((resolve) => {
-                registration.installing!.addEventListener('statechange', () => {
-                  if (registration.installing!.state === 'activated') {
-                    resolve(void 0);
-                  }
-                });
+                const installingWorker = registration.installing;
+                if (installingWorker) {
+                  installingWorker.addEventListener('statechange', () => {
+                    if (installingWorker.state === 'activated') {
+                      resolve(void 0);
+                    }
+                  });
+                } else {
+                  resolve(void 0);
+                }
               });
             }
             
@@ -225,11 +230,16 @@ export function usePushNotifications() {
                 // Aguardar o service worker ficar ativo
                 if (registration.installing) {
                   await new Promise((resolve) => {
-                    registration.installing!.addEventListener('statechange', () => {
-                      if (registration.installing!.state === 'activated') {
-                        resolve(void 0);
-                      }
-                    });
+                    const installingWorker = registration.installing;
+                    if (installingWorker) {
+                      installingWorker.addEventListener('statechange', () => {
+                        if (installingWorker.state === 'activated') {
+                          resolve(void 0);
+                        }
+                      });
+                    } else {
+                      resolve(void 0);
+                    }
                   });
                 }
                 
@@ -352,16 +362,19 @@ export function usePushNotifications() {
           reject(new Error('Timeout aguardando Service Worker ficar ativo'));
         }, 10000); // 10 segundos de timeout
         
-        if (state.registration!.installing) {
-          state.registration!.installing.addEventListener('statechange', () => {
-            if (state.registration!.installing!.state === 'activated') {
+        const installingWorker = state.registration!.installing;
+        const waitingWorker = state.registration!.waiting;
+        
+        if (installingWorker) {
+          installingWorker.addEventListener('statechange', () => {
+            if (installingWorker.state === 'activated') {
               clearTimeout(timeout);
               resolve(void 0);
             }
           });
-        } else if (state.registration!.waiting) {
-          state.registration!.waiting.addEventListener('statechange', () => {
-            if (state.registration!.waiting!.state === 'activated') {
+        } else if (waitingWorker) {
+          waitingWorker.addEventListener('statechange', () => {
+            if (waitingWorker.state === 'activated') {
               clearTimeout(timeout);
               resolve(void 0);
             }
