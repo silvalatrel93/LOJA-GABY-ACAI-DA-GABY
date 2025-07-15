@@ -15,7 +15,6 @@ import { ptBR } from "date-fns/locale"
 import OrderLabelPrinter from "@/components/order-label-printer"
 import OrderCounterReset from "@/components/order-counter-reset"
 import { useNotificationSound } from "@/hooks/useNotificationSound"
-import AdminNotificationBell from "@/components/admin/admin-notification-bell"
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
@@ -545,9 +544,6 @@ export default function OrdersPage() {
 
             {/* Lado direito - Botões de ação */}
             <div className="flex items-center gap-2">
-              {/* Sino de notificações push */}
-              <AdminNotificationBell />
-              
               {/* Botão de som - mobile */}
               <button
                 onClick={() => setIsSoundEnabled(!isSoundEnabled)}

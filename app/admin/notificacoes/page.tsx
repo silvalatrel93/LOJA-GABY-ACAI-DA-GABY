@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ArrowLeft, Save, Plus, Trash2, RefreshCw, Bell, AlertTriangle, Info, CheckCircle } from "lucide-react"
 import { getAllNotifications, saveNotification, deleteNotification, type Notification } from "@/lib/db"
-import { notifyNewNotification } from "@/components/admin/admin-notification-bell"
+import { notifyNewNotification } from "@/components/notification-bell"
+
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])

@@ -270,7 +270,10 @@ export const initializeDefaultPageContent = PageContentService.initializeDefault
 
 export const getAllNotifications = NotificationService.getAllNotifications.bind(NotificationService)
 export const getActiveNotifications = NotificationService.getActiveNotifications.bind(NotificationService)
+// Removida função que não existe no NotificationService
+export const getNotificationById = NotificationService.getNotificationById.bind(NotificationService)
 export const saveNotification = NotificationService.saveNotification.bind(NotificationService)
 export const deleteNotification = NotificationService.deleteNotification.bind(NotificationService)
 export const markAsRead = NotificationService.markAsRead.bind(NotificationService)
-export const markNotificationAsRead = NotificationService.markAsRead.bind(NotificationService) // Alias para compatibilidade
+export const markNotificationAsRead = NotificationService.markAsRead.bind(NotificationService) // Adicionar esta exportação como alias
+// Removida função que não existe no NotificationService

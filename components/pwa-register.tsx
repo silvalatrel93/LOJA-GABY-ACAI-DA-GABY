@@ -24,16 +24,29 @@ export default function PWARegister() {
 
     if ('serviceWorker' in navigator) {
       if (isAdmin) {
-        // Registrar o Service Worker apenas se estivermos no painel admin
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-              console.log('Service Worker registrado com sucesso:', registration);
-            })
-            .catch(error => {
-              console.error('Erro ao registrar o Service Worker:', error);
-            });
-        });
+        // Verificar se já existe um Service Worker antes de registrar
+        const checkAndRegisterSW = async () => {
+          try {
+            const existingRegistrations = await navigator.serviceWorker.getRegistrations();
+            
+            if (existingRegistrations.length === 0) {
+              // Só registrar se não houver nenhum Service Worker
+              const registration = await navigator.serviceWorker.register('/sw.js');
+              console.log('Service Worker registrado pelo PWARegister:', registration);
+              
+              // Forçar ativação imediata se necessário
+              if (registration.waiting) {
+                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+              }
+            } else {
+              console.log('Service Worker já existe, usando o existente');
+            }
+          } catch (error) {
+            console.error('Erro ao verificar/registrar o Service Worker:', error);
+          }
+        };
+        
+        checkAndRegisterSW();
       } else {
         // Se não estiver no admin, desregistrar qualquer Service Worker existente
         navigator.serviceWorker.getRegistrations().then(registrations => {

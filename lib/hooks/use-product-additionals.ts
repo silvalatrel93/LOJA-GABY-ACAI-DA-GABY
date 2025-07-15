@@ -103,12 +103,26 @@ export function useProductAdditionals(product: Product) {
     const additionalsList = Object.values(selectedAdditionals)
 
     return additionalsList.reduce((total, { additional, quantity }, index) => {
+      // Validar se os valores são números válidos
+      const additionalPrice = Number(additional.price) || 0
+      const additionalQuantity = Number(quantity) || 0
+      
+      // Se algum valor for inválido, pular este adicional
+      if (isNaN(additionalPrice) || isNaN(additionalQuantity)) {
+        console.warn('⚠️ Adicional com preço ou quantidade inválida:', {
+          name: additional.name,
+          price: additional.price,
+          quantity: quantity
+        })
+        return total
+      }
+      
       // Se o tamanho tem adicionais gratuitos e este adicional está dentro do limite gratuito
       if (hasFreeAdditionals && index < FREE_ADDITIONALS_LIMIT) {
         return total // Este adicional é gratuito
       }
       // Este adicional é pago
-      return total + additional.price * quantity
+      return total + additionalPrice * additionalQuantity
     }, 0)
   }
 

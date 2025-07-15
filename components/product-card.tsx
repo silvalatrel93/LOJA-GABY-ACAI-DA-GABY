@@ -317,7 +317,21 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
 
   // Função para calcular o total
   const calculateTotal = () => {
-    return (selectedSizeInfo?.price || 0) + additionalsTotalPrice
+    const basePrice = Number(selectedSizeInfo?.price) || 0
+    const additionalsPrice = Number(additionalsTotalPrice) || 0
+    
+    // Validar se os valores são números válidos
+    if (isNaN(basePrice) || isNaN(additionalsPrice)) {
+      console.warn('⚠️ Valores inválidos em calculateTotal:', {
+        selectedSizeInfo: selectedSizeInfo,
+        basePrice: basePrice,
+        additionalsTotalPrice: additionalsTotalPrice,
+        additionalsPrice: additionalsPrice
+      })
+      return 0
+    }
+    
+    return basePrice + additionalsPrice
   }
 
   // Função para verificar se é picolé
