@@ -378,7 +378,10 @@ function CheckoutPageContent() {
         printed: false,
         notified: false,
         orderType: isTableOrder ? "table" as const : "delivery" as const,
-        ...(isTableOrder && tableInfo && { tableId: tableInfo.id }),
+        ...(isTableOrder && tableInfo && { 
+        tableId: tableInfo.id,
+        tableName: tableInfo.name 
+      }),
       }
 
       // Salvar pedido no banco de dados e obter o ID do pedido

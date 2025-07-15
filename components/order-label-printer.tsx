@@ -6,8 +6,9 @@ import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { jsPDF } from "jspdf"
-import type { Order, Additional } from "@/lib/db"
+import type { Order, Additional, Table } from "@/lib/types"
 import { getStoreConfig } from "@/lib/db"
+import { TableService } from "@/lib/services/table-service"
 import { getSalmoAleatorio } from "@/lib/salmos"
 
 interface OrderLabelPrinterProps {
@@ -27,6 +28,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
   const [isLogoReady, setIsLogoReady] = useState(false)
   const [logoError, setLogoError] = useState(false)
+  const [tableInfo, setTableInfo] = useState<Table | null>(null)
 
   // Buscar o nome e logo da loja quando o componente for montado
   useEffect(() => {
@@ -66,11 +68,23 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       }
     }
 
+    const fetchTableInfo = async () => {
+       if (order.tableId) {
+         try {
+           const table = await TableService.getTableById(order.tableId)
+           setTableInfo(table)
+         } catch (error) {
+           console.error("Erro ao buscar informações da mesa:", error)
+         }
+       }
+     }
+
     // Gerar um salmo aleatório
     setSalmo(getSalmoAleatorio())
 
     fetchStoreConfig()
-  }, [])
+    fetchTableInfo()
+  }, [order.tableId])
 
   // Função para normalizar texto especificamente para impressão térmica
   const normalizeForThermalPrint = (text: string): string => {
@@ -526,19 +540,22 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       doc.text(order.customerPhone, margin, yPos)
       yPos += 10
 
-      // Endereço
-      doc.setFont("helvetica", "bold")
-      doc.text("ENDEREÇO", margin, yPos)
-      yPos += 5
-      doc.setFont("courier", "normal")
-      
       // Verificar se é pedido de mesa
-        if (order.orderType === 'table' || order.tableId) {
-          const tableNumber = order.tableId
-          const formattedTableNumber = tableNumber ? String(tableNumber).padStart(2, '0') : '00'
-          doc.text(`Tipo: ${order.tableName || `Mesa ${formattedTableNumber}`}`, margin, yPos)
-          yPos += 5
+      if (order.orderType === 'table' || order.tableId) {
+        // Para pedidos de mesa, usar "TIPO:" em negrito
+        doc.setFont("courier", "bold")
+        doc.text("TIPO:", margin, yPos)
+        yPos += 5
+        doc.setFont("courier", "normal")
+        const tableDisplayName = order.tableName || (tableInfo ? tableInfo.name : `Mesa ${String(order.tableId || 0).padStart(2, '0')}`)
+        doc.text(tableDisplayName, margin, yPos)
+        yPos += 5
       } else {
+        // Para delivery, manter "ENDEREÇO"
+        doc.setFont("helvetica", "bold")
+        doc.text("ENDEREÇO", margin, yPos)
+        yPos += 5
+        doc.setFont("courier", "normal")
         // Tipo de endereço para delivery
         if (order.address.addressType) {
           let addressTypeText = ""
@@ -815,11 +832,13 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           </div>
 
           <div className="section">
-            <div className="section-title" style={{ fontFamily: 'Arial, sans-serif' }}>ENDEREÇO</div>
+            <div className="section-title" style={{ fontFamily: 'Arial, sans-serif' }}>
+              {order.orderType === 'table' || order.tableId ? 'TIPO' : 'ENDEREÇO'}
+            </div>
             {/* Verificar se é pedido de mesa */}
             {order.orderType === 'table' || order.tableId ? (
               <div>
-                Tipo: {order.tableName || `Mesa ${String(order.tableId || 0).padStart(2, '0')}`}
+                {tableInfo ? tableInfo.name : `Mesa ${String(order.tableId || 0).padStart(2, '0')}`}
               </div>
             ) : (
               <>

@@ -34,15 +34,16 @@ export function getCurrentStoreId(): string {
     return DEFAULT_STORE_ID
   }
 
-  // Verificar se há um ID de loja armazenado no localStorage
+  // CORREÇÃO: Sempre usar o store_id padrão para evitar problemas de FK
+  // Limpar qualquer store_id incorreto do localStorage
   const storedStoreId = localStorage.getItem("currentStoreId")
-
-  // Se existir e for um UUID válido, retornar
-  if (storedStoreId && isValidUUID(storedStoreId)) {
-    return storedStoreId
+  if (storedStoreId && storedStoreId !== DEFAULT_STORE_ID) {
+    console.warn("Store ID incorreto encontrado no localStorage:", storedStoreId)
+    console.warn("Corrigindo para o store_id padrão:", DEFAULT_STORE_ID)
+    localStorage.setItem("currentStoreId", DEFAULT_STORE_ID)
   }
 
-  // Caso contrário, usar o ID padrão e armazená-lo
+  // Sempre garantir que o localStorage tenha o ID correto
   localStorage.setItem("currentStoreId", DEFAULT_STORE_ID)
   return DEFAULT_STORE_ID
 }

@@ -36,6 +36,7 @@ export const OrderService = {
         notified: Boolean(order.notified),
         orderType: (order.order_type as OrderType) || 'delivery',
         tableId: order.table_id ? Number(order.table_id) : undefined,
+        tableName: order.table_name ? String(order.table_name) : undefined,
       }))
     } catch (error) {
       console.error("Erro ao buscar pedidos:", error)
@@ -75,6 +76,7 @@ export const OrderService = {
         notified: Boolean(order.notified),
         orderType: (order.order_type as OrderType) || 'delivery',
         tableId: order.table_id ? Number(order.table_id) : undefined,
+        tableName: order.table_name ? String(order.table_name) : undefined,
       }))
     } catch (error) {
       console.error(`Erro ao buscar pedidos com status ${status}:`, error)
@@ -118,6 +120,7 @@ export const OrderService = {
         notified: Boolean(data.notified),
         orderType: (data.order_type as OrderType) || 'delivery',
         tableId: data.table_id ? Number(data.table_id) : undefined,
+        tableName: data.table_name ? String(data.table_name) : undefined,
       }
     } catch (error) {
       console.error(`Erro ao buscar pedido ${id}:`, error)
@@ -147,6 +150,7 @@ export const OrderService = {
         store_id: DEFAULT_STORE_ID, // Store ID padrão obrigatório
         order_type: order.orderType || 'delivery', // Incluir tipo do pedido
         table_id: order.tableId || null, // Incluir ID da mesa se for pedido de mesa
+        table_name: order.tableName || null, // Incluir nome da mesa se for pedido de mesa
       }
 
       const { data, error } = await supabase
@@ -189,6 +193,7 @@ export const OrderService = {
         notified: Boolean(data.notified),
         orderType: (data.order_type as OrderType) || 'delivery',
         tableId: data.table_id ? Number(data.table_id) : undefined,
+        tableName: data.table_name ? String(data.table_name) : undefined,
       }
 
       return { data: result, error: null }
@@ -405,6 +410,7 @@ export const OrderService = {
         notified: Boolean(order.notified),
         orderType: (order.order_type as OrderType) || 'delivery',
         tableId: order.table_id ? Number(order.table_id) : undefined,
+        tableName: order.table_name ? String(order.table_name) : undefined,
       }))
     } catch (error) {
       console.error(`Erro ao buscar pedidos do tipo ${orderType}:`, error)
@@ -455,6 +461,7 @@ export const OrderService = {
         notified: Boolean(order.notified),
         orderType: (order.order_type as OrderType) || 'delivery',
         tableId: order.table_id ? Number(order.table_id) : undefined,
+        tableName: order.table_name ? String(order.table_name) : undefined,
       }))
     } catch (error) {
       console.error(`Erro ao buscar pedidos da mesa ${tableId}:`, error)
