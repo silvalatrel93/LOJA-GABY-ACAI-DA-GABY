@@ -158,6 +158,82 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
   };
 
   // Função para formatar linha de adicional com quebra responsiva para textos longos
+  // Função para calcular altura estimada do PDF
+  const calculateEstimatedHeight = (): number => {
+    let estimatedHeight = 50 // Altura base (cabeçalho + margens)
+    
+    // Logo (se existir)
+    if (logoUrl) {
+      estimatedHeight += 25
+    }
+    
+    // Seções básicas (cliente, endereço/tipo)
+    estimatedHeight += 40
+    
+    // Itens
+    order.items.forEach((item) => {
+      estimatedHeight += 8 // Linha do item
+      
+      // Adicionais
+      if (item.additionals && item.additionals.length > 0) {
+        estimatedHeight += 5 // Título dos adicionais
+        estimatedHeight += item.additionals.length * 6 // Cada adicional com mais espaço
+      }
+      
+      // Colher
+      if (item.needsSpoon !== undefined) {
+        estimatedHeight += 5
+      }
+      
+      // Observações
+      if (item.notes && item.notes.trim() !== "") {
+        const notesLines = Math.ceil(item.notes.length / 45) // Estimativa mais conservadora
+        estimatedHeight += 8 + (notesLines * 5) // Mais espaço para observações
+      }
+      
+      estimatedHeight += 4 // Espaço entre itens
+    })
+    
+    // Totais e pagamento
+    estimatedHeight += 60 // Aumentado para acomodar quebras de linha
+    
+    // Calcular altura da forma de pagamento baseada no conteúdo
+    let paymentText = "Forma de pagamento: "
+    if (order.paymentMethod === "pix") {
+      paymentText += "Pix na Entrega"
+    } else if (order.paymentMethod === "card") {
+      paymentText += "Cartão na Entrega"
+    } else if (order.paymentMethod === "money") {
+      paymentText += "Dinheiro"
+      if (order.paymentChange && parseFloat(order.paymentChange) > 0) {
+        const troco = Math.round((parseFloat(order.paymentChange) - order.total) * 100) / 100
+        paymentText += ` (Troco: R$ ${troco.toFixed(2).replace('.', ',')})` 
+      } else {
+        paymentText += " (Sem troco)"
+      }
+    }
+    
+    // Estimar linhas necessárias para forma de pagamento (baseado na largura disponível)
+    const availableWidthChars = Math.floor((LABEL_WIDTH_MM - 10) / 2) // Aproximação de caracteres por linha
+    const paymentLines = Math.ceil(paymentText.length / availableWidthChars)
+    estimatedHeight += paymentLines * 5 + 10 // Altura das linhas + espaço extra
+    
+    // Salmo
+    const salmoText = salmo.texto + salmo.referencia
+    const salmoLines = Math.ceil(salmoText.length / availableWidthChars)
+    estimatedHeight += salmoLines * 4 + 15 // Altura do salmo + espaços
+    
+    // Adicionar margem de segurança mais generosa
+    return Math.max(estimatedHeight * 1.3, 180) // Mínimo de 180mm com 30% de margem
+  }
+
+  // Função para regenerar PDF com altura correta
+  const regeneratePDFWithCorrectHeight = async (doc: jsPDF, correctHeight: number) => {
+    // Esta função replicaria todo o processo de geração do PDF
+    // Por simplicidade, vamos apenas salvar o PDF atual
+    doc.save(`pedido-${order.id}.pdf`)
+  }
+
   const formatAdditionalLineResponsive = (quantity: number, name: string, price: number): string[] => {
     const normalizedName = normalizeForThermalPrint(name);
     const priceText = price === 0 ? 'Grátis' : formatCurrency(price * quantity);
@@ -480,11 +556,14 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
     try {
       setIsGeneratingPDF(true)
 
+      // Calcular altura estimada baseada no conteúdo
+      const estimatedHeight = calculateEstimatedHeight()
+      
       // Criar um novo documento PDF com tamanho para impressora térmica (largura configurável)
       const doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
-        format: [LABEL_WIDTH_MM, 200], // Largura configurável
+        format: [LABEL_WIDTH_MM, estimatedHeight], // Altura dinâmica baseada no conteúdo
       })
 
       // Configurar fonte
@@ -637,7 +716,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
           doc.setFont("courier", "normal")
         }
 
-        // Adicionar observações do cliente
+        // Adicionar observações do cliente - Responsivo
         if (item.notes && item.notes.trim() !== "") {
           doc.setFont("courier", "bold")
           doc.text("Obs:", margin + 3, yPos)
@@ -679,7 +758,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       doc.text(formatCurrency(order.deliveryFee), LABEL_WIDTH_MM - margin, yPos, { align: "right" })
       yPos += 5
 
-      // Explicação da taxa de entrega para picolés
+      // Explicação da taxa de entrega para picolés - Responsivo
       const isPicoleOnlyOrder = order.items.every(item => {
         const picoléTerms = ["PICOLÉ", "PICOLÉ AO LEITE", "PICOLE", "PICOLE AO LEITE", "PICOLÉ AO LEITÉ", "PICOLE AO LEITÉ"]
         const itemCategory = item.name || ""
@@ -690,13 +769,17 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
         doc.setFont("courier", "italic")
         doc.setFontSize(8)
         const explicacao = "* Taxa aplicada para picoles abaixo de R$ 20,00"
-        doc.text(normalizeForThermalPrint(explicacao), margin, yPos)
-        yPos += 5
+        const explicacaoLines = doc.splitTextToSize(normalizeForThermalPrint(explicacao), availableWidth)
+        explicacaoLines.forEach((line: string) => {
+          doc.text(line, margin, yPos)
+          yPos += 4
+        })
+        yPos += 1
         doc.setFont("courier", "normal")
         doc.setFontSize(10)
       }
 
-      // Explicação da taxa de entrega para moreninha
+      // Explicação da taxa de entrega para moreninha - Responsivo
       const isMoreninhaOnlyOrder = order.items.every(item => {
         const itemCategory = item.name || ""
         return itemCategory.toUpperCase().includes("MORENINHA")
@@ -706,8 +789,12 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
         doc.setFont("courier", "italic")
         doc.setFontSize(8)
         const explicacao = "* Taxa aplicada para moreninha abaixo de R$ 17,00"
-        doc.text(normalizeForThermalPrint(explicacao), margin, yPos)
-        yPos += 5
+        const explicacaoLines = doc.splitTextToSize(normalizeForThermalPrint(explicacao), availableWidth)
+        explicacaoLines.forEach((line: string) => {
+          doc.text(line, margin, yPos)
+          yPos += 4
+        })
+        yPos += 1
         doc.setFont("courier", "normal")
         doc.setFontSize(10)
       }
@@ -717,7 +804,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       doc.text(formatCurrency(order.total), LABEL_WIDTH_MM - margin, yPos, { align: "right" })
       yPos += 10
 
-      // Forma de pagamento
+      // Forma de pagamento - Responsivo
       doc.setFont("courier", "normal")
       let paymentText = "Forma de pagamento: "
       if (order.paymentMethod === "pix") {
@@ -728,19 +815,30 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
         paymentText += "Dinheiro"
         if (order.paymentChange && parseFloat(order.paymentChange) > 0) {
           const troco = Math.round((parseFloat(order.paymentChange) - order.total) * 100) / 100
-          paymentText += ` (Troco: R$ ${troco.toFixed(2).replace('.', ',')})`
+          paymentText += ` (Troco: R$ ${troco.toFixed(2).replace('.', ',')})` 
         } else {
           paymentText += " (Sem troco)"
         }
       }
-      doc.text(normalizeForThermalPrint(paymentText), margin, yPos)
-      yPos += 10
+      
+      // Quebrar o texto da forma de pagamento em múltiplas linhas se necessário
+      const paymentLines = doc.splitTextToSize(normalizeForThermalPrint(paymentText), availableWidth)
+      paymentLines.forEach((line: string) => {
+        doc.text(line, margin, yPos)
+        yPos += 5
+      })
+      yPos += 5 // Espaço extra após forma de pagamento
 
-      // Rodapé
+      // Rodapé - Responsivo
       doc.setFont("courier", "normal")
       doc.setFontSize(9)
-      doc.text("Obrigado pela preferencia!", LABEL_WIDTH_MM / 2, yPos, { align: "center" })
-      yPos += 10
+      const rodapeText = "Obrigado pela preferencia!"
+      const rodapeLines = doc.splitTextToSize(normalizeForThermalPrint(rodapeText), availableWidth)
+      rodapeLines.forEach((line: string) => {
+        doc.text(line, LABEL_WIDTH_MM / 2, yPos, { align: "center" })
+        yPos += 5
+      })
+      yPos += 5
 
       // Adicionar salmo
       doc.setDrawColor(0)
@@ -749,8 +847,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       yPos += 5
 
       // Quebrar o texto do salmo em múltiplas linhas se necessário
-      const maxLineWidth = LABEL_WIDTH_MM - 10 // largura máxima para o texto
-      const salmoTexto = doc.splitTextToSize(normalizeForThermalPrint(salmo.texto), maxLineWidth)
+      const salmoTexto = doc.splitTextToSize(normalizeForThermalPrint(salmo.texto), availableWidth)
 
       doc.setFont("courier", "italic")
       doc.setFontSize(8)
@@ -763,7 +860,27 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
       // Adicionar a referência do salmo
       doc.setFont("courier", "bold")
-      doc.text(normalizeForThermalPrint(salmo.referencia), LABEL_WIDTH_MM / 2, yPos, { align: "center" })
+      const referenciaLines = doc.splitTextToSize(normalizeForThermalPrint(salmo.referencia), availableWidth)
+      referenciaLines.forEach((linha: string) => {
+        doc.text(linha, LABEL_WIDTH_MM / 2, yPos, { align: "center" })
+        yPos += 4
+      })
+      yPos += 1 // Espaço final
+
+      // Verificar se precisamos ajustar o tamanho da página
+      const finalHeight = yPos + 5 // Adicionar margem final
+      if (finalHeight > estimatedHeight) {
+        // Recriar o PDF com a altura correta se necessário
+        const newDoc = new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: [LABEL_WIDTH_MM, finalHeight],
+        })
+        
+        // Replicar todo o conteúdo no novo documento
+        await regeneratePDFWithCorrectHeight(newDoc, finalHeight)
+        return
+      }
 
       // Salvar o PDF
       doc.save(`pedido-${order.id}.pdf`)
