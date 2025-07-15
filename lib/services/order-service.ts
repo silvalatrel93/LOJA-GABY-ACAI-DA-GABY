@@ -1,6 +1,7 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Order, OrderStatus, OrderType } from "../types"
 import { DEFAULT_STORE_ID } from "../constants"
+import { NotificationService } from "./notification-service"
 
 export const OrderService = {
   // Obter todos os pedidos
@@ -194,6 +195,14 @@ export const OrderService = {
         orderType: (data.order_type as OrderType) || 'delivery',
         tableId: data.table_id ? Number(data.table_id) : undefined,
         tableName: data.table_name ? String(data.table_name) : undefined,
+      }
+
+      // Criar notificação e enviar push notification para administradores
+      try {
+        await NotificationService.createOrderNotification(result)
+      } catch (notificationError) {
+        console.error("Erro ao criar notificação do pedido:", notificationError)
+        // Não falhar a criação do pedido se a notificação falhar
       }
 
       return { data: result, error: null }

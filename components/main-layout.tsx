@@ -6,7 +6,7 @@ import Image from "next/image"
 import { Menu } from "lucide-react"
 import { CartProvider } from "@/lib/cart-context"
 import HeroCarousel from "@/components/hero-carousel"
-import NotificationBell from "@/components/notification-bell"
+
 import SideMenu from "@/components/side-menu"
 import type { CarouselSlide } from "@/lib/services/carousel-service"
 import type { StoreConfig } from "@/lib/types"
@@ -93,7 +93,7 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
               <Link href="/" className="flex items-center">
                 {storeConfig?.logoUrl && (
                   <div className="relative w-8 h-8 sm:w-10 sm:h-10 mr-2 transition-all duration-300 ease-in-out transform hover:scale-110">
-                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white/20 shadow-sm">
+                    <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white/20 shadow-sm">
                       <Image
                         src={storeConfig.logoUrl || "/placeholder.svg"}
                         alt={`Logo ${storeConfig.name || "Heai Açai e Sorvetes"}`}
@@ -110,7 +110,7 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <NotificationBell />
+              {/* Sino de notificações removido - agora está no painel admin */}
             </div>
           </div>
         </header>

@@ -35,13 +35,9 @@ function TablePricingManager({ product, onUpdate }: TablePricingManagerProps) {
     setHasChanges(true)
   }
 
-  const updateTableSize = (index: number, field: keyof ProductSize, value: string | number) => {
+  const updateTableSize = (index: number, field: keyof ProductSize, value: any) => {
     const updated = [...tableSizes]
-    if (field === 'price') {
-      updated[index] = { ...updated[index], [field]: Number(value) }
-    } else {
-      updated[index] = { ...updated[index], [field]: value }
-    }
+    updated[index] = { ...updated[index], [field]: value }
     setTableSizes(updated)
     setHasChanges(true)
   }
@@ -155,41 +151,94 @@ function TablePricingManager({ product, onUpdate }: TablePricingManagerProps) {
           ) : (
             <div className="space-y-3">
               {tableSizes.map((size, index) => (
-                <div key={index} className="flex gap-3 items-end">
-                  <div className="flex-1">
-                    <Label htmlFor={`table-size-name-${index}`}>Nome</Label>
-                    <Input
-                      id={`table-size-name-${index}`}
-                      value={size.size}
-                      onChange={(e) => updateTableSize(index, 'size', e.target.value)}
-                      placeholder="Ex: Pequeno, Médio, Grande"
-                    />
+                <div key={index} className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                    {/* Tamanho */}
+                    <div className="md:col-span-3">
+                      <Label className="block text-xs text-gray-500 mb-1 font-medium">Tamanho</Label>
+                      <Input
+                        value={size.size}
+                        onChange={(e) => updateTableSize(index, 'size', e.target.value)}
+                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Ex: 500ml"
+                      />
+                    </div>
+
+                    {/* Preço */}
+                    <div className="md:col-span-4">
+                      <Label className="block text-xs text-gray-500 mb-1 font-medium">Preço</Label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="text-gray-500 text-sm">R$</span>
+                        </div>
+                        <Input
+                          type="number"
+                          value={size.price === 0 ? '' : size.price}
+                          onChange={(e) => updateTableSize(index, 'price', e.target.value)}
+                          className="w-full pl-8 pr-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="0,00"
+                          step="0.01"
+                          min="0"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Limite de adicionais */}
+                    <div className="md:col-span-3">
+                      <Label className="block text-xs text-gray-500 mb-1 font-medium whitespace-nowrap">Limite de adicionais</Label>
+                      <Input
+                        type="number"
+                        value={size.additionalsLimit || ''}
+                        onChange={(e) => updateTableSize(index, 'additionalsLimit', e.target.value ? parseInt(e.target.value) : undefined)}
+                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Vazio = sem limite"
+                        min="0"
+                        max="20"
+                      />
+                    </div>
+
+                    {/* Botão remover */}
+                    <div className="md:col-span-2 flex justify-center">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeTableSize(index)}
+                        className="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer"
+                        title="Remover tamanho"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <Label htmlFor={`table-size-price-${index}`}>Preço (R$)</Label>
-                    <Input
-                      id={`table-size-price-${index}`}
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={size.price}
-                      onChange={(e) => updateTableSize(index, 'price', e.target.value)}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeTableSize(index)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
                 </div>
               ))}
             </div>
           )}
         </div>
+
+        {/* Informações sobre limites de adicionais */}
+        {tableSizes.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center mb-2">
+              <div className="w-4 h-4 text-blue-600 mr-2">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h4 className="text-sm font-medium text-blue-800">Sistema de Limites para Mesa</h4>
+            </div>
+            <p className="text-xs text-blue-700 mb-2">
+              Configure o limite de adicionais individualmente para cada tamanho da mesa.
+              Este limite será aplicado apenas no sistema de mesa.
+            </p>
+            <div className="text-xs text-blue-600">
+              • <strong>Vazio</strong> = sem limite de adicionais<br/>
+              • <strong>Número</strong> = limite específico para aquele tamanho<br/>
+              • <strong>Recomendado</strong> = 5 adicionais por tamanho
+            </div>
+          </div>
+        )}
 
         {/* Botão de salvar */}
         {hasChanges && (

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
 import { ArrowLeft, Users, Clock, RefreshCw, Check, X, Eye, Printer, QrCode, AlertCircle, Bell, BellOff, Trash2 } from "lucide-react"
+import AdminNotificationBell from "@/components/admin/admin-notification-bell"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -711,6 +712,7 @@ export default function PedidosMesaPage() {
               </div>
               {/* Botões de controle - ocultos em mobile, mostrados em tablet+ */}
               <div className="hidden sm:flex items-center space-x-2">
+              <AdminNotificationBell />
               <Button
                 onClick={() => {
                   const newSoundState = !isSoundEnabled;
@@ -817,6 +819,7 @@ export default function PedidosMesaPage() {
             
             {/* Botões de controle mobile */}
             <div className="flex sm:hidden items-center justify-center space-x-2 mt-2">
+              <AdminNotificationBell />
               <Button
                 onClick={() => {
                   const newSoundState = !isSoundEnabled;

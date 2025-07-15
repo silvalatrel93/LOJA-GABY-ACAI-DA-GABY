@@ -440,6 +440,7 @@ function applyTablePricesIfNeeded(products: Product[]): Product[] {
       console.log(`🍽️ ✅ Aplicando preços de mesa para: ${product.name}`)
       console.log(`📦 Preço delivery: R$ ${product.sizes[0]?.price}`)
       console.log(`🍽️ Preço mesa: R$ ${product.tableSizes[0]?.price}`)
+      console.log(`📊 Limites de adicionais para mesa:`, product.tableSizes.map(s => `${s.size}: ${s.additionalsLimit || 'sem limite'}`).join(', '))
       
       // Aplicar os preços de mesa substituindo os preços padrão
       return {

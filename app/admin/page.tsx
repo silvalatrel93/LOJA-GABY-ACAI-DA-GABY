@@ -45,6 +45,7 @@ import {
 import type { AdditionalCategory } from "@/lib/services/additional-category-service"
 import { formatCurrency } from "@/lib/utils"
 import { createSafeKey } from "@/lib/key-utils";
+import AdminNotificationBell from "@/components/admin/admin-notification-bell";
 
 export default function AdminPage() {
   const router = useRouter()
@@ -382,6 +383,7 @@ export default function AdminPage() {
             </h1>
           </div>
           <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+            <AdminNotificationBell />
             <button
               onClick={() => window.location.reload()}
               className="bg-white/10 hover:bg-white/20 p-1.5 sm:p-2 rounded-lg transition-colors"
