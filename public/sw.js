@@ -37,8 +37,18 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
+    }).then(() => {
+      // Assumir controle de todas as páginas imediatamente
+      return self.clients.claim();
     })
   );
+});
+
+// Lidar com mensagens do cliente
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Estratégia de cache: Network First, fallback para cache

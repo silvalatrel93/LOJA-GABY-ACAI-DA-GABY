@@ -160,8 +160,29 @@ export function usePushNotifications() {
         const existingRegistrations = await navigator.serviceWorker.getRegistrations();
         
         if (existingRegistrations.length > 0) {
-          // Usar o primeiro service worker existente
+          // Verificar se o service worker está ativo
           const existingReg = existingRegistrations[0];
+          
+          // Aguardar o service worker ficar ativo se necessário
+          if (existingReg.installing) {
+            logInfo('Service Worker está sendo instalado, aguardando...');
+            await new Promise((resolve) => {
+              existingReg.installing!.addEventListener('statechange', () => {
+                if (existingReg.installing!.state === 'activated') {
+                  resolve(void 0);
+                }
+              });
+            });
+          }
+          
+          if (existingReg.waiting) {
+            logInfo('Service Worker está aguardando, ativando...');
+            existingReg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            await new Promise((resolve) => {
+              navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+            });
+          }
+          
           if (isMounted) {
             updateState({ 
               registration: existingReg,
@@ -173,6 +194,19 @@ export function usePushNotifications() {
           // Registrar novo service worker com retry em caso de falha
           try {
             const registration = await navigator.serviceWorker.register('/sw.js');
+            
+            // Aguardar o service worker ficar ativo
+            if (registration.installing) {
+              logInfo('Aguardando Service Worker ser instalado...');
+              await new Promise((resolve) => {
+                registration.installing!.addEventListener('statechange', () => {
+                  if (registration.installing!.state === 'activated') {
+                    resolve(void 0);
+                  }
+                });
+              });
+            }
+            
             if (isMounted) {
               updateState({ 
                 registration,
@@ -187,6 +221,18 @@ export function usePushNotifications() {
             setTimeout(async () => {
               try {
                 const registration = await navigator.serviceWorker.register('/sw.js');
+                
+                // Aguardar o service worker ficar ativo
+                if (registration.installing) {
+                  await new Promise((resolve) => {
+                    registration.installing!.addEventListener('statechange', () => {
+                      if (registration.installing!.state === 'activated') {
+                        resolve(void 0);
+                      }
+                    });
+                  });
+                }
+                
                 if (isMounted) {
                   updateState({ 
                     registration,
@@ -294,6 +340,38 @@ export function usePushNotifications() {
     if (!state.registration) {
       logDebug('Não foi possível se inscrever: Service Worker não registrado');
       return null;
+    }
+
+    // Verificar se o service worker está ativo
+    if (!state.registration.active) {
+      logWarn('Service Worker não está ativo, aguardando ativação...');
+      
+      // Aguardar o service worker ficar ativo
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Timeout aguardando Service Worker ficar ativo'));
+        }, 10000); // 10 segundos de timeout
+        
+        if (state.registration!.installing) {
+          state.registration!.installing.addEventListener('statechange', () => {
+            if (state.registration!.installing!.state === 'activated') {
+              clearTimeout(timeout);
+              resolve(void 0);
+            }
+          });
+        } else if (state.registration!.waiting) {
+          state.registration!.waiting.addEventListener('statechange', () => {
+            if (state.registration!.waiting!.state === 'activated') {
+              clearTimeout(timeout);
+              resolve(void 0);
+            }
+          });
+        } else {
+          // Se não há installing nem waiting, pode ser que já esteja ativo
+          clearTimeout(timeout);
+          resolve(void 0);
+        }
+      });
     }
 
     try {
