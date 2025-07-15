@@ -10,7 +10,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { OrderService } from "@/lib/services/order-service"
 import { TableService } from "@/lib/services/table-service"
-import { updateOrderStatus } from "@/lib/db"
+import { updateOrderStatus, markOrderAsPrinted } from "@/lib/db"
+import OrderLabelPrinter from "@/components/order-label-printer"
 import { formatCurrency } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -31,6 +32,8 @@ export default function PedidosMesaPage() {
   const [newOrdersCount, setNewOrdersCount] = useState(0)
   const [newOrdersData, setNewOrdersData] = useState<Order[]>([])
   const [showSoundActivationMessage, setShowSoundActivationMessage] = useState(false)
+  const [selectedOrderForPrint, setSelectedOrderForPrint] = useState<Order | null>(null)
+  const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false)
 
   const { playSound } = useNotificationSound()
   const prevOrdersRef = useRef<Order[]>([])
@@ -324,6 +327,19 @@ export default function PedidosMesaPage() {
     try {
       await updateOrderStatus(orderId, newStatus)
       await loadOrders()
+      
+      // Se estiver aceitando um pedido (mudando de 'new' para 'preparing'), parar o som
+      if (newStatus === 'preparing') {
+        stopTableSound()
+        
+        // Verificar se não há mais pedidos novos para esconder a notificação
+        const remainingNewOrders = orders.filter(order => order.id !== orderId && order.status === 'new')
+        if (remainingNewOrders.length === 0) {
+          setShowNewOrderNotification(false)
+          setNewOrdersCount(0)
+          setNewOrdersData([])
+        }
+      }
     } catch (error) {
       console.error("Erro ao atualizar status:", error)
       alert("Erro ao atualizar status do pedido")
@@ -368,6 +384,24 @@ export default function PedidosMesaPage() {
       console.error('Erro ao deletar pedido:', error)
       alert('Erro ao deletar pedido. Tente novamente.')
     }
+  }
+
+  const handlePrintLabel = (order: Order) => {
+    setSelectedOrderForPrint(order)
+    setIsPrinterModalOpen(true)
+  }
+
+  const handlePrintComplete = async () => {
+    if (selectedOrderForPrint?.id) {
+      try {
+        await markOrderAsPrinted(selectedOrderForPrint.id)
+        await loadOrders(true)
+      } catch (error) {
+        console.error("Erro ao marcar pedido como impresso:", error)
+      }
+    }
+    setIsPrinterModalOpen(false)
+    setSelectedOrderForPrint(null)
   }
 
   // Função para aceitar os novos pedidos
@@ -476,71 +510,95 @@ export default function PedidosMesaPage() {
   const renderOrderCard = (order: Order) => (
     <Card key={order.id} className="mb-4">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="bg-purple-100 p-2 rounded-full">
-              <Users className="w-5 h-5 text-purple-600" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-3 min-w-0 flex-1">
+            <div className="bg-purple-100 p-2 rounded-full flex-shrink-0">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
             </div>
-            <div>
-              <CardTitle className="text-lg">
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-base sm:text-lg truncate">
                 {getTableName(order.tableId)}
               </CardTitle>
-              <p className="text-sm text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600 truncate">
                 Pedido #{order.id} • {order.customerName}
               </p>
             </div>
           </div>
-          <Badge className={`${getStatusColor(order.status)} ${order.status === 'new' ? 'flash-animation' : ''}`}>
-            {getStatusText(order.status)}
-          </Badge>
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            <Badge className={`${getStatusColor(order.status)} ${order.status === 'new' ? 'flash-animation' : ''} text-xs`}>
+              {getStatusText(order.status)}
+            </Badge>
+            {order.printed && (
+              <Badge className="bg-gray-100 text-gray-800 text-xs">
+                Impresso
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Total:</span>
-          <span className="font-semibold text-lg">{formatCurrency(order.total)}</span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+          <div className="flex items-center justify-between sm:flex-col sm:items-start">
+            <span className="text-gray-600">Total:</span>
+            <span className="font-semibold text-base sm:text-lg">{formatCurrency(order.total)}</span>
+          </div>
+
+          <div className="flex items-center justify-between sm:flex-col sm:items-start">
+            <span className="text-gray-600">Há:</span>
+            <span className="text-xs sm:text-sm">{formatDistanceToNow(order.date, { locale: ptBR })}</span>
+          </div>
+
+          <div className="flex items-center justify-between sm:flex-col sm:items-start">
+            <span className="text-gray-600">Pagamento:</span>
+            <span className="capitalize text-xs sm:text-sm">{order.paymentMethod}</span>
+          </div>
         </div>
 
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Há:</span>
-          <span>{formatDistanceToNow(order.date, { locale: ptBR })}</span>
-        </div>
+        <div className="space-y-2 mt-4">
+          {/* Primeira linha: Botões de ação secundária */}
+          <div className="flex gap-2">
+            <Button
+              onClick={() => handleViewDetails(order)}
+              variant="outline"
+              size="sm"
+              className="flex-1 text-xs sm:text-sm"
+            >
+              <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Detalhes</span>
+              <span className="sm:hidden">Ver</span>
+            </Button>
 
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Pagamento:</span>
-          <span className="capitalize">{order.paymentMethod}</span>
-        </div>
+            <Button
+              onClick={() => handlePrintLabel(order)}
+              variant="outline"
+              size="sm"
+              className={`${order.printed ? 'bg-gray-50 text-gray-500' : 'bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 hover:border-blue-300'} px-2 sm:px-3`}
+              title={order.printed ? "Já impresso" : "Imprimir etiqueta"}
+            >
+              <Printer className="w-3 h-3 sm:w-4 sm:h-4" />
+            </Button>
 
-        <div className="flex space-x-2 mt-4">
-          <Button
-            onClick={() => handleViewDetails(order)}
-            variant="outline"
-            size="sm"
-            className="flex-1"
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            Detalhes
-          </Button>
+            <Button
+              onClick={() => handleDeleteOrder(order.id)}
+              variant="outline"
+              size="sm"
+              className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200 hover:border-red-300 px-2 sm:px-3"
+              title="Excluir pedido"
+            >
+              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+            </Button>
+          </div>
 
-          <Button
-            onClick={() => handleDeleteOrder(order.id)}
-            variant="outline"
-            size="sm"
-            className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200 hover:border-red-300"
-            title="Excluir pedido"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-
+          {/* Segunda linha: Botão de status principal */}
           {order.status === 'new' && (
             <Button
               onClick={() => handleStatusChange(order.id, 'preparing')}
               disabled={updatingStatus}
               size="sm"
-              className="flex-1 pulse-button-animation"
+              className="w-full pulse-button-animation text-sm py-2"
             >
-              <Check className="w-4 h-4 mr-2" />
+              <Check className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               Aceitar
             </Button>
           )}
@@ -550,9 +608,9 @@ export default function PedidosMesaPage() {
               onClick={() => handleStatusChange(order.id, 'ready')}
               disabled={updatingStatus}
               size="sm"
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="w-full bg-green-600 hover:bg-green-700 text-sm py-2"
             >
-              <Check className="w-4 h-4 mr-2" />
+              <Check className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               Pronto
             </Button>
           )}
@@ -562,9 +620,9 @@ export default function PedidosMesaPage() {
               onClick={() => handleStatusChange(order.id, 'delivered')}
               disabled={updatingStatus}
               size="sm"
-              className="flex-1 bg-purple-600 hover:bg-purple-700"
+              className="w-full bg-purple-600 hover:bg-purple-700 text-sm py-2"
             >
-              <Check className="w-4 h-4 mr-2" />
+              <Check className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               Entregue
             </Button>
           )}
@@ -638,18 +696,21 @@ export default function PedidosMesaPage() {
       `}</style>
 
       <div className="min-h-screen bg-gray-50">
-        <header className="bg-gradient-to-r from-purple-700 via-purple-800 to-purple-900 text-white p-4 sticky top-0 z-10 shadow-lg">
-          <div className="container mx-auto flex items-center justify-between">
-            <div className="flex items-center">
-              <Link href="/admin" className="mr-4 hover:bg-white/10 p-2 rounded-lg transition-colors">
-                <ArrowLeft size={24} />
-              </Link>
+        <header className="bg-gradient-to-r from-purple-700 via-purple-800 to-purple-900 text-white p-3 sm:p-4 sticky top-0 z-10 shadow-lg">
+          <div className="container mx-auto">
+            {/* Header principal */}
+            <div className="flex items-center justify-between mb-2 sm:mb-0">
               <div className="flex items-center">
-                <Users size={20} className="text-white/90 mr-2" />
-                <h1 className="text-xl font-bold">Pedidos das Mesas</h1>
+                <Link href="/admin" className="mr-2 sm:mr-4 hover:bg-white/10 p-1.5 sm:p-2 rounded-lg transition-colors">
+                  <ArrowLeft size={20} className="sm:w-6 sm:h-6" />
+                </Link>
+                <div className="flex items-center">
+                  <Users size={16} className="text-white/90 mr-1 sm:mr-2 sm:w-5 sm:h-5" />
+                  <h1 className="text-lg sm:text-xl font-bold">Pedidos das Mesas</h1>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center space-x-2">
+              {/* Botões de controle - ocultos em mobile, mostrados em tablet+ */}
+              <div className="hidden sm:flex items-center space-x-2">
               <Button
                 onClick={() => {
                   const newSoundState = !isSoundEnabled;
@@ -705,50 +766,113 @@ export default function PedidosMesaPage() {
                 )}
               </Button>
               <Button
+                  onClick={() => {
+                    console.log('🧪 Teste manual do som iniciado...');
+                    if (audioRef.current) {
+                      console.log('🔍 Estado atual do áudio:', {
+                        readyState: audioRef.current.readyState,
+                        networkState: audioRef.current.networkState,
+                        src: audioRef.current.src,
+                        volume: audioRef.current.volume,
+                        paused: audioRef.current.paused,
+                        currentTime: audioRef.current.currentTime
+                      });
+                      audioRef.current.currentTime = 0;
+                      audioRef.current.play().then(() => {
+                        console.log('✅ Teste manual: Som reproduzido com sucesso');
+                        setTimeout(() => {
+                          if (audioRef.current) {
+                            audioRef.current.pause();
+                            audioRef.current.currentTime = 0;
+                            console.log('⏹️ Teste manual: Som parado');
+                          }
+                        }, 3000);
+                      }).catch(err => {
+                        console.error('❌ Teste manual: Erro ao reproduzir som:', err);
+                      });
+                    } else {
+                      console.log('❌ Teste manual: audioRef.current é null');
+                      startTableSound();
+                    }
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-100 border-blue-400/30 hidden sm:inline-flex"
+                  title="Teste manual do som"
+                >
+                  <span className="hidden md:inline">Teste Som</span>
+                  <span className="md:hidden">Teste</span>
+                </Button>
+                <Button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+            
+            {/* Botões de controle mobile */}
+            <div className="flex sm:hidden items-center justify-center space-x-2 mt-2">
+              <Button
                 onClick={() => {
-                  console.log('🧪 Teste manual do som iniciado...');
-                  if (audioRef.current) {
-                    console.log('🔍 Estado atual do áudio:', {
-                      readyState: audioRef.current.readyState,
-                      networkState: audioRef.current.networkState,
-                      src: audioRef.current.src,
-                      volume: audioRef.current.volume,
-                      paused: audioRef.current.paused,
-                      currentTime: audioRef.current.currentTime
-                    });
-                    audioRef.current.currentTime = 0;
-                    audioRef.current.play().then(() => {
-                      console.log('✅ Teste manual: Som reproduzido com sucesso');
-                      setTimeout(() => {
-                        if (audioRef.current) {
-                          audioRef.current.pause();
-                          audioRef.current.currentTime = 0;
-                          console.log('⏹️ Teste manual: Som parado');
-                        }
-                      }, 3000);
-                    }).catch(err => {
-                      console.error('❌ Teste manual: Erro ao reproduzir som:', err);
-                    });
+                  const newSoundState = !isSoundEnabled;
+                  setIsSoundEnabled(newSoundState);
+
+                  if (newSoundState) {
+                    stopTableSound();
+                    setTimeout(() => {
+                      if (audioRef.current) {
+                        audioRef.current.currentTime = 0;
+                        audioRef.current.play().then(() => {
+                          console.log('Teste de som executado com sucesso');
+                          setTimeout(() => {
+                            if (audioRef.current) {
+                              audioRef.current.pause();
+                              audioRef.current.currentTime = 0;
+                            }
+                          }, 2000);
+                        }).catch(err => {
+                          console.log('Som requer interação do usuário');
+                          setShowSoundActivationMessage(true);
+                        });
+                      }
+                    }, 100);
                   } else {
-                    console.log('❌ Teste manual: audioRef.current é null');
-                    startTableSound();
+                    stopTableSound();
                   }
                 }}
                 variant="outline"
                 size="sm"
-                className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-100 border-blue-400/30"
-                title="Teste manual do som"
+                className={`${isSoundEnabled
+                  ? 'bg-green-500/20 hover:bg-green-500/30 text-green-100 border-green-400/30'
+                  : 'bg-red-500/20 hover:bg-red-500/30 text-red-100 border-red-400/30'
+                  } transition-all duration-200 flex-1`}
               >
-                Teste Som
+                {isSoundEnabled ? (
+                  <div className="flex items-center space-x-1">
+                    <Bell className="w-4 h-4" />
+                    <span className="text-xs">ON</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-1">
+                    <BellOff className="w-4 h-4" />
+                    <span className="text-xs">OFF</span>
+                  </div>
+                )}
               </Button>
               <Button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
                 variant="outline"
                 size="sm"
-                className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                className="bg-white/10 hover:bg-white/20 text-white border-white/20 flex-1"
               >
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="text-xs">Atualizar</span>
               </Button>
             </div>
           </div>
@@ -883,11 +1007,12 @@ export default function PedidosMesaPage() {
           </div>
 
           {/* Filtros */}
-          <div className="flex space-x-2 mb-6" data-orders-section>
+          <div className="flex flex-wrap gap-2 mb-6" data-orders-section>
             <Button
               onClick={() => setFilter('all')}
               variant={filter === 'all' ? 'default' : 'outline'}
               size="sm"
+              className="flex-1 sm:flex-none min-w-0"
             >
               Todos
             </Button>
@@ -895,6 +1020,7 @@ export default function PedidosMesaPage() {
               onClick={() => setFilter('pending')}
               variant={filter === 'pending' ? 'default' : 'outline'}
               size="sm"
+              className="flex-1 sm:flex-none min-w-0"
             >
               Pendentes
             </Button>
@@ -902,6 +1028,7 @@ export default function PedidosMesaPage() {
               onClick={() => setFilter('ready')}
               variant={filter === 'ready' ? 'default' : 'outline'}
               size="sm"
+              className="flex-1 sm:flex-none min-w-0"
             >
               Prontos
             </Button>
@@ -909,6 +1036,7 @@ export default function PedidosMesaPage() {
               onClick={() => setFilter('completed')}
               variant={filter === 'completed' ? 'default' : 'outline'}
               size="sm"
+              className="flex-1 sm:flex-none min-w-0"
             >
               Concluídos
             </Button>
@@ -937,47 +1065,71 @@ export default function PedidosMesaPage() {
           )}
         </div>
 
+        {/* Modal de Impressão */}
+         {isPrinterModalOpen && selectedOrderForPrint && (
+           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+             <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-auto">
+               <div className="p-4 border-b">
+                 <h2 className="text-lg font-semibold text-purple-900">Imprimir Etiqueta</h2>
+               </div>
+
+               <div className="p-4">
+                 <OrderLabelPrinter order={selectedOrderForPrint} onPrintComplete={handlePrintComplete} />
+               </div>
+
+               <div className="p-4 border-t flex justify-end">
+                 <button
+                   onClick={() => setIsPrinterModalOpen(false)}
+                   className="px-4 py-2 border border-gray-300 rounded-md text-gray-700"
+                 >
+                   Fechar
+                 </button>
+               </div>
+             </div>
+           </div>
+         )}
+
         {/* Modal de Detalhes */}
         <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-base sm:text-lg">
                 Detalhes do Pedido #{selectedOrder?.id}
               </DialogTitle>
             </DialogHeader>
 
             {selectedOrder && (
-              <div className="space-y-6 pb-4">
+              <div className="space-y-4 sm:space-y-6 pb-4">
                 {/* Informações básicas */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Mesa</p>
-                    <p className="text-lg font-bold">{getTableName(selectedOrder.tableId)}</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-600">Mesa</p>
+                    <p className="text-base sm:text-lg font-bold">{getTableName(selectedOrder.tableId)}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Data/Hora</p>
-                    <p className="text-sm">{new Date(selectedOrder.date).toLocaleString('pt-BR')}</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-600">Data/Hora</p>
+                    <p className="text-xs sm:text-sm">{new Date(selectedOrder.date).toLocaleString('pt-BR')}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Status</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-600">Status</p>
                     <Badge className={getStatusColor(selectedOrder.status)}>
                       {getStatusText(selectedOrder.status)}
                     </Badge>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total</p>
-                    <p className="text-lg font-bold">{formatCurrency(selectedOrder.total)}</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-600">Total</p>
+                    <p className="text-base sm:text-lg font-bold">{formatCurrency(selectedOrder.total)}</p>
                   </div>
                 </div>
 
                 {/* Informações do cliente */}
-                <div className="border-t pt-4">
-                  <h4 className="font-medium text-sm text-gray-700 mb-3">Cliente</h4>
+                <div className="border-t pt-3 sm:pt-4">
+                  <h4 className="font-medium text-xs sm:text-sm text-gray-700 mb-2 sm:mb-3">Cliente</h4>
                   <div className="space-y-2">
-                    <p className="font-medium text-lg">{selectedOrder.customerName}</p>
+                    <p className="font-medium text-base sm:text-lg">{selectedOrder.customerName}</p>
                     {selectedOrder.customerPhone && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
                           <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                         </svg>
                         <span className="font-medium mr-2">Telefone:</span>
@@ -985,10 +1137,10 @@ export default function PedidosMesaPage() {
                       </div>
                     )}
                     {selectedOrder.customerPhone && (
-                      <div className="flex space-x-2 mt-2">
+                      <div className="flex flex-col sm:flex-row gap-2 mt-2">
                         <a
                           href={`tel:${selectedOrder.customerPhone}`}
-                          className="text-xs flex items-center text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded"
+                          className="text-xs flex items-center justify-center text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-2 rounded flex-1 sm:flex-none"
                           target="_blank"
                           rel="noopener noreferrer"
                         >
@@ -999,7 +1151,7 @@ export default function PedidosMesaPage() {
                         </a>
                         <a
                           href={`https://wa.me/55${selectedOrder.customerPhone.replace(/\D/g, '')}`}
-                          className="text-xs flex items-center text-green-600 hover:text-green-800 bg-green-50 px-2 py-1 rounded"
+                          className="text-xs flex items-center justify-center text-green-600 hover:text-green-800 bg-green-50 px-3 py-2 rounded flex-1 sm:flex-none"
                           target="_blank"
                           rel="noopener noreferrer"
                         >
@@ -1014,16 +1166,16 @@ export default function PedidosMesaPage() {
                 </div>
 
                 {/* Itens do pedido */}
-                <div className="border-t pt-4">
-                  <h4 className="font-medium text-sm text-gray-700 mb-3">Itens do Pedido</h4>
-                  <ul className="space-y-4">
+                <div className="border-t pt-3 sm:pt-4">
+                  <h4 className="font-medium text-xs sm:text-sm text-gray-700 mb-2 sm:mb-3">Itens do Pedido</h4>
+                  <ul className="space-y-3 sm:space-y-4">
                     {selectedOrder.items.map((item, index) => (
-                      <li key={index} className="border-b pb-3 last:border-b-0">
+                      <li key={index} className="border-b pb-2 sm:pb-3 last:border-b-0">
                         <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                          <span className="font-medium">
-                            {item.quantity}x {item.name} <span className="text-sm text-gray-600">({item.size})</span>
+                          <span className="font-medium text-sm sm:text-base">
+                            {item.quantity}x {item.name} <span className="text-xs sm:text-sm text-gray-600">({item.size})</span>
                           </span>
-                          <span className="text-right sm:text-left font-medium">{formatCurrency(item.price * item.quantity)}</span>
+                          <span className="text-right sm:text-left font-medium text-sm sm:text-base">{formatCurrency(item.price * item.quantity)}</span>
                         </div>
 
                         {item.additionals && item.additionals.length > 0 && (
@@ -1081,27 +1233,27 @@ export default function PedidosMesaPage() {
                 </div>
 
                 {/* Informações de pagamento */}
-                <div className="border-t pt-4">
-                  <h4 className="font-medium text-sm text-gray-700 mb-3">Pagamento</h4>
+                <div className="border-t pt-3 sm:pt-4">
+                  <h4 className="font-medium text-xs sm:text-sm text-gray-700 mb-2 sm:mb-3">Pagamento</h4>
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
-                      <span className="text-gray-700">Método:</span>
-                      <span className="text-right font-medium">{selectedOrder.paymentMethod}</span>
+                      <span className="text-gray-700 text-xs sm:text-sm">Método:</span>
+                      <span className="text-right font-medium text-xs sm:text-sm">{selectedOrder.paymentMethod}</span>
 
-                      <span className="text-gray-700">Subtotal:</span>
-                      <span className="text-right font-medium">{formatCurrency(selectedOrder.subtotal)}</span>
+                      <span className="text-gray-700 text-xs sm:text-sm">Subtotal:</span>
+                      <span className="text-right font-medium text-xs sm:text-sm">{formatCurrency(selectedOrder.subtotal)}</span>
 
-                      <span className="text-gray-700">Taxa de entrega:</span>
-                      <span className="text-right font-medium text-green-600">R$ 0,00 (Mesa)</span>
+                      <span className="text-gray-700 text-xs sm:text-sm">Taxa de entrega:</span>
+                      <span className="text-right font-medium text-green-600 text-xs sm:text-sm">R$ 0,00 (Mesa)</span>
 
                       {selectedOrder.paymentChange && parseFloat(selectedOrder.paymentChange) > 0 && (
                         <>
-                          <span className="text-gray-700">Pago com:</span>
-                          <span className="text-right font-medium">
+                          <span className="text-gray-700 text-xs sm:text-sm">Pago com:</span>
+                          <span className="text-right font-medium text-xs sm:text-sm">
                             {formatCurrency(parseFloat(selectedOrder.paymentChange))}
                           </span>
-                          <span className="text-green-700 font-semibold">Troco:</span>
-                          <span className="text-right text-green-700 font-semibold">
+                          <span className="text-green-700 font-semibold text-xs sm:text-sm">Troco:</span>
+                          <span className="text-right text-green-700 font-semibold text-xs sm:text-sm">
                             {formatCurrency(Math.round((parseFloat(selectedOrder.paymentChange) - selectedOrder.total) * 100) / 100)}
                           </span>
                         </>
@@ -1110,9 +1262,9 @@ export default function PedidosMesaPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center pt-4 border-t">
-                  <p className="text-lg font-bold">Total</p>
-                  <p className="text-lg font-bold">{formatCurrency(selectedOrder.total)}</p>
+                <div className="flex justify-between items-center pt-3 sm:pt-4 border-t">
+                  <p className="text-base sm:text-lg font-bold">Total</p>
+                  <p className="text-base sm:text-lg font-bold">{formatCurrency(selectedOrder.total)}</p>
                 </div>
               </div>
             )}

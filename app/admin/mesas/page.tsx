@@ -248,71 +248,71 @@ export default function MesasAdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-gradient-to-r from-purple-700 via-purple-800 to-purple-900 text-white p-4 sticky top-0 z-10 shadow-lg">
+      <header className="bg-gradient-to-r from-purple-700 via-purple-800 to-purple-900 text-white p-3 sm:p-4 sticky top-0 z-10 shadow-lg">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center">
-            <Link href="/admin" className="mr-4 hover:bg-white/10 p-2 rounded-lg transition-colors">
-              <ArrowLeft size={24} />
+            <Link href="/admin" className="mr-3 sm:mr-4 hover:bg-white/10 p-1.5 sm:p-2 rounded-lg transition-colors">
+              <ArrowLeft size={20} className="sm:w-6 sm:h-6" />
             </Link>
-            <h1 className="text-xl font-bold">Gerenciar Mesas</h1>
+            <h1 className="text-lg sm:text-xl font-bold">Gerenciar Mesas</h1>
           </div>
           <Button
             onClick={handleAddNew}
-            className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+            className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2"
           >
-            <Plus size={18} className="mr-2" />
-            Nova Mesa
+            <Plus size={16} className="sm:w-[18px] sm:h-[18px] sm:mr-2" />
+            <span className="hidden sm:inline">Nova Mesa</span>
           </Button>
         </div>
       </header>
 
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto p-3 sm:p-4">
         {/* Estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total de Mesas</p>
-                  <p className="text-2xl font-bold text-purple-600">{stats.total}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Total de Mesas</p>
+                  <p className="text-lg sm:text-2xl font-bold text-purple-600">{stats.total}</p>
                 </div>
-                <BarChart3 className="h-8 w-8 text-purple-600" />
+                <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Mesas Ativas</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Mesas Ativas</p>
+                  <p className="text-lg sm:text-2xl font-bold text-green-600">{stats.active}</p>
                 </div>
-                <Users className="h-8 w-8 text-green-600" />
+                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Mesas Inativas</p>
-                  <p className="text-2xl font-bold text-red-600">{stats.inactive}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Mesas Inativas</p>
+                  <p className="text-lg sm:text-2xl font-bold text-red-600">{stats.inactive}</p>
                 </div>
-                <EyeOff className="h-8 w-8 text-red-600" />
+                <EyeOff className="h-6 w-6 sm:h-8 sm:w-8 text-red-600" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Com Pedidos</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.withOrders}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Com Pedidos</p>
+                  <p className="text-lg sm:text-2xl font-bold text-blue-600">{stats.withOrders}</p>
                 </div>
-                <QrCode className="h-8 w-8 text-blue-600" />
+                <QrCode className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
               </div>
             </CardContent>
           </Card>
@@ -322,91 +322,156 @@ export default function MesasAdminPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Mesas Cadastradas</CardTitle>
+              <CardTitle className="text-base sm:text-lg">Mesas Cadastradas</CardTitle>
               <Button
                 onClick={() => { loadTables(); loadStats(); }}
                 variant="outline"
                 size="sm"
+                className="p-2"
               >
-                <RefreshCw size={16} />
+                <RefreshCw size={14} className="sm:w-4 sm:h-4" />
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             {tables.length === 0 ? (
-              <div className="text-center py-8">
-                <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500">Nenhuma mesa cadastrada</p>
-                <Button onClick={handleAddNew} className="mt-4">
-                  <Plus size={18} className="mr-2" />
+              <div className="text-center py-6 sm:py-8">
+                <Users className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-gray-400 mb-3 sm:mb-4" />
+                <p className="text-gray-500 text-sm sm:text-base">Nenhuma mesa cadastrada</p>
+                <Button onClick={handleAddNew} className="mt-3 sm:mt-4 text-sm">
+                  <Plus size={16} className="sm:w-[18px] sm:h-[18px] mr-2" />
                   Adicionar primeira mesa
                 </Button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-3">Número</th>
-                      <th className="text-left p-3">Nome</th>
-                      <th className="text-left p-3">Status</th>
-                      <th className="text-left p-3">QR Code</th>
-                      <th className="text-left p-3">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tables.map((table) => (
-                      <tr key={table.id} className="border-b hover:bg-gray-50">
-                        <td className="p-3 font-medium">{table.number}</td>
-                        <td className="p-3">{table.name}</td>
-                        <td className="p-3">
-                          <Badge
-                            variant={table.active ? "default" : "secondary"}
-                            className={table.active ? "bg-green-100 text-green-800" : ""}
-                          >
-                            {table.active ? "Ativa" : "Inativa"}
-                          </Badge>
-                        </td>
-                        <td className="p-3">
+              <>
+                {/* Tabela para desktop */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-3">Número</th>
+                        <th className="text-left p-3">Nome</th>
+                        <th className="text-left p-3">Status</th>
+                        <th className="text-left p-3">QR Code</th>
+                        <th className="text-left p-3">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tables.map((table) => (
+                        <tr key={table.id} className="border-b hover:bg-gray-50">
+                          <td className="p-3 font-medium">{table.number}</td>
+                          <td className="p-3">{table.name}</td>
+                          <td className="p-3">
+                            <Badge
+                              variant={table.active ? "default" : "secondary"}
+                              className={table.active ? "bg-green-100 text-green-800" : ""}
+                            >
+                              {table.active ? "Ativa" : "Inativa"}
+                            </Badge>
+                          </td>
+                          <td className="p-3">
+                            <Button
+                              onClick={() => handleShowQR(table)}
+                              variant="outline"
+                              size="sm"
+                            >
+                              <QrCode size={16} />
+                            </Button>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex space-x-2">
+                              <Button
+                                onClick={() => handleEdit(table)}
+                                variant="outline"
+                                size="sm"
+                              >
+                                <Edit size={16} />
+                              </Button>
+                              <Button
+                                onClick={() => handleToggleActive(table)}
+                                variant="outline"
+                                size="sm"
+                              >
+                                {table.active ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </Button>
+                              <Button
+                                onClick={() => handleDelete(table)}
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Cards para mobile */}
+                <div className="md:hidden space-y-3">
+                  {tables.map((table) => (
+                    <Card key={table.id} className="border border-gray-200">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-lg font-bold text-purple-600">#{table.number}</span>
+                              <Badge
+                                variant={table.active ? "default" : "secondary"}
+                                className={`text-xs ${table.active ? "bg-green-100 text-green-800" : ""}`}
+                              >
+                                {table.active ? "Ativa" : "Inativa"}
+                              </Badge>
+                            </div>
+                            <p className="text-sm font-medium text-gray-900 truncate">{table.name}</p>
+                          </div>
                           <Button
                             onClick={() => handleShowQR(table)}
                             variant="outline"
                             size="sm"
+                            className="p-2 ml-2"
                           >
-                            <QrCode size={16} />
+                            <QrCode size={14} />
                           </Button>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex space-x-2">
-                            <Button
-                              onClick={() => handleEdit(table)}
-                              variant="outline"
-                              size="sm"
-                            >
-                              <Edit size={16} />
-                            </Button>
-                            <Button
-                              onClick={() => handleToggleActive(table)}
-                              variant="outline"
-                              size="sm"
-                            >
-                              {table.active ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </Button>
-                            <Button
-                              onClick={() => handleDelete(table)}
-                              variant="outline"
-                              size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 size={16} />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => handleEdit(table)}
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs py-2"
+                          >
+                            <Edit size={14} className="mr-1" />
+                            Editar
+                          </Button>
+                          <Button
+                            onClick={() => handleToggleActive(table)}
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs py-2"
+                          >
+                            {table.active ? <EyeOff size={14} className="mr-1" /> : <Eye size={14} className="mr-1" />}
+                            {table.active ? "Desativar" : "Ativar"}
+                          </Button>
+                          <Button
+                            onClick={() => handleDelete(table)}
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -414,16 +479,16 @@ export default function MesasAdminPage() {
 
       {/* Modal de Adicionar/Editar Mesa */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] max-w-md mx-auto">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">
               {selectedTable ? "Editar Mesa" : "Nova Mesa"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="number">Número da Mesa</Label>
+                <Label htmlFor="number" className="text-sm font-medium">Número da Mesa</Label>
                 <Input
                   id="number"
                   type="number"
@@ -432,6 +497,7 @@ export default function MesasAdminPage() {
                   min="1"
                   max="999"
                   required
+                  className="mt-1"
                 />
                 {formErrors.number && (
                   <p className="text-red-500 text-sm mt-1">{formErrors.number}</p>
@@ -439,20 +505,21 @@ export default function MesasAdminPage() {
               </div>
 
               <div>
-                <Label htmlFor="name">Nome da Mesa</Label>
+                <Label htmlFor="name" className="text-sm font-medium">Nome da Mesa</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Ex: Mesa 1, Mesa VIP, etc."
                   required
+                  className="mt-1"
                 />
                 {formErrors.name && (
                   <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>
                 )}
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 py-2">
                 <input
                   type="checkbox"
                   id="active"
@@ -460,19 +527,24 @@ export default function MesasAdminPage() {
                   onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
                   className="h-4 w-4 text-purple-600"
                 />
-                <Label htmlFor="active">Mesa ativa</Label>
+                <Label htmlFor="active" className="text-sm">Mesa ativa</Label>
               </div>
             </div>
 
-            <DialogFooter className="mt-6">
+            <DialogFooter className="mt-6 flex flex-col sm:flex-row gap-2 sm:gap-0">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsModalOpen(false)}
+                className="w-full sm:w-auto order-2 sm:order-1"
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full sm:w-auto order-1 sm:order-2"
+              >
                 {isSubmitting ? "Salvando..." : "Salvar"}
               </Button>
             </DialogFooter>
@@ -482,20 +554,36 @@ export default function MesasAdminPage() {
 
       {/* Modal de QR Code */}
       <Dialog open={isQRModalOpen} onOpenChange={setIsQRModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] max-w-sm mx-auto">
           <DialogHeader>
-            <DialogTitle>QR Code - {selectedTable?.name}</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl text-center">
+              QR Code - {selectedTable?.name}
+            </DialogTitle>
           </DialogHeader>
-          <div className="flex justify-center">
-            {selectedTable && (
-              <QRCodeGenerator
-                table={selectedTable}
-                onGenerate={(url) => console.log("QR gerado:", url)}
-              />
-            )}
+          <div className="flex flex-col items-center space-y-4 py-2">
+            <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm">
+              {selectedTable && (
+                <QRCodeGenerator
+                  table={selectedTable}
+                  onGenerate={(url) => console.log("QR gerado:", url)}
+                />
+              )}
+            </div>
+            <p className="text-xs sm:text-sm text-gray-600 text-center px-2">
+              Escaneie este código para acessar o cardápio da mesa {selectedTable?.number}
+            </p>
+            <div className="text-xs text-gray-500 break-all text-center px-2">
+              {typeof window !== 'undefined' && `${window.location.origin}/mesa/${selectedTable?.number}`}
+            </div>
+            <Button 
+              onClick={() => setIsQRModalOpen(false)}
+              className="w-full mt-4"
+            >
+              Fechar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
     </div>
   )
-} 
+}

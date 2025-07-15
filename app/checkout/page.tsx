@@ -399,9 +399,13 @@ function CheckoutPageContent() {
       // Mostrar notificação de sucesso
       setShowSuccessNotification(true)
       
-      // Após 5 segundos, redirecionar para a página inicial
+      // Após 5 segundos, redirecionar para a página apropriada
       setTimeout(() => {
-        router.push("/")
+        if (isTableOrder && tableInfo) {
+          router.push(`/mesa/${tableInfo.number}`)
+        } else {
+          router.push("/")
+        }
       }, 5000)
     } catch (error) {
       console.error("Erro ao finalizar pedido:", error)
@@ -427,9 +431,15 @@ function CheckoutPageContent() {
               <button
                 type="button"
                 className="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:text-sm"
-                onClick={() => router.push("/")}
+                onClick={() => {
+                  if (isTableOrder && tableInfo) {
+                    router.push(`/mesa/${tableInfo.number}`)
+                  } else {
+                    router.push("/")
+                  }
+                }}
               >
-                Voltar para a Página Inicial
+                {isTableOrder ? "Voltar para a Mesa" : "Voltar para a Página Inicial"}
               </button>
             </div>
           </div>
@@ -495,10 +505,10 @@ function CheckoutPageContent() {
         </div>
       )}
 
-      <div className="flex-1 container mx-auto p-4">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-            <h2 className="text-lg font-semibold text-purple-900 mb-4">Informações Pessoais</h2>
+      <div className="flex-1 container mx-auto p-2 sm:p-4 max-w-lg">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+          <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 mb-3 sm:mb-4">
+            <h2 className="text-base sm:text-lg font-semibold text-purple-900 mb-3 sm:mb-4">Informações Pessoais</h2>
 
             <div className="space-y-3">
               <div>
@@ -512,7 +522,7 @@ function CheckoutPageContent() {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
@@ -527,7 +537,7 @@ function CheckoutPageContent() {
                   value={formData.phone}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   inputMode="tel"
                 />
               </div>
@@ -536,30 +546,26 @@ function CheckoutPageContent() {
 
           {/* Informações da mesa ou seção de endereço */}
           {isTableOrder && tableInfo ? (
-            <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-              <h2 className="text-lg font-semibold text-purple-900 mb-4">Informações da Mesa</h2>
-              <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg">
-                <div className="flex items-center justify-between">
+            <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 mb-3 sm:mb-4">
+              <h2 className="text-base sm:text-lg font-semibold text-purple-900 mb-3 sm:mb-4">Informações da Mesa</h2>
+              <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-3 sm:p-4 rounded-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
                   <div className="flex items-center space-x-3">
-                    <div className="bg-purple-200 p-2 rounded-full">
+                    <div className="bg-purple-200 p-2 rounded-full flex-shrink-0">
                       <Users className="w-5 h-5 text-purple-700" />
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-purple-900">{tableInfo?.name}</h3>
-                      <p className="text-sm text-purple-600">Pedido será entregue na mesa</p>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-purple-900 text-sm sm:text-base truncate">{tableInfo?.name}</h3>
+                      <p className="text-xs sm:text-sm text-purple-600">Pedido será entregue na mesa</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="bg-white/70 px-3 py-1 rounded-full">
-                      <span className="text-sm font-medium text-purple-800">Mesa {tableInfo?.number}</span>
-                    </div>
-                  </div>
+
                 </div>
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-              <h2 className="text-lg font-semibold text-purple-900 mb-4">Endereço de Entrega</h2>
+            <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 mb-3 sm:mb-4">
+              <h2 className="text-base sm:text-lg font-semibold text-purple-900 mb-3 sm:mb-4">Endereço de Entrega</h2>
 
             <div className="space-y-3">
               <div>
@@ -573,11 +579,11 @@ function CheckoutPageContent() {
                   value={formData.address}
                   onChange={handleChange}
                   required={!isTableOrder}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="number" className="block text-sm font-medium text-gray-700 mb-1">
                     Número
@@ -589,7 +595,7 @@ function CheckoutPageContent() {
                     value={formData.number}
                     onChange={handleChange}
                     required={!isTableOrder}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     inputMode="numeric"
                   />
                 </div>
@@ -605,7 +611,7 @@ function CheckoutPageContent() {
                     value={formData.neighborhood}
                     onChange={handleChange}
                     required={!isTableOrder}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
               </div>
@@ -672,7 +678,7 @@ function CheckoutPageContent() {
                   value={formData.city}
                   onChange={handleChange}
                   required={!isTableOrder}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
                 {isMaringa && (
                   <p className="text-xs text-purple-600 mt-1">
@@ -684,10 +690,10 @@ function CheckoutPageContent() {
           </div>
           )}
 
-          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-            <h2 className="text-lg font-semibold text-purple-900 mb-4">Forma de Pagamento</h2>
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-purple-900 mb-4">Forma de Pagamento</h2>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center">
                 <input
                   type="radio"
@@ -698,7 +704,7 @@ function CheckoutPageContent() {
                   onChange={handleChange}
                   className="h-5 w-5 text-purple-600 focus:ring-purple-500"
                 />
-                <label htmlFor="pix" className="ml-2 block text-sm text-gray-700">
+                <label htmlFor="pix" className="ml-3 block text-base text-gray-700">
                   Pix na Entrega
                 </label>
               </div>
@@ -713,7 +719,7 @@ function CheckoutPageContent() {
                   onChange={handleChange}
                   className="h-5 w-5 text-purple-600 focus:ring-purple-500"
                 />
-                <label htmlFor="card" className="ml-2 block text-sm text-gray-700">
+                <label htmlFor="card" className="ml-3 block text-base text-gray-700">
                   Cartão na Entrega
                 </label>
               </div>
@@ -729,7 +735,7 @@ function CheckoutPageContent() {
                     onChange={handleChange}
                     className="h-5 w-5 text-purple-600 focus:ring-purple-500"
                   />
-                  <label htmlFor="money" className="ml-2 block text-sm text-gray-700 whitespace-nowrap">
+                  <label htmlFor="money" className="ml-3 block text-base text-gray-700 whitespace-nowrap">
                     Dinheiro
                   </label>
                 </div>
@@ -776,8 +782,8 @@ function CheckoutPageContent() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-            <h2 className="text-lg font-semibold text-purple-900 mb-4">Resumo do Pedido</h2>
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-purple-900 mb-4">Resumo do Pedido</h2>
 
             <div className="space-y-4">
               {cart.map((item, index) => (
@@ -886,7 +892,7 @@ function CheckoutPageContent() {
               (formData.paymentMethod === "money" && formData.paymentChange && parseFloat(formData.paymentChange) < total)
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800"
-            } text-white py-3 rounded-lg font-semibold flex items-center justify-center sticky bottom-4 shadow-lg transition-colors`}
+            } text-white py-4 text-base sm:text-lg rounded-lg font-semibold flex items-center justify-center sticky bottom-4 shadow-lg transition-colors`}
             data-component-name="CheckoutPageContent"
             title={formData.paymentMethod === "money" && formData.paymentChange && parseFloat(formData.paymentChange) < total 
               ? "O valor informado é menor que o total do pedido" 

@@ -81,18 +81,18 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
           }}
           data-component-name="MainLayout"
         >
-          <div className="w-full max-w-screen-xl mx-auto px-4 flex justify-between items-center">
+          <div className="w-full max-w-screen-xl mx-auto px-3 sm:px-4 flex justify-between items-center">
             <div className="flex items-center">
               <button
                 onClick={toggleMenu}
-                className="mr-3 p-1 rounded-md hover:bg-purple-800 transition-all duration-300"
+                className="mr-2 sm:mr-3 p-1 sm:p-2 rounded-md hover:bg-purple-800 transition-all duration-300"
                 aria-label="Abrir menu"
               >
-                <Menu size={24} className="transition-all duration-300" />
+                <Menu size={20} className="sm:w-6 sm:h-6 transition-all duration-300" />
               </button>
               <Link href="/" className="flex items-center">
                 {storeConfig?.logoUrl && (
-                  <div className="relative w-10 h-10 mr-2 transition-all duration-300 ease-in-out transform hover:scale-110">
+                  <div className="relative w-8 h-8 sm:w-10 sm:h-10 mr-2 transition-all duration-300 ease-in-out transform hover:scale-110">
                     <div className="w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white/20 shadow-sm">
                       <Image
                         src={storeConfig.logoUrl || "/placeholder.svg"}
@@ -104,7 +104,7 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
                     </div>
                   </div>
                 )}
-                <span className="text-xl font-bold transition-all duration-300">
+                <span className="text-lg sm:text-xl font-bold transition-all duration-300">
                   {storeConfig?.name || "Heai Açai e Sorvetes"}
                 </span>
               </Link>
@@ -152,12 +152,12 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
 
         {/* Rodapé */}
         <footer
-          className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 shadow-lg"
+          className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 sm:p-6 shadow-lg"
           style={{ width: "100vw", marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)" }}
           data-component-name="MainLayout"
         >
-          <div className="w-full max-w-screen-xl mx-auto px-4 text-center">
-            <p>
+          <div className="w-full max-w-screen-xl mx-auto px-3 sm:px-4 text-center">
+            <p className="text-sm sm:text-base">
               © {new Date().getFullYear()} {storeConfig?.name || "Heai Açai e Sorvetes"} - Todos os direitos reservados
             </p>
           </div>

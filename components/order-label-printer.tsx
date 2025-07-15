@@ -532,33 +532,41 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
       yPos += 5
       doc.setFont("courier", "normal")
       
-      // Tipo de endereço
-      if (order.address.addressType) {
-        let addressTypeText = ""
-        switch (order.address.addressType) {
-          case 'casa':
-            addressTypeText = "Casa"
-            break
-          case 'apto':
-            addressTypeText = "Apartamento"
-            break
-          case 'condominio':
-            addressTypeText = "Condomínio"
-            break
-          default:
-            addressTypeText = order.address.addressType
+      // Verificar se é pedido de mesa
+        if (order.orderType === 'table' || order.tableId) {
+          const tableNumber = order.tableNumber || order.tableId
+          const formattedTableNumber = tableNumber ? String(tableNumber).padStart(2, '0') : '00'
+          doc.text(`Tipo: ${order.tableName || `Mesa ${formattedTableNumber}`}`, margin, yPos)
+          yPos += 5
+      } else {
+        // Tipo de endereço para delivery
+        if (order.address.addressType) {
+          let addressTypeText = ""
+          switch (order.address.addressType) {
+            case 'casa':
+              addressTypeText = "Casa"
+              break
+            case 'apto':
+              addressTypeText = "Apartamento"
+              break
+            case 'condominio':
+              addressTypeText = "Condomínio"
+              break
+            default:
+              addressTypeText = order.address.addressType
+          }
+          doc.text(`Tipo: ${addressTypeText}`, margin, yPos)
+          yPos += 5
         }
-        doc.text(`Tipo: ${addressTypeText}`, margin, yPos)
+        
+        doc.text(`${normalizeForThermalPrint(order.address.street)}, ${order.address.number}`, margin, yPos)
         yPos += 5
-      }
-      
-      doc.text(`${normalizeForThermalPrint(order.address.street)}, ${order.address.number}`, margin, yPos)
-      yPos += 5
-      doc.text(`Bairro: ${normalizeForThermalPrint(order.address.neighborhood)}`, margin, yPos)
-      yPos += 5
-      if (order.address.complement) {
-        doc.text(`Complemento: ${normalizeForThermalPrint(order.address.complement)}`, margin, yPos)
+        doc.text(`Bairro: ${normalizeForThermalPrint(order.address.neighborhood)}`, margin, yPos)
         yPos += 5
+        if (order.address.complement) {
+          doc.text(`Complemento: ${normalizeForThermalPrint(order.address.complement)}`, margin, yPos)
+          yPos += 5
+        }
       }
       yPos += 5
 
@@ -806,20 +814,29 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
 
           <div className="section">
             <div className="section-title" style={{ fontFamily: 'Arial, sans-serif' }}>ENDEREÇO</div>
-            {/* Tipo de endereço */}
-            {order.address.addressType && (
+            {/* Verificar se é pedido de mesa */}
+            {order.orderType === 'table' || order.tableId ? (
               <div>
-                Tipo: {order.address.addressType === 'casa' ? 'Casa' : 
-                      order.address.addressType === 'apto' ? 'Apartamento' : 
-                      order.address.addressType === 'condominio' ? 'Condomínio' : 
-                      order.address.addressType}
+                Tipo: {order.tableName || `Mesa ${String(order.tableNumber || order.tableId || 0).padStart(2, '0')}`}
               </div>
+            ) : (
+              <>
+                {/* Tipo de endereço para delivery */}
+                {order.address.addressType && (
+                  <div>
+                    Tipo: {order.address.addressType === 'casa' ? 'Casa' : 
+                          order.address.addressType === 'apto' ? 'Apartamento' : 
+                          order.address.addressType === 'condominio' ? 'Condomínio' : 
+                          order.address.addressType}
+                  </div>
+                )}
+                <div>
+                  {normalizeForThermalPrint(order.address.street)}, {order.address.number}
+                </div>
+                <div>Bairro: {normalizeForThermalPrint(order.address.neighborhood)}</div>
+                {order.address.complement && <div>Complemento: {normalizeForThermalPrint(order.address.complement)}</div>}
+              </>
             )}
-            <div>
-              {normalizeForThermalPrint(order.address.street)}, {order.address.number}
-            </div>
-            <div>Bairro: {normalizeForThermalPrint(order.address.neighborhood)}</div>
-            {order.address.complement && <div>Complemento: {normalizeForThermalPrint(order.address.complement)}</div>}
           </div>
 
           <div className="section">

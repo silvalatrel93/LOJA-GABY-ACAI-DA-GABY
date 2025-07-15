@@ -197,22 +197,22 @@ export default function MesaPage() {
   return (
     <MainLayout carouselSlides={slides} showCart={true}>
       {/* Header da Mesa */}
-      <div className="bg-gradient-to-r from-purple-600 to-purple-800 text-white p-4 mb-4 rounded-lg mx-4 mt-4">
+      <div className="bg-gradient-to-r from-purple-600 to-purple-800 text-white p-4 sm:p-6 mb-4 rounded-lg mx-2 sm:mx-4 mt-4">
         <div className="flex items-center space-x-3">
-          <div className="bg-white/20 p-2 rounded-full">
-            <Users className="w-6 h-6" />
+          <div className="bg-white/20 p-2 sm:p-3 rounded-full">
+            <Users className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">{table?.name || `Mesa ${numeroMesa}`}</h1>
-            <p className="text-purple-100 text-[10px] xs:text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl break-words leading-tight max-w-full overflow-hidden whitespace-normal">Faça seu pedido diretamente da mesa</p>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{table?.name || `Mesa ${numeroMesa}`}</h1>
+            <p className="text-purple-100 text-sm sm:text-base break-words leading-tight">Faça seu pedido diretamente da mesa</p>
           </div>
         </div>
       </div>
 
       {/* Informações importantes para mesa */}
-      <div className="mx-2 sm:mx-4 mb-4 p-3 sm:p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <h3 className="font-semibold text-yellow-800 mb-2 text-xs sm:text-sm md:text-base">📋 Informações do pedido</h3>
-        <ul className="text-[10px] xs:text-xs sm:text-sm text-yellow-700 space-y-1 leading-relaxed">
+      <div className="mx-2 sm:mx-4 mb-4 p-4 sm:p-5 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <h3 className="font-semibold text-yellow-800 mb-3 text-sm sm:text-base">📋 Informações do pedido</h3>
+        <ul className="text-sm sm:text-base text-yellow-700 space-y-2 leading-relaxed">
           <li className="break-words">• Seu pedido será preparado e entregue na mesa</li>
           <li className="break-words">• Não há taxa de entrega para pedidos na mesa</li>
           <li className="break-words">• Aguarde a confirmação do pedido pela equipe</li>

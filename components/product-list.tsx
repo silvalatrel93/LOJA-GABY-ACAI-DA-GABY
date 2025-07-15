@@ -359,7 +359,7 @@ export default function ProductList({ products: _initialProducts = [], categorie
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
               {categoryProducts.map((product, index) => (
                 <ProductCard
                   key={createSafeKey(product.id, 'product')}
@@ -461,7 +461,7 @@ export default function ProductList({ products: _initialProducts = [], categorie
       {isBarFixed && <div className="h-[56px]"></div>}
 
       {/* Conteúdo dos produtos com transição suave */}
-      <div className="px-4 py-4 min-h-[500px]">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 min-h-[500px]">
         {isInitialLoading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700"></div>
@@ -480,7 +480,7 @@ export default function ProductList({ products: _initialProducts = [], categorie
               <div>{renderProductsByCategory()}</div>
             ) : (
               // Exibição normal para categorias específicas
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 {filteredProducts.map((product) => (
                   <ProductCard key={createSafeKey(product.id, 'product')} product={product} />
                 ))}

@@ -71,30 +71,30 @@ export default function FloatingCartButton() {
 
   return (
     <div
-      className={`fixed bottom-4 right-4 z-50 transition-all duration-300 ${
+      className={`fixed bottom-3 sm:bottom-4 right-3 sm:right-4 z-50 transition-all duration-300 ${
         isVisible || isScrolling ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"
       }`}
     >
       <Link href="/carrinho">
-        {/* Versão para telas maiores (md e acima) */}
+        {/* Versão responsiva */}
         <button className="bg-gradient-to-r from-purple-800 to-purple-950 hover:from-purple-700 hover:to-purple-900 text-white rounded-full shadow-lg flex items-center transition-all duration-200 group" data-component-name="FloatingCartButton">
           {/* Ícone do carrinho sempre visível */}
-          <div className="relative flex items-center justify-center p-3">
-            <ShoppingCart size={20} className="transition-transform group-hover:scale-110" />
+          <div className="relative flex items-center justify-center p-2 sm:p-3">
+            <ShoppingCart size={18} className="sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
             {/* Badge com contador de itens */}
-            <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-              {itemCount}
+            <div className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
+              <span className="text-[10px] sm:text-xs">{itemCount}</span>
             </div>
           </div>
           
           {/* Texto que se adapta ao tamanho da tela */}
-          <div className="pr-4 pl-1">
+          <div className="pr-2 sm:pr-4 pl-1">
             {/* Em telas pequenas, só mostra o valor */}
-            <span className="hidden sm:inline font-medium">
+            <span className="hidden sm:inline font-medium text-sm">
               {itemCount} {itemCount === 1 ? "item" : "itens"}
             </span>
-            <span className="hidden sm:inline mx-2">•</span>
-            <span className="font-medium">{formatCurrency(totalValue)}</span>
+            <span className="hidden sm:inline mx-1 sm:mx-2 text-sm">•</span>
+            <span className="font-medium text-xs sm:text-sm">{formatCurrency(totalValue)}</span>
           </div>
         </button>
       </Link>
