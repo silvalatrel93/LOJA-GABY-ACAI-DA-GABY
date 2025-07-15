@@ -125,14 +125,14 @@ export default function QRCodeGenerator({ table, onGenerate }: QRCodeGeneratorPr
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <div className="w-full space-y-4">
+      <div className="text-center">
+        <h3 className="text-lg font-semibold flex items-center justify-center gap-2">
           <QrCode className="w-5 h-5" />
           Gerador de QR Code
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </h3>
+      </div>
+      <div className="space-y-4">
         <div className="space-y-2">
           <label htmlFor="table-number" className="text-sm font-medium">
             Número da Mesa
@@ -204,8 +204,7 @@ export default function QRCodeGenerator({ table, onGenerate }: QRCodeGeneratorPr
               <img 
                 src={qrCodeUrl} 
                 alt={`QR Code para Mesa ${tableNumber}`}
-                className="mx-auto border rounded-lg shadow-sm"
-                style={{ maxWidth: '200px', height: 'auto' }}
+                className="mx-auto border rounded-lg shadow-sm w-full max-w-[180px] h-auto"
               />
             </div>
             
@@ -225,7 +224,7 @@ export default function QRCodeGenerator({ table, onGenerate }: QRCodeGeneratorPr
           <p>• Clientes poderão fazer pedidos diretamente da mesa</p>
           <p>• Pedidos aparecerão no painel de mesas do admin</p>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
-} 
+}

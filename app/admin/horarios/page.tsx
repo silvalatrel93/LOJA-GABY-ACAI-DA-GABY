@@ -218,12 +218,12 @@ export default function OperatingHoursPage() {
                 onClick={handleSaveConfig}
                 disabled={isSaving}
                 className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium flex items-center justify-center space-x-2 transition-all duration-200 ${isSaving
-                    ? 'bg-gray-500 cursor-not-allowed'
-                    : saveStatus === 'success'
-                      ? 'bg-green-600 hover:bg-green-700 shadow-lg transform hover:scale-105'
-                      : saveStatus === 'error'
-                        ? 'bg-red-600 hover:bg-red-700 shadow-lg transform hover:scale-105'
-                        : 'bg-purple-600 hover:bg-purple-700 shadow-lg transform hover:scale-105'
+                  ? 'bg-gray-500 cursor-not-allowed'
+                  : saveStatus === 'success'
+                    ? 'bg-green-600 hover:bg-green-700 shadow-lg transform hover:scale-105'
+                    : saveStatus === 'error'
+                      ? 'bg-red-600 hover:bg-red-700 shadow-lg transform hover:scale-105'
+                      : 'bg-purple-600 hover:bg-purple-700 shadow-lg transform hover:scale-105'
                   }`}
               >
                 {isSaving ? (
@@ -289,8 +289,8 @@ export default function OperatingHoursPage() {
                   <button
                     onClick={handleToggleStoreOpen}
                     className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium text-white flex items-center justify-center space-x-2 transition-all duration-200 ${storeConfig.isOpen
-                        ? 'bg-red-600 hover:bg-red-700 shadow-lg transform hover:scale-105'
-                        : 'bg-green-600 hover:bg-green-700 shadow-lg transform hover:scale-105'
+                      ? 'bg-red-600 hover:bg-red-700 shadow-lg transform hover:scale-105'
+                      : 'bg-green-600 hover:bg-green-700 shadow-lg transform hover:scale-105'
                       }`}
                   >
                     {storeConfig.isOpen ? (

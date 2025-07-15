@@ -577,14 +577,14 @@ export default function MesasAdminPage() {
 
       {/* Modal de QR Code */}
       <Dialog open={isQRModalOpen} onOpenChange={setIsQRModalOpen}>
-        <DialogContentWithoutX className="w-[95vw] max-w-md mx-auto">
+        <DialogContentWithoutX className="w-[90vw] max-w-sm mx-auto p-4">
           <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl text-center">
+            <DialogTitle className="text-lg sm:text-xl text-center mb-4">
               QR Code - {selectedTable?.name}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col items-center space-y-4 py-2">
-            <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-full">
               {selectedTable && (
                 <QRCodeGenerator
                   table={selectedTable}
@@ -592,10 +592,10 @@ export default function MesasAdminPage() {
                 />
               )}
             </div>
-            <p className="text-xs sm:text-sm text-gray-600 text-center px-2">
+            <p className="text-xs sm:text-sm text-gray-600 text-center">
               Escaneie este código para acessar o cardápio da mesa {selectedTable?.number}
             </p>
-            <div className="text-xs text-gray-500 break-all text-center px-2">
+            <div className="text-xs text-gray-500 break-all text-center">
               {typeof window !== 'undefined' && `${window.location.origin}/mesa/${selectedTable?.number}`}
             </div>
             <Button
