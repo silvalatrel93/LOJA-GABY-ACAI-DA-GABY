@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { OrderService } from "@/lib/services/order-service"
+import { OrderService, subscribeToOrderChanges } from "@/lib/services/order-service"
 import { TableService } from "@/lib/services/table-service"
 import { updateOrderStatus, markOrderAsPrinted } from "@/lib/db"
 import OrderLabelPrinter from "@/components/order-label-printer"
@@ -47,7 +47,7 @@ export default function PedidosMesaPage() {
 
     try {
       console.log('🔊 Iniciando reprodução do som de mesa...');
-      
+
       // Criar um novo elemento de áudio se não existir
       if (!audioRef.current) {
         console.log('📱 Criando novo elemento de áudio para mesa...');
@@ -167,10 +167,11 @@ export default function PedidosMesaPage() {
     loadInitialData()
   }, [])
 
-  // Configurar polling para verificar novos pedidos de mesa
+  // Configurar real-time subscription e polling para verificar novos pedidos de mesa
   useEffect(() => {
     let isMounted = true;
     let isFetching = false;
+    let realtimeSubscription: any = null;
 
     const loadAndProcessOrders = async (silent = true) => {
       if (isFetching) return;
@@ -187,16 +188,35 @@ export default function PedidosMesaPage() {
       }
     };
 
-    // Configurar polling a cada 5 segundos
+    // Configurar subscrição real-time para pedidos de mesa
+    try {
+      realtimeSubscription = subscribeToOrderChanges(
+        (payload) => {
+          console.log('🔔 Mudança em pedido detectada via real-time (mesa):', payload);
+          // Recarregar pedidos quando houver mudanças
+          if (isMounted) {
+            void loadAndProcessOrders(false); // Não silencioso para detectar novos pedidos
+          }
+        },
+        (error) => {
+          console.error('❌ Erro na subscrição real-time de pedidos de mesa:', error);
+        }
+      );
+      console.log('✅ Subscrição real-time configurada para pedidos de mesa');
+    } catch (error) {
+      console.error('❌ Erro ao configurar subscrição real-time para pedidos de mesa:', error);
+    }
+
+    // Configurar polling a cada 30 segundos como fallback
     const pollingInterval = setInterval(() => {
       if (isMounted) {
         void loadAndProcessOrders(true);
       }
-    }, 5000);
+    }, 30000);
 
     checkIntervalRef.current = pollingInterval;
 
-    // Limpar intervalo ao desmontar
+    // Limpar intervalo e subscrição ao desmontar
     return () => {
       isMounted = false;
 
@@ -206,6 +226,16 @@ export default function PedidosMesaPage() {
 
       if (notificationTimeoutRef.current) {
         clearInterval(notificationTimeoutRef.current);
+      }
+
+      // Limpar subscrição real-time
+      if (realtimeSubscription) {
+        try {
+          realtimeSubscription.unsubscribe();
+          console.log('🔌 Subscrição real-time de pedidos de mesa desconectada');
+        } catch (error) {
+          console.error('❌ Erro ao desconectar subscrição real-time de pedidos de mesa:', error);
+        }
       }
 
       // Parar o som ao desmontar
@@ -314,11 +344,7 @@ export default function PedidosMesaPage() {
     }
   }
 
-  // Atualizar pedidos a cada 30 segundos
-  useEffect(() => {
-    const interval = setInterval(loadOrders, 30000)
-    return () => clearInterval(interval)
-  }, [isSoundEnabled])
+
 
   const handleStatusChange = async (orderId: number, newStatus: OrderStatus) => {
     if (updatingStatus) return
@@ -327,11 +353,11 @@ export default function PedidosMesaPage() {
     try {
       await updateOrderStatus(orderId, newStatus)
       await loadOrders()
-      
+
       // Se estiver aceitando um pedido (mudando de 'new' para 'preparing'), parar o som
       if (newStatus === 'preparing') {
         stopTableSound()
-        
+
         // Verificar se não há mais pedidos novos para esconder a notificação
         const remainingNewOrders = orders.filter(order => order.id !== orderId && order.status === 'new')
         if (remainingNewOrders.length === 0) {
@@ -466,14 +492,14 @@ export default function PedidosMesaPage() {
 
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
-      case 'new': return 'bg-yellow-100 text-yellow-800'
-      case 'pending': return 'bg-blue-100 text-blue-800'
-      case 'preparing': return 'bg-orange-100 text-orange-800'
-      case 'ready': return 'bg-green-100 text-green-800'
-      case 'delivered': return 'bg-purple-100 text-purple-800'
-      case 'completed': return 'bg-gray-100 text-gray-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'new': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'preparing': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'delivering': return 'bg-purple-100 text-purple-800 border-purple-200'
+      case 'ready': return 'bg-green-100 text-green-800 border-green-200'
+      case 'delivered': return 'bg-green-100 text-green-800 border-green-200'
+      case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200'
+      default: return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
 
@@ -507,8 +533,30 @@ export default function PedidosMesaPage() {
     return phone
   }
 
+  const formatPaymentMethod = (method: string) => {
+    switch (method) {
+      case 'pix': return 'PIX'
+      case 'money': return 'Dinheiro'
+      case 'card': return 'Cartão'
+      default: return 'Outros'
+    }
+  }
+
+  const getCardBackgroundColor = (status: OrderStatus) => {
+    switch (status) {
+      case 'new': return 'bg-yellow-50 border-yellow-200'
+      case 'preparing': return 'bg-blue-50 border-blue-200'
+      case 'delivering': return 'bg-purple-50 border-purple-200'
+      case 'ready': return 'bg-green-50 border-green-200'
+      case 'delivered': return 'bg-green-50 border-green-200'
+      case 'completed': return 'bg-gray-50 border-gray-200'
+      case 'cancelled': return 'bg-red-50 border-red-200'
+      default: return 'bg-white border-gray-200'
+    }
+  }
+
   const renderOrderCard = (order: Order) => (
-    <Card key={order.id} className="mb-4">
+    <Card key={order.id} className={`mb-4 ${getCardBackgroundColor(order.status)}`}>
       <CardHeader className="pb-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center space-x-3 min-w-0 flex-1">
@@ -551,7 +599,7 @@ export default function PedidosMesaPage() {
 
           <div className="flex items-center justify-between sm:flex-col sm:items-start">
             <span className="text-gray-600">Pagamento:</span>
-            <span className="capitalize text-xs sm:text-sm">{order.paymentMethod}</span>
+            <span className="capitalize text-xs sm:text-sm">{formatPaymentMethod(order.paymentMethod)}</span>
           </div>
         </div>
 
@@ -596,7 +644,7 @@ export default function PedidosMesaPage() {
               onClick={() => handleStatusChange(order.id, 'preparing')}
               disabled={updatingStatus}
               size="sm"
-              className="w-full pulse-button-animation text-sm py-2"
+              className="w-full bg-white text-green-600 hover:bg-green-50 border border-green-600 hover:border-green-700 blink-green-animation text-sm py-2 font-bold"
             >
               <Check className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               Aceitar
@@ -686,12 +734,29 @@ export default function PedidosMesaPage() {
           }
         }
         
+        @keyframes blink-green {
+          0%, 50% { 
+            background-color: white;
+            color: rgb(34 197 94); /* green-600 */
+            border-color: rgb(34 197 94);
+          }
+          51%, 100% { 
+            background-color: rgb(34 197 94); /* green-600 */
+            color: white;
+            border-color: rgb(34 197 94);
+          }
+        }
+        
         .flash-animation {
           animation: flash 1.5s ease-in-out infinite;
         }
         
         .pulse-button-animation {
           animation: pulse-button 1.2s ease-in-out infinite;
+        }
+        
+        .blink-green-animation {
+          animation: blink-green 1s ease-in-out infinite;
         }
       `}</style>
 
@@ -711,61 +776,61 @@ export default function PedidosMesaPage() {
               </div>
               {/* Botões de controle - ocultos em mobile, mostrados em tablet+ */}
               <div className="hidden sm:flex items-center space-x-2">
-              <Button
-                onClick={() => {
-                  const newSoundState = !isSoundEnabled;
-                  setIsSoundEnabled(newSoundState);
+                <Button
+                  onClick={() => {
+                    const newSoundState = !isSoundEnabled;
+                    setIsSoundEnabled(newSoundState);
 
-                  // Se estiver ativando o som, testar reprodução
-                  if (newSoundState) {
-                    // Parar qualquer som atual
-                    stopTableSound();
+                    // Se estiver ativando o som, testar reprodução
+                    if (newSoundState) {
+                      // Parar qualquer som atual
+                      stopTableSound();
 
-                    // Testar o som após um pequeno delay
-                    setTimeout(() => {
-                      if (audioRef.current) {
-                        audioRef.current.currentTime = 0;
-                        audioRef.current.play().then(() => {
-                          console.log('Teste de som executado com sucesso');
-                          // Parar o som de teste após 2 segundos
-                          setTimeout(() => {
-                            if (audioRef.current) {
-                              audioRef.current.pause();
-                              audioRef.current.currentTime = 0;
-                            }
-                          }, 2000);
-                        }).catch(err => {
-                          console.log('Som requer interação do usuário');
-                          setShowSoundActivationMessage(true);
-                        });
-                      }
-                    }, 100);
-                  } else {
-                    // Se estiver desativando, parar qualquer som
-                    stopTableSound();
-                  }
-                }}
-                variant="outline"
-                size="sm"
-                className={`${isSoundEnabled
-                  ? 'bg-green-500/20 hover:bg-green-500/30 text-green-100 border-green-400/30'
-                  : 'bg-red-500/20 hover:bg-red-500/30 text-red-100 border-red-400/30'
-                  } transition-all duration-200`}
-                title={isSoundEnabled ? "Som ativado - Clique para testar/desativar" : "Som desativado - Clique para ativar"}
-              >
-                {isSoundEnabled ? (
-                  <div className="flex items-center space-x-1">
-                    <Bell className="w-4 h-4" />
-                    <span className="text-xs">ON</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-1">
-                    <BellOff className="w-4 h-4" />
-                    <span className="text-xs">OFF</span>
-                  </div>
-                )}
-              </Button>
-              <Button
+                      // Testar o som após um pequeno delay
+                      setTimeout(() => {
+                        if (audioRef.current) {
+                          audioRef.current.currentTime = 0;
+                          audioRef.current.play().then(() => {
+                            console.log('Teste de som executado com sucesso');
+                            // Parar o som de teste após 2 segundos
+                            setTimeout(() => {
+                              if (audioRef.current) {
+                                audioRef.current.pause();
+                                audioRef.current.currentTime = 0;
+                              }
+                            }, 2000);
+                          }).catch(err => {
+                            console.log('Som requer interação do usuário');
+                            setShowSoundActivationMessage(true);
+                          });
+                        }
+                      }, 100);
+                    } else {
+                      // Se estiver desativando, parar qualquer som
+                      stopTableSound();
+                    }
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className={`${isSoundEnabled
+                    ? 'bg-green-500/20 hover:bg-green-500/30 text-green-100 border-green-400/30'
+                    : 'bg-red-500/20 hover:bg-red-500/30 text-red-100 border-red-400/30'
+                    } transition-all duration-200`}
+                  title={isSoundEnabled ? "Som ativado - Clique para testar/desativar" : "Som desativado - Clique para ativar"}
+                >
+                  {isSoundEnabled ? (
+                    <div className="flex items-center space-x-1">
+                      <Bell className="w-4 h-4" />
+                      <span className="text-xs">ON</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-1">
+                      <BellOff className="w-4 h-4" />
+                      <span className="text-xs">OFF</span>
+                    </div>
+                  )}
+                </Button>
+                <Button
                   onClick={() => {
                     console.log('🧪 Teste manual do som iniciado...');
                     if (audioRef.current) {
@@ -814,7 +879,7 @@ export default function PedidosMesaPage() {
                 </Button>
               </div>
             </div>
-            
+
             {/* Botões de controle mobile */}
             <div className="flex sm:hidden items-center justify-center space-x-2 mt-2">
               <Button
@@ -943,21 +1008,6 @@ export default function PedidosMesaPage() {
           </div>
         )}
 
-        {/* Status do sistema de som */}
-        {isSoundEnabled && !showSoundActivationMessage && (
-          <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-3">
-            <div className="container mx-auto flex items-center justify-between">
-              <div className="flex items-center">
-                <Bell className="w-4 h-4 mr-2" />
-                <span className="text-sm font-medium">
-                  Sistema de notificação sonora ativo para pedidos de mesa
-                </span>
-              </div>
-
-            </div>
-          </div>
-        )}
-
         <div className="container mx-auto p-4">
           {/* Estatísticas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -1066,28 +1116,28 @@ export default function PedidosMesaPage() {
         </div>
 
         {/* Modal de Impressão */}
-         {isPrinterModalOpen && selectedOrderForPrint && (
-           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-             <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-auto">
-               <div className="p-4 border-b">
-                 <h2 className="text-lg font-semibold text-purple-900">Imprimir Etiqueta</h2>
-               </div>
+        {isPrinterModalOpen && selectedOrderForPrint && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-auto">
+              <div className="p-4 border-b">
+                <h2 className="text-lg font-semibold text-purple-900">Imprimir Etiqueta</h2>
+              </div>
 
-               <div className="p-4">
-                 <OrderLabelPrinter order={selectedOrderForPrint} onPrintComplete={handlePrintComplete} />
-               </div>
+              <div className="p-4">
+                <OrderLabelPrinter order={selectedOrderForPrint} onPrintComplete={handlePrintComplete} />
+              </div>
 
-               <div className="p-4 border-t flex justify-end">
-                 <button
-                   onClick={() => setIsPrinterModalOpen(false)}
-                   className="px-4 py-2 border border-gray-300 rounded-md text-gray-700"
-                 >
-                   Fechar
-                 </button>
-               </div>
-             </div>
-           </div>
-         )}
+              <div className="p-4 border-t flex justify-end">
+                <button
+                  onClick={() => setIsPrinterModalOpen(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal de Detalhes */}
         <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>

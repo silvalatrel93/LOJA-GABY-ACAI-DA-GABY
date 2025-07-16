@@ -11,6 +11,17 @@ import { getStoreConfig } from "@/lib/services/store-config-service"
 import { getProductById } from "@/lib/services/product-service"
 import type { Additional } from "@/lib/types"
 
+// Função para detectar contexto de mesa
+function isTableContext(): boolean {
+  if (typeof window === 'undefined') return false
+
+  const currentPath = window.location.pathname
+  const mesaAtual = localStorage.getItem('mesa_atual')
+
+  // Verificar se estamos na rota de mesa OU se há dados de mesa no localStorage
+  return currentPath.startsWith('/mesa/') || !!mesaAtual
+}
+
 // Componente para exibir um item com nome à esquerda e valor à direita
 function ItemRow({ name, value, className }: { name: string; value: string; className?: string }) {
   return (
@@ -41,31 +52,31 @@ function CartPageContent() {
     if (item.originalPrice) {
       return sum + (item.originalPrice * item.quantity)
     }
-    
+
     // Cálculo para compatibilidade com itens antigos
     const itemTotal = item.price * item.quantity
     const additionalsTotal = (item.additionals || []).reduce(
-      (sum, additional) => sum + additional.price * (additional.quantity || 1), 
+      (sum, additional) => sum + additional.price * (additional.quantity || 1),
       0
     )
-    
+
     return sum + (itemTotal + additionalsTotal)
   }, 0)
-  
+
   // Função para verificar se o produto é da categoria Picolé (mesma lógica do ProductCard)
   const isPicolé = (categoryName: string | null | undefined): boolean => {
     if (!categoryName) return false
-    
+
     const picoléTerms = [
-      "PICOLÉ", 
-      "PICOLÉ AO LEITE", 
-      "PICOLE", 
-      "PICOLE AO LEITE", 
-      "PICOLÉ AO LEITÉ", 
+      "PICOLÉ",
+      "PICOLÉ AO LEITE",
+      "PICOLE",
+      "PICOLE AO LEITE",
+      "PICOLÉ AO LEITÉ",
       "PICOLE AO LEITÉ"
     ]
-    
-    return picoléTerms.some(term => 
+
+    return picoléTerms.some(term =>
       categoryName.toUpperCase().includes(term)
     )
   }
@@ -73,60 +84,60 @@ function CartPageContent() {
   // Função para verificar se o produto é da categoria Moreninha
   const isMoreninha = (categoryName: string | null | undefined): boolean => {
     if (!categoryName) return false
-    
+
     return categoryName.toUpperCase().includes("MORENINHA")
   }
-  
+
   // Calcular subtotal apenas para produtos da categoria PICOLE
   const picoleSubtotal = cart.reduce((sum, item) => {
     // Verificar se o item é da categoria PICOLE
     const isPicole = isPicolé(item.categoryName) || isPicolé(productCategories[item.id])
     if (!isPicole) return sum
-    
+
     // Calcular valor do item
     if (item.originalPrice) {
       return sum + (item.originalPrice * item.quantity)
     }
-    
+
     const itemTotal = item.price * item.quantity
     const additionalsTotal = (item.additionals || []).reduce(
-      (sum, additional) => sum + additional.price * (additional.quantity || 1), 
+      (sum, additional) => sum + additional.price * (additional.quantity || 1),
       0
     )
-    
+
     return sum + (itemTotal + additionalsTotal)
   }, 0)
-  
+
   // Verificar se há produtos da categoria PICOLE no carrinho
-  const hasPicoleProducts = cart.some(item => 
+  const hasPicoleProducts = cart.some(item =>
     isPicolé(item.categoryName) || isPicolé(productCategories[item.id])
   )
-  
+
   // Verificar se TODOS os produtos no carrinho são da categoria PICOLE
-  const hasOnlyPicoleProducts = cart.length > 0 && cart.every(item => 
+  const hasOnlyPicoleProducts = cart.length > 0 && cart.every(item =>
     isPicolé(item.categoryName) || isPicolé(productCategories[item.id])
   )
 
   // Verificar se TODOS os produtos no carrinho são da categoria MORENINHA
-  const hasOnlyMoreninhaProducts = cart.length > 0 && cart.every(item => 
+  const hasOnlyMoreninhaProducts = cart.length > 0 && cart.every(item =>
     isMoreninha(item.categoryName) || isMoreninha(productCategories[item.id])
   )
-  
+
   // Determinar se deve aplicar taxa de entrega para PICOLE
   // Taxa só se aplica se tem SOMENTE picolés e o valor total é menor que o mínimo
   const shouldApplyPicoleFee = hasOnlyPicoleProducts && subtotal < minimumPicoleOrder
-  
+
   // Determinar se deve aplicar taxa de entrega para MORENINHA
   // Taxa só se aplica se tem SOMENTE moreninha e o valor total é menor que o mínimo
   const shouldApplyMoreninhaFee = hasOnlyMoreninhaProducts && subtotal < minimumMoreninhaOrder
-  
+
   // Calcular taxa de entrega final (prioridade: picolé > moreninha > normal)
-  const finalDeliveryFee = shouldApplyPicoleFee 
-    ? picoleDeliveryFee 
-    : shouldApplyMoreninhaFee 
-      ? moreninhaDeliveryFee 
+  const finalDeliveryFee = shouldApplyPicoleFee
+    ? picoleDeliveryFee
+    : shouldApplyMoreninhaFee
+      ? moreninhaDeliveryFee
       : deliveryFee
-  
+
   const total = subtotal + finalDeliveryFee
 
   // Carregar taxa de entrega e configurações de picolés da loja
@@ -138,12 +149,12 @@ function CartPageContent() {
           if (storeConfig.deliveryFee !== undefined) {
             setDeliveryFee(storeConfig.deliveryFee)
           }
-          
+
           // Carregar configurações específicas para picolés
           if (storeConfig.picoleDeliveryFee !== undefined) {
             setPicoleDeliveryFee(storeConfig.picoleDeliveryFee)
           }
-          
+
           if (storeConfig.minimumPicoleOrder !== undefined) {
             setMinimumPicoleOrder(storeConfig.minimumPicoleOrder)
           }
@@ -152,7 +163,7 @@ function CartPageContent() {
           if (storeConfig.moreninhaDeliveryFee !== undefined) {
             setMoreninhaDeliveryFee(storeConfig.moreninhaDeliveryFee)
           }
-          
+
           if (storeConfig.minimumMoreninhaOrder !== undefined) {
             setMinimumMoreninhaOrder(storeConfig.minimumMoreninhaOrder)
           }
@@ -164,17 +175,17 @@ function CartPageContent() {
 
     loadStoreConfig()
   }, [])
-  
+
   // Carregar categorias dos produtos no carrinho
   useEffect(() => {
     const loadProductCategories = async () => {
       const categories: Record<number, string> = {}
-      
+
       // Processar apenas produtos que não têm categoria definida
       const productsToLoad = cart.filter(item => !item.categoryName && item.productId)
-      
+
       if (productsToLoad.length === 0) return
-      
+
       try {
         // Buscar informações de categoria para cada produto
         for (const item of productsToLoad) {
@@ -185,13 +196,13 @@ function CartPageContent() {
             }
           }
         }
-        
+
         setProductCategories(categories)
       } catch (error) {
         console.error("Erro ao carregar categorias dos produtos:", error)
       }
     }
-    
+
     if (cart.length > 0) {
       loadProductCategories()
     }
@@ -335,7 +346,7 @@ function CartPageContent() {
                               {item.categoryName || productCategories[item.id]}
                             </span>
                           )}
-                          
+
                           {/* Nome, preço e controles do produto */}
                           <div className="flex justify-between items-start">
                             <div className="flex-1 min-w-0 pr-2">
@@ -344,10 +355,10 @@ function CartPageContent() {
                                 <span className="text-xs sm:text-sm text-gray-500 block sm:inline mt-0.5 sm:mt-0 ml-0 sm:ml-1">({item.size})</span>
                               </span>
                             </div>
-                            
+
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <span className="text-base sm:text-lg md:text-xl font-bold text-green-600 whitespace-nowrap" data-component-name="CartPageContent">{formatCurrency(item.price)}</span>
-                              
+
                               {/* Botões de controle para MILK-SHAKE'S */}
                               {(() => {
                                 const isMilkShake = item.categoryName?.toUpperCase().includes("MILK-SHAKE");
@@ -380,7 +391,7 @@ function CartPageContent() {
                                         <Plus size={12} className={`${isUpdating[item.id] ? 'opacity-50' : ''}`} />
                                       </button>
                                     </div>
-                                    
+
                                     {/* Botão remover */}
                                     <button
                                       onClick={() => handleRemoveItem(item.id)}
@@ -404,29 +415,29 @@ function CartPageContent() {
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Lista de adicionais */}
                         {item.additionals && item.additionals.length > 0 && (
                           <div className="ml-2 sm:ml-4 mt-2">
                             {(() => {
                               // Verificar se é produto da categoria MILK-SHAKE'S
                               const isMilkShake = item.categoryName?.toUpperCase().includes("MILK-SHAKE");
-                              
+
                               return (
                                 <ul className={`text-xs text-gray-600 space-y-1.5 ${isMilkShake ? 'space-y-2' : ''}`} data-component-name="CartPageContent">
                                   {item.additionals.map((additional, index) => (
-                                    <li 
-                                      key={index} 
-                                      className={`${isMilkShake ? 'flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1 sm:gap-0' : 'flex justify-between items-baseline'}`} 
+                                    <li
+                                      key={index}
+                                      className={`${isMilkShake ? 'flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1 sm:gap-0' : 'flex justify-between items-baseline'}`}
                                       data-component-name="CartPageContent"
                                     >
-                                      <span 
-                                        className={`${isMilkShake ? 'break-words leading-tight text-left' : 'break-words'} pr-2 leading-tight text-xs sm:text-sm max-w-full overflow-hidden`} 
+                                      <span
+                                        className={`${isMilkShake ? 'break-words leading-tight text-left' : 'break-words'} pr-2 leading-tight text-xs sm:text-sm max-w-full overflow-hidden`}
                                         data-component-name="CartPageContent"
                                       >
                                         + {additional.quantity}x {additional.name}
                                       </span>
-                                      <span 
+                                      <span
                                         className={`whitespace-nowrap text-sm sm:text-base font-semibold text-green-600 ${isMilkShake ? 'text-right' : 'ml-1'}`}
                                       >
                                         {additional.price === 0 ? "Grátis" : `+ ${formatCurrency(additional.price * (additional.quantity || 1))}`}
@@ -438,7 +449,7 @@ function CartPageContent() {
                             })()}
                           </div>
                         )}
-                        
+
                         {/* Exibir informação de colher */}
                         {item.needsSpoon !== undefined && (
                           <div className="ml-2 sm:ml-4 mt-2">
@@ -448,8 +459,8 @@ function CartPageContent() {
                                 <div className="text-xs">
                                   <span className={`font-semibold ${item.needsSpoon ? 'text-green-800' : 'text-red-800'}`}>
                                     Precisa de colher: {item.needsSpoon ? (
-                                      item.spoonQuantity && item.spoonQuantity > 1 ? 
-                                        `Sim (${item.spoonQuantity} colheres)` : 
+                                      item.spoonQuantity && item.spoonQuantity > 1 ?
+                                        `Sim (${item.spoonQuantity} colheres)` :
                                         'Sim (1 colher)'
                                     ) : 'Não'}
                                   </span>
@@ -466,17 +477,17 @@ function CartPageContent() {
                             onClick={() => handleToggleNotes(item.id)}
                             className="text-xs text-purple-600 hover:text-purple-800 flex items-center"
                           >
-                            <svg 
-                              xmlns="http://www.w3.org/2000/svg" 
-                              className={`h-3 w-3 mr-1 transform transition-transform ${expandedNotes[item.id] ? 'rotate-90' : ''}`} 
-                              fill="none" 
-                              viewBox="0 0 24 24" 
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className={`h-3 w-3 mr-1 transform transition-transform ${expandedNotes[item.id] ? 'rotate-90' : ''}`}
+                              fill="none"
+                              viewBox="0 0 24 24"
                               stroke="currentColor"
                             >
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
-                            {item.notes && item.notes.trim() !== "" 
-                              ? "Editar observações" 
+                            {item.notes && item.notes.trim() !== ""
+                              ? "Editar observações"
                               : "Adicionar observações"
                             }
                           </button>
@@ -519,7 +530,7 @@ function CartPageContent() {
                             </div>
                           )}
                         </div>
-                        
+
                         {/* Espaço para separação visual */}
                         <div className="mt-1"></div>
                       </div>
@@ -561,7 +572,7 @@ function CartPageContent() {
                             </button>
                           </div>
                         </div>
-                        
+
                         {/* Botão remover */}
                         <button
                           onClick={() => handleRemoveItem(item.id)}
@@ -597,14 +608,14 @@ function CartPageContent() {
 
           <div className="space-y-3 sm:space-y-4">
             <ItemRow name="Subtotal" value={formatCurrency(subtotal)} />
-            
+
             {/* Taxa de entrega com mensagem condicional */}
             <div>
-              <ItemRow 
-                name="Taxa de entrega" 
-                value={formatCurrency(finalDeliveryFee)} 
+              <ItemRow
+                name="Taxa de entrega"
+                value={formatCurrency(finalDeliveryFee)}
               />
-              
+
               {/* Mensagem de taxa especial para picolés - Versão ultra compacta para mobile */}
               {shouldApplyPicoleFee && (
                 <div className="mt-1 bg-red-50 border border-red-100 rounded-sm p-1 max-w-full overflow-hidden">
@@ -618,7 +629,7 @@ function CartPageContent() {
                   </div>
                 </div>
               )}
-              
+
               {/* Mensagem de taxa especial para moreninha */}
               {shouldApplyMoreninhaFee && (
                 <div className="mt-1 bg-red-50 border border-red-100 rounded-sm p-1 max-w-full overflow-hidden">
@@ -661,11 +672,11 @@ function CartPageContent() {
                 </div>
               )}
             </div>
-            
+
             <div className="pt-3 mt-1 border-t border-gray-300">
-              <ItemRow 
-                name="Total" 
-                value={formatCurrency(total)} 
+              <ItemRow
+                name="Total"
+                value={formatCurrency(total)}
                 className="text-lg sm:text-xl md:text-2xl font-bold text-purple-900"
               />
             </div>
@@ -673,29 +684,62 @@ function CartPageContent() {
         </div>
 
         <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0 mt-6 mb-8 sm:mb-6">
-          <Link href="/" className="sm:flex-1 order-2 sm:order-1">
-            <button 
-              className="
-                w-full relative overflow-hidden group
-                border-2 border-purple-700 text-purple-700 
-                py-4 sm:py-3 px-4 rounded-xl sm:rounded-lg 
-                font-semibold text-sm sm:text-base
-                shadow-sm hover:shadow-md
-                transition-all duration-300 ease-in-out
-                hover:bg-purple-50 active:scale-[0.98]
-                focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50
-                touch-manipulation
-              "
-            >
-              <span className="relative z-10 flex items-center justify-center">
-                <ArrowLeft size={18} className="mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
-                Continuar Comprando
-              </span>
-              <span className="absolute inset-0 bg-gradient-to-r from-purple-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-            </button>
-          </Link>
+          {(() => {
+            // Determinar URL de redirecionamento baseado no contexto
+            const getBackUrl = () => {
+              if (isTableContext()) {
+                // Se estamos no contexto de mesa, pegar o número da mesa
+                const mesaAtual = localStorage.getItem('mesa_atual')
+                if (mesaAtual) {
+                  try {
+                    const mesaData = JSON.parse(mesaAtual)
+                    return `/mesa/${mesaData.number}`
+                  } catch {
+                    // Se falhar ao parsear, tentar extrair da URL atual
+                    const currentPath = window.location.pathname
+                    if (currentPath.startsWith('/mesa/')) {
+                      const mesaNumber = currentPath.split('/mesa/')[1]?.split('/')[0]
+                      return `/mesa/${mesaNumber}`
+                    }
+                  }
+                }
+                // Fallback: tentar extrair da URL atual
+                const currentPath = window.location.pathname
+                if (currentPath.startsWith('/mesa/')) {
+                  const mesaNumber = currentPath.split('/mesa/')[1]?.split('/')[0]
+                  return `/mesa/${mesaNumber}`
+                }
+              }
+              // Contexto de delivery - voltar para página inicial
+              return '/'
+            }
+
+            return (
+              <Link href={getBackUrl()} className="sm:flex-1 order-2 sm:order-1">
+                <button
+                  className="
+                    w-full relative overflow-hidden group
+                    border-2 border-purple-700 text-purple-700 
+                    py-4 sm:py-3 px-4 rounded-xl sm:rounded-lg 
+                    font-semibold text-sm sm:text-base
+                    shadow-sm hover:shadow-md
+                    transition-all duration-300 ease-in-out
+                    hover:bg-purple-50 active:scale-[0.98]
+                    focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50
+                    touch-manipulation
+                  "
+                >
+                  <span className="relative z-10 flex items-center justify-center">
+                    <ArrowLeft size={18} className="mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
+                    Continuar Comprando
+                  </span>
+                  <span className="absolute inset-0 bg-gradient-to-r from-purple-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                </button>
+              </Link>
+            )
+          })()}
           <Link href="/checkout" className="sm:flex-1 order-1 sm:order-2">
-            <button 
+            <button
               className="
                 w-full relative overflow-hidden group
                 bg-gradient-to-r from-purple-600 to-purple-800 

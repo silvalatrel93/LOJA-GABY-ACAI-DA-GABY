@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
 import { ArrowLeft, Printer, RefreshCw, Bell, BellOff, X, MessageSquare, Trash2, Truck, MapPin, Share2 } from "lucide-react"
 import { getAllOrders, markOrderAsPrinted, updateOrderStatus, type Order } from "@/lib/db"
-import { OrderService } from "@/lib/services/order-service"
+import { OrderService, subscribeToOrderChanges } from "@/lib/services/order-service"
 import { WhatsAppService } from "@/lib/services/whatsapp-service"
 import { MapsService } from "@/lib/services/maps-service"
 import { DeliveryConfigService } from "@/lib/services/delivery-config-service"
@@ -207,10 +207,11 @@ export default function OrdersPage() {
     loadDefaultDeliveryPhone();
   }, []);
 
-  // Configurar verificação periódica de novos pedidos
+  // Configurar verificação periódica de novos pedidos e subscrição real-time
   useEffect(() => {
     let isMounted = true;
     let isFetching = false;
+    let realtimeChannel: any = null;
 
     // Função para carregar e processar pedidos
     const loadAndProcessOrders = async (silent = true) => {
@@ -232,19 +233,60 @@ export default function OrdersPage() {
     // Carregar pedidos iniciais
     void loadAndProcessOrders(false);
 
-    // Configurar polling a cada 5 segundos para verificar novos pedidos mais rapidamente
+    // Configurar subscrição real-time para novos pedidos
+    const setupRealtimeSubscription = () => {
+      console.log('🔄 Configurando subscrição real-time para pedidos...');
+
+      realtimeChannel = subscribeToOrderChanges(
+        (payload) => {
+          console.log('📨 Mudança real-time detectada:', payload);
+
+          // Se for um novo pedido (INSERT), recarregar imediatamente
+          if (payload.type === 'INSERT' && isMounted) {
+            console.log('🆕 Novo pedido detectado via real-time, recarregando...');
+            void loadAndProcessOrders(true);
+          }
+          // Se for uma atualização (UPDATE), também recarregar para manter sincronizado
+          else if (payload.type === 'UPDATE' && isMounted) {
+            console.log('🔄 Pedido atualizado via real-time, recarregando...');
+            void loadAndProcessOrders(true);
+          }
+          // Se for uma exclusão (DELETE), recarregar para remover da lista
+          else if (payload.type === 'DELETE' && isMounted) {
+            console.log('🗑️ Pedido excluído via real-time, recarregando...');
+            void loadAndProcessOrders(true);
+          }
+        },
+        (error) => {
+          console.error('❌ Erro na subscrição real-time de pedidos:', error);
+          // Em caso de erro, continuar com polling apenas
+        }
+      );
+    };
+
+    // Configurar subscrição real-time
+    setupRealtimeSubscription();
+
+    // Configurar polling como fallback (intervalo maior agora que temos real-time)
     const pollingInterval = setInterval(() => {
       if (isMounted) {
         void loadAndProcessOrders(true);
       }
-    }, 5000); // Reduzido de 30000 para 5000 (5 segundos)
+    }, 30000); // Aumentado para 30 segundos já que temos real-time
 
     // Armazenar a referência do intervalo
     checkIntervalRef.current = pollingInterval;
 
-    // Limpar intervalos e timeouts ao desmontar
+    // Limpar intervalos, timeouts e subscrições ao desmontar
     return () => {
       isMounted = false;
+
+      // Limpar subscrição real-time
+      if (realtimeChannel) {
+        console.log('🔌 Desconectando subscrição real-time de pedidos...');
+        realtimeChannel.unsubscribe();
+        realtimeChannel = null;
+      }
 
       if (checkIntervalRef.current) {
         clearInterval(checkIntervalRef.current);

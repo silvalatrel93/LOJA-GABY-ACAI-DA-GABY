@@ -29,39 +29,39 @@ interface PixKeyCopyComponentProps {
 function PixKeyCopyComponent({ pixKey }: PixKeyCopyComponentProps) {
   const [copied, setCopied] = useState(false);
   const [hidden, setHidden] = useState(true); // Iniciar com a chave oculta por padrão
-  
+
   // Resetar o estado de copiado após 3 segundos
   useEffect(() => {
     if (copied) {
       const timer = setTimeout(() => {
         setCopied(false);
       }, 3000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [copied]);
-  
+
   // Função para copiar a chave PIX usando uma abordagem compatível com restrições de segurança
   const copyToClipboard = () => {
     try {
       // Criar um elemento de texto temporário
       const textArea = document.createElement('textarea');
       textArea.value = pixKey;
-      
+
       // Tornar o elemento invisível
       textArea.style.position = 'fixed';
       textArea.style.left = '-999999px';
       textArea.style.top = '-999999px';
       document.body.appendChild(textArea);
-      
+
       // Selecionar e copiar o texto
       textArea.focus();
       textArea.select();
       document.execCommand('copy');
-      
+
       // Limpar
       document.body.removeChild(textArea);
-      
+
       // Feedback ao usuário
       setCopied(true);
     } catch (err) {
@@ -69,18 +69,18 @@ function PixKeyCopyComponent({ pixKey }: PixKeyCopyComponentProps) {
       alert('Não foi possível copiar a chave PIX. Por favor, copie manualmente.');
     }
   };
-  
+
   // Função para alternar a visibilidade da chave PIX
   const toggleVisibility = () => {
     setHidden(!hidden);
   };
-  
+
   // Ocultar completamente a chave PIX quando estiver no modo oculto
   const getMaskedKey = () => {
     // Retornar uma string de asteriscos com o mesmo comprimento da chave original
     return '*'.repeat(Math.min(pixKey.length, 20));
   };
-  
+
   return (
     <div className="w-full">
       <div className="flex items-center justify-between bg-white px-2 py-1.5 rounded border border-gray-300 mb-1">
@@ -88,7 +88,7 @@ function PixKeyCopyComponent({ pixKey }: PixKeyCopyComponentProps) {
           {hidden ? getMaskedKey() : pixKey}
         </code>
         <div className="flex items-center space-x-0.5">
-          <button 
+          <button
             type="button"
             onClick={toggleVisibility}
             className="p-0.5 text-gray-500 hover:text-purple-600 transition-colors"
@@ -96,7 +96,7 @@ function PixKeyCopyComponent({ pixKey }: PixKeyCopyComponentProps) {
           >
             {hidden ? <Eye size={14} /> : <EyeOff size={14} />}
           </button>
-          <button 
+          <button
             type="button"
             onClick={copyToClipboard}
             className="p-0.5 text-gray-500 hover:text-purple-600 transition-colors"
@@ -129,7 +129,7 @@ function ItemRow({ name, value }: { name: string; value: string }) {
 function CheckoutPageContent() {
   const { cart, clearCart, tableInfo, isTableOrder } = useCart()
   const router = useRouter()
-  
+
   // Contexto de mesa/delivery detectado automaticamente
   const [formData, setFormData] = useState({
     name: "",
@@ -157,7 +157,7 @@ function CheckoutPageContent() {
       try {
         const config = await getStoreConfig()
         setStoreConfig(config)
-        
+
         // Aplicar taxa de entrega com base na cidade
         if (config) {
           if (isMaringa && config.maringaDeliveryFee !== undefined) {
@@ -179,17 +179,17 @@ function CheckoutPageContent() {
     loadStoreConfig()
     loadStoreStatus()
   }, [])
-  
+
   // Carregar categorias dos produtos no carrinho
   useEffect(() => {
     const loadProductCategories = async () => {
       const categories: Record<number, string> = {}
-      
+
       // Processar apenas produtos que não têm categoria definida
       const productsToLoad = cart.filter(item => !item.categoryName && item.productId)
-      
+
       if (productsToLoad.length === 0) return
-      
+
       try {
         // Buscar informações de categoria para cada produto
         for (const item of productsToLoad) {
@@ -200,13 +200,13 @@ function CheckoutPageContent() {
             }
           }
         }
-        
+
         setProductCategories(categories)
       } catch (error) {
         console.error("Erro ao carregar categorias dos produtos:", error)
       }
     }
-    
+
     if (cart.length > 0) {
       loadProductCategories()
     }
@@ -215,17 +215,17 @@ function CheckoutPageContent() {
   // Função para verificar se o produto é da categoria Picolé (mesma lógica do carrinho)
   const isPicolé = (categoryName: string | null | undefined): boolean => {
     if (!categoryName) return false
-    
+
     const picoléTerms = [
-      "PICOLÉ", 
-      "PICOLÉ AO LEITE", 
-      "PICOLE", 
-      "PICOLE AO LEITE", 
-      "PICOLÉ AO LEITÉ", 
+      "PICOLÉ",
+      "PICOLÉ AO LEITE",
+      "PICOLE",
+      "PICOLE AO LEITE",
+      "PICOLÉ AO LEITÉ",
       "PICOLE AO LEITÉ"
     ]
-    
-    return picoléTerms.some(term => 
+
+    return picoléTerms.some(term =>
       categoryName.toUpperCase().includes(term)
     )
   }
@@ -233,22 +233,22 @@ function CheckoutPageContent() {
   // Função para verificar se o produto é da categoria Moreninha
   const isMoreninha = (categoryName: string | null | undefined): boolean => {
     if (!categoryName) return false
-    
+
     return categoryName.toUpperCase().includes("MORENINHA")
   }
 
   // Verificar se há picolés no carrinho
-  const hasPicoles = cart.some(item => 
+  const hasPicoles = cart.some(item =>
     isPicolé(item.categoryName) || isPicolé(productCategories[item.id])
   )
-  
+
   // Verificar se TODOS os produtos no carrinho são da categoria PICOLE
-  const hasOnlyPicoles = cart.length > 0 && cart.every(item => 
+  const hasOnlyPicoles = cart.length > 0 && cart.every(item =>
     isPicolé(item.categoryName) || isPicolé(productCategories[item.id])
   )
 
   // Verificar se TODOS os produtos no carrinho são da categoria MORENINHA
-  const hasOnlyMoreninha = cart.length > 0 && cart.every(item => 
+  const hasOnlyMoreninha = cart.length > 0 && cart.every(item =>
     isMoreninha(item.categoryName) || isMoreninha(productCategories[item.id])
   )
 
@@ -258,52 +258,52 @@ function CheckoutPageContent() {
     if (item.originalPrice) {
       return sum + (item.originalPrice * item.quantity)
     }
-    
+
     // Cálculo para compatibilidade com itens antigos
     const itemTotal = item.price * item.quantity
     const additionalsTotal = (item.additionals || []).reduce(
-      (sum, additional) => sum + (additional.price * (additional.quantity ?? 1)), 
+      (sum, additional) => sum + (additional.price * (additional.quantity ?? 1)),
       0
     )
-    
+
     return sum + (itemTotal + additionalsTotal)
   }, 0)
-  
+
   // Verificar se deve aplicar taxa adicional para picolés abaixo do valor mínimo
   const minimumPicoleOrder = storeConfig?.minimumPicoleOrder || 20.0
   const picoleDeliveryFee = storeConfig?.picoleDeliveryFee || 5.0
-  
+
   // Aplicar taxa adicional se tem SOMENTE picolés e o valor for abaixo do mínimo
   const shouldApplyPicoleFee = hasOnlyPicoles && subtotal < minimumPicoleOrder
 
   // Verificar se deve aplicar taxa adicional para moreninha abaixo do valor mínimo
   const minimumMoreninhaOrder = storeConfig?.minimumMoreninhaOrder || 17.0
   const moreninhaDeliveryFee = storeConfig?.moreninhaDeliveryFee || 5.0
-  
+
   // Aplicar taxa adicional se tem SOMENTE moreninha e o valor for abaixo do mínimo
   const shouldApplyMoreninhaFee = hasOnlyMoreninha && subtotal < minimumMoreninhaOrder
-  
+
   // Taxa de entrega final (prioridade: mesa = 0 > picolé > moreninha > normal)
-  const finalDeliveryFee = isTableOrder 
+  const finalDeliveryFee = isTableOrder
     ? 0 // Mesa não tem taxa de entrega
-    : shouldApplyPicoleFee 
-      ? picoleDeliveryFee 
-      : shouldApplyMoreninhaFee 
-        ? moreninhaDeliveryFee 
+    : shouldApplyPicoleFee
+      ? picoleDeliveryFee
+      : shouldApplyMoreninhaFee
+        ? moreninhaDeliveryFee
         : deliveryFee
-  
+
   const total = subtotal + finalDeliveryFee
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
-    
+
     // Verificar se a cidade é Maringá quando o campo city é alterado
     if (name === 'city') {
-      const cityIsMaringa = value.trim().toLowerCase() === 'maringá' || 
-                           value.trim().toLowerCase() === 'maringa'
+      const cityIsMaringa = value.trim().toLowerCase() === 'maringá' ||
+        value.trim().toLowerCase() === 'maringa'
       setIsMaringa(cityIsMaringa)
-      
+
       // Atualizar taxa de entrega com base na cidade
       if (storeConfig) {
         if (cityIsMaringa && storeConfig.maringaDeliveryFee !== undefined) {
@@ -378,30 +378,30 @@ function CheckoutPageContent() {
         printed: false,
         notified: false,
         orderType: isTableOrder ? "table" as const : "delivery" as const,
-        ...(isTableOrder && tableInfo && { 
-        tableId: tableInfo.id,
-        tableName: tableInfo.name 
-      }),
+        ...(isTableOrder && tableInfo && {
+          tableId: tableInfo.id,
+          tableName: tableInfo.name
+        }),
       }
 
       // Salvar pedido no banco de dados e obter o ID do pedido
       const result = await OrderService.createOrder(order)
-      
+
       if (result.error) {
         throw new Error(result.error.message)
       }
-      
+
       // Extrair o ID do pedido salvo (se existir)
       if (result.data && result.data.id) {
         setOrderId(String(result.data.id))
       }
-      
+
       // Limpar carrinho
       await clearCart()
-      
+
       // Mostrar notificação de sucesso
       setShowSuccessNotification(true)
-      
+
       // Após 5 segundos, redirecionar para a página apropriada
       setTimeout(() => {
         if (isTableOrder && tableInfo) {
@@ -421,7 +421,7 @@ function CheckoutPageContent() {
   // Componente de notificação de sucesso
   const SuccessNotification = () => {
     if (!showSuccessNotification) return null;
-    
+
     return (
       <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
         <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
@@ -456,7 +456,7 @@ function CheckoutPageContent() {
       <div className="min-h-screen flex flex-col">
         {/* Notificação de sucesso */}
         <SuccessNotification />
-        
+
         <header className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 sticky top-0 z-10 shadow-lg" data-component-name="CheckoutPageContent">
           <div className="container mx-auto flex items-center">
             <Link href="/" className="mr-4">
@@ -483,7 +483,7 @@ function CheckoutPageContent() {
     <div className="min-h-screen flex flex-col">
       {/* Notificação de sucesso */}
       <SuccessNotification />
-      
+
       <header className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 sticky top-0 z-10 shadow-lg" data-component-name="CheckoutPageContent">
         <div className="container mx-auto flex items-center">
           <Link href="/carrinho" className="mr-4">
@@ -570,127 +570,127 @@ function CheckoutPageContent() {
             <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 mb-3 sm:mb-4">
               <h2 className="text-base sm:text-lg font-semibold text-purple-900 mb-3 sm:mb-4">Endereço de Entrega</h2>
 
-            <div className="space-y-3">
-              <div>
-                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-                  Rua
-                </label>
-                <input
-                  type="text"
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  required={!isTableOrder}
-                  className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <div>
-                  <label htmlFor="number" className="block text-sm font-medium text-gray-700 mb-1">
-                    Número
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                    Rua
                   </label>
                   <input
                     type="text"
-                    id="number"
-                    name="number"
-                    value={formData.number}
-                    onChange={handleChange}
-                    required={!isTableOrder}
-                    className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    inputMode="numeric"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="neighborhood" className="block text-sm font-medium text-gray-700 mb-1">
-                    Bairro
-                  </label>
-                  <input
-                    type="text"
-                    id="neighborhood"
-                    name="neighborhood"
-                    value={formData.neighborhood}
+                    id="address"
+                    name="address"
+                    value={formData.address}
                     onChange={handleChange}
                     required={!isTableOrder}
                     className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Tipo de Endereço
-                </label>
-                <div className="flex flex-wrap gap-4 mb-4">
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="casa"
-                      name="addressType"
-                      value="casa"
-                      checked={formData.addressType === "casa"}
-                      onChange={handleChange}
-                      className="h-4 w-4 text-purple-600 focus:ring-purple-500"
-                    />
-                    <label htmlFor="casa" className="ml-2 text-sm text-gray-700">
-                      🏠 Casa
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="number" className="block text-sm font-medium text-gray-700 mb-1">
+                      Número
                     </label>
+                    <input
+                      type="text"
+                      id="number"
+                      name="number"
+                      value={formData.number}
+                      onChange={handleChange}
+                      required={!isTableOrder}
+                      className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      inputMode="numeric"
+                    />
                   </div>
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="apto"
-                      name="addressType"
-                      value="apto"
-                      checked={formData.addressType === "apto"}
-                      onChange={handleChange}
-                      className="h-4 w-4 text-purple-600 focus:ring-purple-500"
-                    />
-                    <label htmlFor="apto" className="ml-2 text-sm text-gray-700">
-                      🏢 Apto
+
+                  <div>
+                    <label htmlFor="neighborhood" className="block text-sm font-medium text-gray-700 mb-1">
+                      Bairro
                     </label>
-                  </div>
-                  <div className="flex items-center">
                     <input
-                      type="radio"
-                      id="condominio"
-                      name="addressType"
-                      value="condominio"
-                      checked={formData.addressType === "condominio"}
+                      type="text"
+                      id="neighborhood"
+                      name="neighborhood"
+                      value={formData.neighborhood}
                       onChange={handleChange}
-                      className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                      required={!isTableOrder}
+                      className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
-                    <label htmlFor="condominio" className="ml-2 text-sm text-gray-700">
-                      🏘️ Condomínio
-                    </label>
                   </div>
                 </div>
 
-              </div>
-              
-              <div>
-                <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-                  Cidade
-                </label>
-                <input
-                  type="text"
-                  id="city"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  required={!isTableOrder}
-                  className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-                {isMaringa && (
-                  <p className="text-xs text-purple-600 mt-1">
-                    Taxa de entrega específica para Maringá: {formatCurrency(deliveryFee)}
-                  </p>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Tipo de Endereço
+                  </label>
+                  <div className="flex flex-wrap gap-4 mb-4">
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="casa"
+                        name="addressType"
+                        value="casa"
+                        checked={formData.addressType === "casa"}
+                        onChange={handleChange}
+                        className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                      />
+                      <label htmlFor="casa" className="ml-2 text-sm text-gray-700">
+                        🏠 Casa
+                      </label>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="apto"
+                        name="addressType"
+                        value="apto"
+                        checked={formData.addressType === "apto"}
+                        onChange={handleChange}
+                        className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                      />
+                      <label htmlFor="apto" className="ml-2 text-sm text-gray-700">
+                        🏢 Apto
+                      </label>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="condominio"
+                        name="addressType"
+                        value="condominio"
+                        checked={formData.addressType === "condominio"}
+                        onChange={handleChange}
+                        className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                      />
+                      <label htmlFor="condominio" className="ml-2 text-sm text-gray-700">
+                        🏘️ Condomínio
+                      </label>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div>
+                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+                    Cidade
+                  </label>
+                  <input
+                    type="text"
+                    id="city"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    required={!isTableOrder}
+                    className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  {isMaringa && (
+                    <p className="text-xs text-purple-600 mt-1">
+                      Taxa de entrega específica para Maringá: {formatCurrency(deliveryFee)}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
           )}
 
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4">
@@ -726,7 +726,7 @@ function CheckoutPageContent() {
                   Cartão na Entrega
                 </label>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row sm:items-start gap-3 w-full">
                 <div className="flex items-center">
                   <input
@@ -742,7 +742,7 @@ function CheckoutPageContent() {
                     Dinheiro
                   </label>
                 </div>
-                
+
                 {formData.paymentMethod === "money" && (
                   <div className="w-full">
                     <label htmlFor="paymentChange" className="block text-xs text-gray-500 mb-2 mt-1">
@@ -769,7 +769,7 @@ function CheckoutPageContent() {
                         const valorTotal = total
                         // Usar Math.round para evitar problemas de ponto flutuante
                         const trocoCalculado = Math.round((valorPago - valorTotal) * 100) / 100
-                        
+
                         return (
                           <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                             <span className="text-gray-700 text-xs sm:text-sm whitespace-nowrap">
@@ -798,7 +798,7 @@ function CheckoutPageContent() {
                         {item.categoryName || productCategories[item.id]}
                       </span>
                     )}
-                    
+
                     {/* Nome e preço do produto */}
                     <div className="flex justify-between items-center">
                       <div className="font-medium">
@@ -810,18 +810,18 @@ function CheckoutPageContent() {
 
                   {/* Mostrar status de adicionais */}
                   {item.additionals && item.additionals.length > 0 ? (
-                            <div className="ml-4 text-sm text-gray-600">
+                    <div className="ml-4 text-sm text-gray-600">
                       {item.additionals.map((additional, idx) => (
-                                <div key={idx} className="flex justify-between items-center mt-1">
-                                  <div>
-                                    + {(additional.quantity ?? 1)}x {additional.name}
-                                  </div>
-                                  <div className="tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CheckoutPageContent">{additional.price === 0 ? "Grátis" : formatCurrency(additional.price * (additional.quantity ?? 1))}</div>
-                                </div>
-                              ))}
-                            </div>
+                        <div key={idx} className="flex justify-between items-center mt-1">
+                          <div>
+                            + {(additional.quantity ?? 1)}x {additional.name}
+                          </div>
+                          <div className="tabular-nums bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold" data-component-name="CheckoutPageContent">{additional.price === 0 ? "Grátis" : formatCurrency(additional.price * (additional.quantity ?? 1))}</div>
+                        </div>
+                      ))}
+                    </div>
                   ) : null}
-                  
+
                   {/* Exibir informação de colher */}
                   {item.needsSpoon !== undefined && (
                     <div className={`ml-4 mt-2 ${item.needsSpoon ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'} border-l-4 p-2 rounded-r-md`}>
@@ -830,8 +830,8 @@ function CheckoutPageContent() {
                         <div className="text-sm">
                           <span className={`font-semibold ${item.needsSpoon ? 'text-green-800' : 'text-red-800'}`}>
                             Precisa de colher: {item.needsSpoon ? (
-                              item.spoonQuantity && item.spoonQuantity > 1 ? 
-                                `Sim (${item.spoonQuantity} colheres)` : 
+                              item.spoonQuantity && item.spoonQuantity > 1 ?
+                                `Sim (${item.spoonQuantity} colheres)` :
                                 'Sim (1 colher)'
                             ) : 'Não'}
                           </span>
@@ -839,7 +839,7 @@ function CheckoutPageContent() {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Exibir observações do cliente */}
                   {item.notes && item.notes.trim() !== "" && (
                     <div className="ml-4 mt-2 bg-yellow-50 border-l-4 border-yellow-400 p-2 rounded-r-md">
@@ -888,17 +888,16 @@ function CheckoutPageContent() {
 
           <button
             type="submit"
-            disabled={!storeStatus.isOpen || isSubmitting || 
+            disabled={!storeStatus.isOpen || isSubmitting ||
               (formData.paymentMethod === "money" && formData.paymentChange ? parseFloat(formData.paymentChange) < total : false)}
-            className={`w-full ${
-              !storeStatus.isOpen || isSubmitting || 
-              (formData.paymentMethod === "money" && formData.paymentChange && parseFloat(formData.paymentChange) < total)
+            className={`w-full ${!storeStatus.isOpen || isSubmitting ||
+                (formData.paymentMethod === "money" && formData.paymentChange && parseFloat(formData.paymentChange) < total)
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800"
-            } text-white py-4 text-base sm:text-lg rounded-lg font-semibold flex items-center justify-center sticky bottom-4 shadow-lg transition-colors`}
+              } text-white py-4 text-base sm:text-lg rounded-lg font-semibold flex items-center justify-center sticky bottom-4 shadow-lg transition-colors`}
             data-component-name="CheckoutPageContent"
-            title={formData.paymentMethod === "money" && formData.paymentChange && parseFloat(formData.paymentChange) < total 
-              ? "O valor informado é menor que o total do pedido" 
+            title={formData.paymentMethod === "money" && formData.paymentChange && parseFloat(formData.paymentChange) < total
+              ? "O valor informado é menor que o total do pedido"
               : undefined}
           >
             {isSubmitting ? (
@@ -908,9 +907,9 @@ function CheckoutPageContent() {
               </>
             ) : storeStatus.isOpen ? (
               formData.paymentMethod === "pix" ? "Pagar com PIX" :
-              formData.paymentMethod === "card" ? "Pagar com Cartão" :
-              formData.paymentMethod === "money" ? "Pagar em Dinheiro" :
-              "Finalizar e Enviar Pedido"
+                formData.paymentMethod === "card" ? "Pagar com Cartão" :
+                  formData.paymentMethod === "money" ? "Pagar em Dinheiro" :
+                    "Finalizar e Enviar Pedido"
             ) : (
               "Loja Fechada - Não é possível finalizar"
             )}

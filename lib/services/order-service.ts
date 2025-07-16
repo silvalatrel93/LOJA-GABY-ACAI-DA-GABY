@@ -468,6 +468,90 @@ export const OrderService = {
       return []
     }
   },
+
+  // Subscrever a mudanças em tempo real na tabela de pedidos
+  subscribeToOrderChanges(
+    onOrderChange: (payload: any) => void,
+    onError?: (error: Error) => void
+  ) {
+    try {
+      const supabase = createSupabaseClient()
+
+      // Configurar o canal para escutar mudanças nos pedidos
+      const channel = supabase.channel('orders_changes')
+
+      // Configurar o handler para inserções de novos pedidos
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload: any) => {
+          console.log('Novo pedido recebido via real-time:', payload)
+          onOrderChange({ type: 'INSERT', ...payload })
+        }
+      )
+
+      // Configurar o handler para atualizações de pedidos
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload: any) => {
+          console.log('Pedido atualizado via real-time:', payload)
+          onOrderChange({ type: 'UPDATE', ...payload })
+        }
+      )
+
+      // Configurar o handler para exclusões de pedidos
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload: any) => {
+          console.log('Pedido excluído via real-time:', payload)
+          onOrderChange({ type: 'DELETE', ...payload })
+        }
+      )
+
+      // Configurar handler de erro
+      if (onError) {
+        channel.on('error', (error: any) => {
+          console.error('Erro no canal real-time de pedidos:', error)
+          onError(new Error(`Erro no canal real-time: ${error.message || 'Erro desconhecido'}`))
+        })
+      }
+
+      // Subscrever ao canal
+      channel.subscribe((status) => {
+        console.log('Status da subscrição real-time de pedidos:', status)
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Subscrição real-time de pedidos ativa')
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Erro na subscrição real-time de pedidos')
+          if (onError) {
+            onError(new Error('Falha na subscrição real-time de pedidos'))
+          }
+        }
+      })
+
+      return channel
+    } catch (error) {
+      console.error('Erro ao configurar subscrição real-time de pedidos:', error)
+      if (onError) {
+        onError(error as Error)
+      }
+      return null
+    }
+  },
 }
 
 // Exportar funções individuais para facilitar o uso
@@ -484,3 +568,4 @@ export const getOrdersByType = OrderService.getOrdersByType.bind(OrderService)
 export const getTableOrders = OrderService.getTableOrders.bind(OrderService)
 export const getDeliveryOrders = OrderService.getDeliveryOrders.bind(OrderService)
 export const getOrdersByTable = OrderService.getOrdersByTable.bind(OrderService)
+export const subscribeToOrderChanges = OrderService.subscribeToOrderChanges.bind(OrderService)

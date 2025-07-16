@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
-import { ArrowLeft, QrCode, Users, Clock, RefreshCw } from "lucide-react"
+import { ArrowLeft, QrCode, Users, Clock } from "lucide-react"
 import MainLayout from "@/components/main-layout"
 import ProductList from "@/components/product-list"
 import TextCarousel from "@/components/text-carousel"
@@ -91,7 +91,7 @@ export default function MesaPage() {
 
         try {
           productsData = await getActiveProducts()
-          
+
           console.log(`🔍 Carregados ${productsData.length} produtos para verificar preços de mesa`)
 
           // Aplicar preços da mesa quando disponíveis
@@ -103,7 +103,7 @@ export default function MesaPage() {
             console.log(`🍽️ Preços de mesa (tableSizes):`, product.tableSizes)
             console.log(`✅ Tem tableSizes definido:`, !!(product.tableSizes))
             console.log(`📏 Quantidade de tableSizes:`, product.tableSizes?.length || 0)
-            
+
             // Verificar se o produto tem preços de mesa configurados
             // Usar tableSizes (camelCase) que é como está definido no tipo
             if (product.tableSizes && Array.isArray(product.tableSizes) && product.tableSizes.length > 0) {
@@ -117,7 +117,7 @@ export default function MesaPage() {
                 ...product,
                 sizes: product.tableSizes
               }
-              
+
               console.log('✅ Produto atualizado com preços de mesa:', updatedProduct.sizes[0]?.price);
               return updatedProduct
             } else {
@@ -125,7 +125,7 @@ export default function MesaPage() {
               return product
             }
           })
-          
+
           console.log(`\n📊 Resumo de aplicação de preços:`);
           const produtosComPrecosMesa = productsData.filter(p => p.tableSizes && p.tableSizes.length > 0).length;
           console.log(`- Produtos com preços de mesa configurados: ${produtosComPrecosMesa}`);
@@ -173,11 +173,7 @@ export default function MesaPage() {
     loadData()
   }, [numeroMesa, refreshKey]) // Adicionado refreshKey como dependência
 
-  // Função para forçar atualização
-  const forceRefresh = () => {
-    console.log('🔄 Forçando atualização da página da mesa...')
-    setRefreshKey(prev => prev + 1)
-  }
+
 
   // Salvar informações da mesa no localStorage para usar no checkout
   useEffect(() => {
@@ -226,7 +222,7 @@ export default function MesaPage() {
   return (
     <MainLayout carouselSlides={slides} showCart={true}>
       {/* Header da Mesa */}
-      <div className="bg-gradient-to-r from-purple-600 to-purple-800 text-white p-4 sm:p-6 mb-4 rounded-lg mx-2 sm:mx-4 mt-4">
+      <div className="bg-gradient-to-r from-purple-600 to-purple-800 text-white p-4 sm:p-6 mb-4 rounded-lg mx-2 sm:mx-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="bg-white/20 p-2 sm:p-3 rounded-full">
@@ -237,15 +233,8 @@ export default function MesaPage() {
               <p className="text-purple-100 text-sm sm:text-base break-words leading-tight">Faça seu pedido diretamente da mesa</p>
             </div>
           </div>
-          
-          {/* Botão de atualização */}
-          <button
-            onClick={forceRefresh}
-            className="bg-white/20 hover:bg-white/30 p-2 rounded-full transition-colors"
-            title="Atualizar dados"
-          >
-            <RefreshCw className="w-5 h-5" />
-          </button>
+
+
         </div>
       </div>
 
