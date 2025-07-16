@@ -10,17 +10,18 @@ import {
   getAllPageContents,
 } from "@/lib/db" // Importa do IndexedDB
 
-import {
-  saveProductToSupabase,
-  saveCategoryToSupabase,
-  saveAdditionalToSupabase,
-  saveCarouselSlideToSupabase,
-  savePhraseToSupabase,
-  saveOrderToSupabase,
-  saveStoreConfigToSupabase,
-  saveNotificationToSupabase,
-  savePageContentToSupabase,
-} from "@/lib/db-supabase" // Funções para salvar no Supabase
+// Funções de migração para Supabase não implementadas
+// import {
+//   saveProductToSupabase,
+//   saveCategoryToSupabase,
+//   saveAdditionalToSupabase,
+//   saveCarouselSlideToSupabase,
+//   savePhraseToSupabase,
+//   saveOrderToSupabase,
+//   saveStoreConfigToSupabase,
+//   saveNotificationToSupabase,
+//   savePageContentToSupabase,
+// } from "@/lib/db-supabase" // Funções para salvar no Supabase
 
 // Interface para o resultado da migração
 export interface MigrationResult {
@@ -41,7 +42,17 @@ export interface MigrationResult {
 }
 
 // Função para migrar todos os dados do IndexedDB para o Supabase
+// NOTA: Migração não implementada - funções save*ToSupabase não existem
 export async function migrateAllData(): Promise<MigrationResult> {
+  console.warn("⚠️ Migração para Supabase não implementada - funções save*ToSupabase não existem")
+  
+  return {
+    success: false,
+    message: "Migração não implementada. As funções de salvamento no Supabase não foram criadas.",
+    errors: ["Funções save*ToSupabase não implementadas no db-supabase.ts"]
+  }
+
+  /* CÓDIGO COMENTADO - MIGRAÇÃO NÃO IMPLEMENTADA
   const errors: string[] = []
   const details: MigrationResult["details"] = {}
 
@@ -172,6 +183,7 @@ export async function migrateAllData(): Promise<MigrationResult> {
       errors: [`Erro geral: ${error}`],
     }
   }
+  */
 }
 
 // Função para verificar se a migração já foi concluída
