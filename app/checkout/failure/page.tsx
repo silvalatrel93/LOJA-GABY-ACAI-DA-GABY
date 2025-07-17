@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { XCircle, Home, RotateCcw, AlertCircle, ArrowRight, Phone } from 'lucide-react'
@@ -16,7 +16,7 @@ interface PaymentInfo {
   external_reference?: string
 }
 
-export default function CheckoutFailurePage() {
+function FailureContent() {
   const searchParams = useSearchParams()
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null)
   const [loading, setLoading] = useState(true)
@@ -303,5 +303,20 @@ export default function CheckoutFailurePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CheckoutFailurePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando informações do pagamento...</p>
+        </div>
+      </div>
+    }>
+      <FailureContent />
+    </Suspense>
   )
 } 
