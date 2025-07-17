@@ -15,6 +15,12 @@ import { OrderService } from "@/lib/services/order-service"
 import { getProductById } from "@/lib/services/product-service"
 import { generateSimplePixQRCode } from "@/lib/pix-utils"
 import type { StoreConfig } from "@/lib/types"
+import dynamic from "next/dynamic"
+
+// Importar componente do Mercado Pago dinamicamente para evitar SSR
+const MercadoPagoCheckout = dynamic(() => import("@/components/mercado-pago-checkout"), {
+  ssr: false
+})
 
 // Função para limpar a exibição do tamanho
 function cleanSizeDisplay(size: string): string {
@@ -150,6 +156,12 @@ function CheckoutPageContent() {
   const [storeStatus, setStoreStatus] = useState({ isOpen: true, statusText: "", statusClass: "" })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [productCategories, setProductCategories] = useState<Record<number, string>>({})
+  const [showMercadoPago, setShowMercadoPago] = useState(false)
+
+  // Controlar exibição do Mercado Pago
+  useEffect(() => {
+    setShowMercadoPago(formData.paymentMethod === "online")
+  }, [formData.paymentMethod])
 
   // Carregar configurações da loja e status
   useEffect(() => {
@@ -700,6 +712,21 @@ function CheckoutPageContent() {
               <div className="flex items-center">
                 <input
                   type="radio"
+                  id="online"
+                  name="paymentMethod"
+                  value="online"
+                  checked={formData.paymentMethod === "online"}
+                  onChange={handleChange}
+                  className="h-5 w-5 text-purple-600 focus:ring-purple-500"
+                />
+                <label htmlFor="online" className="ml-3 block text-base text-gray-700">
+                  💳 Pagamento Online (Cartão, Pix, Boleto)
+                </label>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="radio"
                   id="pix"
                   name="paymentMethod"
                   value="pix"
@@ -886,20 +913,67 @@ function CheckoutPageContent() {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={!storeStatus.isOpen || isSubmitting ||
-              (formData.paymentMethod === "money" && formData.paymentChange ? parseFloat(formData.paymentChange) < total : false)}
-            className={`w-full ${!storeStatus.isOpen || isSubmitting ||
-                (formData.paymentMethod === "money" && formData.paymentChange && parseFloat(formData.paymentChange) < total)
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800"
-              } text-white py-4 text-base sm:text-lg rounded-lg font-semibold flex items-center justify-center sticky bottom-4 shadow-lg transition-colors`}
-            data-component-name="CheckoutPageContent"
-            title={formData.paymentMethod === "money" && formData.paymentChange && parseFloat(formData.paymentChange) < total
-              ? "O valor informado é menor que o total do pedido"
-              : undefined}
-          >
+          {/* Componente de pagamento online do Mercado Pago */}
+          {showMercadoPago && (
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-purple-900 mb-4">
+                Pagamento Online
+              </h2>
+              <MercadoPagoCheckout
+                total={total}
+                customerData={{
+                  name: formData.name,
+                  email: formData.phone ? `${formData.phone.replace(/\D/g, '')}@heai.com.br` : '',
+                  phone: formData.phone,
+                  document: undefined // Opcional - pode implementar campo CPF depois
+                }}
+                orderData={{
+                  items: cart,
+                  address: !isTableOrder ? {
+                    street: formData.address,
+                    number: formData.number,
+                    complement: formData.complement,
+                    neighborhood: formData.neighborhood,
+                    city: formData.city,
+                    addressType: formData.addressType
+                  } : undefined,
+                  tableInfo: isTableOrder ? tableInfo : undefined,
+                  deliveryFee: finalDeliveryFee,
+                  subtotal,
+                  total,
+                  isTableOrder,
+                  customerName: formData.name,
+                  customerPhone: formData.phone
+                }}
+                onSuccess={(paymentData) => {
+                  console.log('Pagamento realizado com sucesso:', paymentData)
+                  // Aqui você pode implementar lógica adicional após o sucesso
+                }}
+                onError={(error) => {
+                  console.error('Erro no pagamento:', error)
+                  // Aqui você pode implementar tratamento de erro
+                }}
+                isLoading={isSubmitting}
+              />
+            </div>
+          )}
+
+          {/* Botão de finalizar pedido - oculto quando pagamento online está selecionado */}
+          {!showMercadoPago && (
+            <button
+              type="submit"
+              disabled={!storeStatus.isOpen || isSubmitting ||
+                (formData.paymentMethod === "money" && formData.paymentChange ? parseFloat(formData.paymentChange) < total : false)}
+              className={`w-full ${!storeStatus.isOpen || isSubmitting ||
+                  (formData.paymentMethod === "money" && formData.paymentChange && parseFloat(formData.paymentChange) < total)
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800"
+                } text-white py-4 text-base sm:text-lg rounded-lg font-semibold flex items-center justify-center sticky bottom-4 shadow-lg transition-colors`}
+              data-component-name="CheckoutPageContent"
+              title={formData.paymentMethod === "money" && formData.paymentChange && parseFloat(formData.paymentChange) < total
+                ? "O valor informado é menor que o total do pedido"
+                : undefined}
+            >
             {isSubmitting ? (
               <>
                 <div className="animate-spin h-5 w-5 mr-3 border-2 border-white border-t-transparent rounded-full"></div>
@@ -913,7 +987,8 @@ function CheckoutPageContent() {
             ) : (
               "Loja Fechada - Não é possível finalizar"
             )}
-          </button>
+            </button>
+          )}
         </form>
       </div>
       <footer className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 mt-auto shadow-lg" data-component-name="CheckoutPageContent">
