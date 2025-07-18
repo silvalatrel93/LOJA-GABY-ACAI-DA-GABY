@@ -22,7 +22,7 @@ const LABEL_WIDTH_MM = 80 // Configurado para MP-4200 TH (58-82.5mm)
 export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabelPrinterProps) {
   const printContainerRef = useRef<HTMLDivElement>(null)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
-  const [storeName, setStoreName] = useState("Heai Açai e Sorvetes")
+  const [storeName, setStoreName] = useState("Loja Virtual")
   const [logoUrl, setLogoUrl] = useState("")
   const [salmo, setSalmo] = useState({ referencia: "", texto: "" })
 

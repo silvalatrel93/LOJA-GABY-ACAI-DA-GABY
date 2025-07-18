@@ -17,7 +17,35 @@ export default function StoreConfigPage() {
     const loadStoreConfig = async () => {
       try {
         setIsLoading(true)
+        
+        // Verificar se temos uma configuração em cache (salva recentemente)
+        const cachedConfig = sessionStorage.getItem('recent_store_config')
+        const cacheTimestamp = sessionStorage.getItem('recent_store_config_timestamp')
+        
+        if (cachedConfig && cacheTimestamp) {
+          const cacheAge = Date.now() - parseInt(cacheTimestamp)
+          // Se o cache tem menos de 5 segundos, usar ele
+          if (cacheAge < 5000) {
+
+            const config = JSON.parse(cachedConfig)
+            const displayConfig = {
+              ...config,
+              _deliveryFee: config.deliveryFee === 0 ? "" : config.deliveryFee,
+              _maringaDeliveryFee: config.maringaDeliveryFee === 0 ? "" : config.maringaDeliveryFee
+            };
+            setStoreConfig(displayConfig as any);
+            setIsLoading(false)
+            return;
+          }
+        }
+        
+        // Limpar cache expirado
+        sessionStorage.removeItem('recent_store_config')
+        sessionStorage.removeItem('recent_store_config_timestamp')
+        
         const config = await getStoreConfig()
+        
+
         
         // Preparar os dados para exibição na interface
         // Criamos uma cópia modificada do objeto para não alterar os tipos originais
@@ -30,6 +58,7 @@ export default function StoreConfigPage() {
             _maringaDeliveryFee: config.maringaDeliveryFee === 0 ? "" : config.maringaDeliveryFee
           };
           
+
           setStoreConfig(displayConfig as any);
           return; // Retornamos aqui para evitar o setStoreConfig abaixo
         }
@@ -51,11 +80,15 @@ export default function StoreConfigPage() {
     try {
       setIsSaving(true)
       
-      console.log("Salvando configurações:", { id: storeConfig.id, name: storeConfig.name })
+
       
       await saveStoreConfig(storeConfig)
 
-      // Fazer backup após salvar
+      // Salvar no cache para evitar rebusca imediata em caso de recarregamento
+      sessionStorage.setItem('recent_store_config', JSON.stringify(storeConfig))
+      sessionStorage.setItem('recent_store_config_timestamp', Date.now().toString())
+
+      // Fazer backup após salvar (sem recarregar config)
       await backupData()
 
       setSaveStatus("success")
@@ -168,7 +201,10 @@ export default function StoreConfigPage() {
                 <input
                   type="text"
                   value={storeConfig.name}
-                  onChange={(e) => setStoreConfig({ ...storeConfig, name: e.target.value })}
+                  onChange={(e) => {
+
+                    setStoreConfig({ ...storeConfig, name: e.target.value })
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="Nome da sua loja"
                 />

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Teste Requisições Supabase</title>
+</head>
+
+<body>
+    <h1>Teste de Requisições Supabase</h1>
+    <button onclick="testStoreConfig()">Testar store_config</button>
+    <button onclick="testPhrases()">Testar phrases</button>
+    <div id="results"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://aqlxezhquvohpdkhrolf.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxbHhlemhxdXZvaHBka2hyb2xmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4NDY0NzQsImV4cCI6MjA2ODQyMjQ3NH0.mzJwiwtHvtGEr5D9OMpMTycCq5pqOvzBccd1EhXHRLo';
+
+        function log(message) {
+            const results = document.getElementById('results');
+            results.innerHTML += '<p>' + message + '</p>';
+            console.log(message);
+        }
+
+        async function testStoreConfig() {
+            log('Testando requisição para store_config...');
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/store_config?select=count`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'count=exact'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.text();
+                    log(`✅ store_config: Sucesso - ${data}`);
+                } else {
+                    log(`❌ store_config: Erro ${response.status} - ${response.statusText}`);
+                }
+            } catch (error) {
+                log(`❌ store_config: Erro de rede - ${error.message}`);
+            }
+        }
+
+        async function testPhrases() {
+            log('Testando requisição para phrases...');
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/phrases?select=*`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ phrases: Sucesso - ${data.length} registros`);
+                } else {
+                    log(`❌ phrases: Erro ${response.status} - ${response.statusText}`);
+                }
+            } catch (error) {
+                log(`❌ phrases: Erro de rede - ${error.message}`);
+            }
+        }
+    </script>
+</body>
+
+</html>

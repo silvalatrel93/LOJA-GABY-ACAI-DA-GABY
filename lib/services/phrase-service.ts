@@ -1,13 +1,24 @@
-import { createSupabaseClient } from "../supabase-client"
+import { createSupabaseClient, withRetry } from "../supabase-client"
 import type { Phrase } from "../types"
-import { DEFAULT_STORE_ID } from "../constants"
 
 // Serviço para gerenciar frases
 export const PhraseService = {
   // Obter todas as frases
   async getAllPhrases(): Promise<Phrase[]> {
     const supabase = createSupabaseClient()
-    const { data, error } = await supabase.from("phrases").select("*").order("order")
+
+    // Adicionar um pequeno delay para evitar requisições muito rápidas
+    await new Promise(resolve => setTimeout(resolve, 50))
+
+    const { data, error } = await withRetry(async () => {
+      const result = await supabase.from("phrases").select("*").order("order")
+
+      if (result.error) {
+        throw result.error
+      }
+
+      return result
+    })
 
     if (error) {
       console.error("Erro ao buscar frases:", error)
@@ -70,7 +81,7 @@ export const PhraseService = {
         text: phrase.text,
         order: phrase.order,
         active: phrase.active,
-        store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
+        // Nota: phrases não usa store_id
       }
 
       let result

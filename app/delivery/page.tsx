@@ -56,7 +56,7 @@ export default function DeliveryPage() {
   return (
     <main className="flex min-h-screen flex-col">
       <StoreHeader
-        name={storeConfig?.name || "Heai Açai e Sorvetes"}
+        name={storeConfig?.name || "Loja Virtual"}
         logoUrl={storeConfig?.logoUrl}
       />
 

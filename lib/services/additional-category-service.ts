@@ -26,7 +26,7 @@ export const AdditionalCategoryService = {
       return (data || []).map((category: any) => ({
         id: Number(category.id),
         name: String(category.name),
-        order: Number(category.display_order),
+        order: Number(category.display_order || 0),
         active: Boolean(category.active),
         selectionLimit: category.selection_limit ? Number(category.selection_limit) : undefined,
       }))
@@ -54,7 +54,7 @@ export const AdditionalCategoryService = {
       return (data || []).map((category: any) => ({
         id: Number(category.id),
         name: String(category.name),
-        order: Number(category.display_order),
+        order: Number(category.display_order || 0),
         active: Boolean(category.active),
         selectionLimit: category.selection_limit ? Number(category.selection_limit) : undefined,
       }))
@@ -86,7 +86,7 @@ export const AdditionalCategoryService = {
       return {
         id: Number(data.id),
         name: String(data.name),
-        order: Number(data.display_order),
+        order: Number(data.display_order || 0),
         active: Boolean(data.active),
         selectionLimit: data.selection_limit ? Number(data.selection_limit) : undefined,
       }
@@ -144,7 +144,7 @@ export const AdditionalCategoryService = {
           const result: AdditionalCategory = {
             id: Number(data.id),
             name: String(data.name),
-            order: Number(data.display_order),
+            order: Number(data.display_order || 0),
             active: Boolean(data.active),
             selectionLimit: data.selection_limit ? Number(data.selection_limit) : undefined,
           }
@@ -193,7 +193,7 @@ export const AdditionalCategoryService = {
         const result: AdditionalCategory = {
           id: Number(data.id),
           name: String(data.name),
-          order: Number(data.display_order),
+          order: Number(data.display_order || 0),
           active: Boolean(data.active),
           selectionLimit: data.selection_limit ? Number(data.selection_limit) : undefined,
         }

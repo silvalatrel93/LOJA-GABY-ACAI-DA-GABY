@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og';
  
 export const runtime = 'edge';
  
-export const alt = 'Heai Açaí e Sorvetes';
+export const alt = 'Loja Virtual';
 export const size = {
   width: 1200,
   height: 630,
@@ -30,7 +30,7 @@ export default async function Image() {
       >
         <img
           src="https://i.postimg.cc/9QjPdk40/logo-heai.webp"
-          alt="Heai Açaí e Sorvetes"
+          alt="Loja Virtual"
           width={200}
           height={200}
           style={{
@@ -38,7 +38,7 @@ export default async function Image() {
             marginBottom: 24,
           }}
         />
-        <h1 style={{ margin: 0, marginBottom: 16 }}>Heai Açaí e Sorvetes</h1>
+        <h1 style={{ margin: 0, marginBottom: 16 }}>Loja Virtual</h1>
         <p style={{ fontSize: 24, margin: 0, opacity: 0.8 }}>
           Deliciosos açaís, sorvetes e muito mais!
         </p>

@@ -10,7 +10,7 @@ interface SocialShareProps {
 }
 
 export default function SocialShare({ 
-  title = "Heai Açaí e Sorvetes", 
+  title = "Loja Virtual", 
   message = "Venha conhecer nossos deliciosos produtos!" 
 }: SocialShareProps) {
   const [showOptions, setShowOptions] = useState(false);

@@ -384,7 +384,9 @@ function CheckoutPageContent() {
         total,
         paymentMethod: formData.paymentMethod,
         // Adicionando o campo paymentChange apenas se o pagamento for em dinheiro
-        ...(formData.paymentMethod === "money" && { paymentChange: formData.paymentChange }),
+        ...(formData.paymentMethod === "money" && { 
+          paymentChange: formData.paymentChange || "0" 
+        }),
         status: "new" as const,
         date: new Date(),
         printed: false,
@@ -611,7 +613,6 @@ function CheckoutPageContent() {
                       onChange={handleChange}
                       required={!isTableOrder}
                       className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      inputMode="numeric"
                     />
                   </div>
 

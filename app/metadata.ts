@@ -1,20 +1,20 @@
 import type { Metadata } from 'next';
 
 export const homeMetadata: Metadata = {
-  title: 'Heai Açaí e Sorvetes - Deliciosos produtos para você',
+  title: 'Loja Virtual - Deliciosos produtos para você',
   description: 'Experimente nossos deliciosos açaís, sorvetes e muito mais. Faça seu pedido online e receba em casa!',
-  keywords: ['açaí', 'sorvete', 'delivery', 'sobremesa', 'Heai'],
+      keywords: ['açaí', 'sorvete', 'delivery', 'sobremesa', 'loja virtual'],
   openGraph: {
-    title: 'Heai Açaí e Sorvetes',
+    title: 'Loja Virtual',
     description: 'Deliciosos açaís, sorvetes e muito mais! Peça agora e receba em casa.',
     url: 'https://heai-acai.vercel.app',
-    siteName: 'Heai Açaí e Sorvetes',
+    siteName: 'Loja Virtual',
     images: [
       {
         url: 'https://i.postimg.cc/9QjPdk40/logo-heai.webp',
         width: 800,
         height: 600,
-        alt: 'Heai Açaí e Sorvetes',
+        alt: 'Loja Virtual',
       },
     ],
     locale: 'pt_BR',
@@ -22,7 +22,7 @@ export const homeMetadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Heai Açaí e Sorvetes',
+    title: 'Loja Virtual',
     description: 'Deliciosos açaís, sorvetes e muito mais! Peça agora e receba em casa.',
     images: ['https://i.postimg.cc/9QjPdk40/logo-heai.webp'],
   },

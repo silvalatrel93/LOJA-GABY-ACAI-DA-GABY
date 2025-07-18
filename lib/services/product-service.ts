@@ -6,7 +6,9 @@ export const ProductService = {
   async getAllProducts(): Promise<Product[]> {
     try {
       const supabase = createSupabaseClient()
-      const { data, error } = await supabase
+
+      // Primeiro, tenta buscar com hidden_from_delivery
+      let { data, error } = await supabase
         .from("products")
         .select(`
           id,
@@ -19,11 +21,39 @@ export const ProductService = {
           categories!products_category_id_fkey(name),
           active,
           hidden,
+          hidden_from_table,
+          hidden_from_delivery,
           allowed_additionals,
           additionals_limit,
           needs_spoon
         `)
         .order("id")
+
+      // Se der erro (possivelmente porque a coluna não existe), tenta sem hidden_from_delivery
+      if (error && error.message?.includes('hidden_from_delivery')) {
+        const fallbackResult = await supabase
+          .from("products")
+          .select(`
+            id,
+            name,
+            description,
+            image,
+            sizes,
+            table_sizes,
+            category_id,
+            categories!products_category_id_fkey(name),
+            active,
+            hidden,
+            hidden_from_table,
+            allowed_additionals,
+            additionals_limit,
+            needs_spoon
+          `)
+          .order("id")
+
+        data = fallbackResult.data
+        error = fallbackResult.error
+      }
 
       if (error) {
         console.error("Erro ao buscar produtos:", error)
@@ -43,6 +73,8 @@ export const ProductService = {
           : "",
         active: Boolean(item.active),
         hidden: Boolean(item.hidden || false),
+        hiddenFromTable: Boolean(item.hidden_from_table || false),
+        hiddenFromDelivery: Boolean(item.hidden_from_delivery || false),
         allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
         hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
         additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
@@ -58,7 +90,9 @@ export const ProductService = {
   async getActiveProducts(): Promise<Product[]> {
     try {
       const supabase = createSupabaseClient()
-      const { data, error } = await supabase
+
+      // Primeiro, tenta buscar com hidden_from_delivery
+      let { data, error } = await supabase
         .from("products")
         .select(`
           id,
@@ -71,12 +105,41 @@ export const ProductService = {
           categories!products_category_id_fkey(name),
           active,
           hidden,
+          hidden_from_table,
+          hidden_from_delivery,
           allowed_additionals,
           additionals_limit,
           needs_spoon
         `)
         .eq("active", true)
         .order("id")
+
+      // Se der erro (possivelmente porque a coluna não existe), tenta sem hidden_from_delivery
+      if (error && error.message?.includes('hidden_from_delivery')) {
+        const fallbackResult = await supabase
+          .from("products")
+          .select(`
+            id,
+            name,
+            description,
+            image,
+            sizes,
+            table_sizes,
+            category_id,
+            categories!products_category_id_fkey(name),
+            active,
+            hidden,
+            hidden_from_table,
+            allowed_additionals,
+            additionals_limit,
+            needs_spoon
+          `)
+          .eq("active", true)
+          .order("id")
+
+        data = fallbackResult.data
+        error = fallbackResult.error
+      }
 
       if (error) {
         console.error("Erro ao buscar produtos ativos:", error)
@@ -96,6 +159,8 @@ export const ProductService = {
           : "",
         active: Boolean(item.active),
         hidden: Boolean(item.hidden || false),
+        hiddenFromTable: Boolean(item.hidden_from_table || false),
+        hiddenFromDelivery: Boolean(item.hidden_from_delivery || false),
         allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
         hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
         additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
@@ -111,7 +176,9 @@ export const ProductService = {
   async getVisibleProducts(): Promise<Product[]> {
     try {
       const supabase = createSupabaseClient()
-      const { data, error } = await supabase
+
+      // Primeiro, tenta buscar com hidden_from_delivery
+      let { data, error } = await supabase
         .from("products")
         .select(`
           id,
@@ -124,6 +191,8 @@ export const ProductService = {
           categories!products_category_id_fkey(name),
           active,
           hidden,
+          hidden_from_table,
+          hidden_from_delivery,
           allowed_additionals,
           additionals_limit,
           needs_spoon
@@ -131,6 +200,34 @@ export const ProductService = {
         .eq("active", true)
         .eq("hidden", false)
         .order("id")
+
+      // Se der erro (possivelmente porque a coluna não existe), tenta sem hidden_from_delivery
+      if (error && error.message?.includes('hidden_from_delivery')) {
+        const fallbackResult = await supabase
+          .from("products")
+          .select(`
+            id,
+            name,
+            description,
+            image,
+            sizes,
+            table_sizes,
+            category_id,
+            categories!products_category_id_fkey(name),
+            active,
+            hidden,
+            hidden_from_table,
+            allowed_additionals,
+            additionals_limit,
+            needs_spoon
+          `)
+          .eq("active", true)
+          .eq("hidden", false)
+          .order("id")
+
+        data = fallbackResult.data
+        error = fallbackResult.error
+      }
 
       if (error) {
         console.error("Erro ao buscar produtos visíveis:", error)
@@ -150,6 +247,8 @@ export const ProductService = {
           : "",
         active: Boolean(item.active),
         hidden: Boolean(item.hidden || false),
+        hiddenFromTable: Boolean(item.hidden_from_table || false),
+        hiddenFromDelivery: Boolean(item.hidden_from_delivery || false),
         allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
         hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
         additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
@@ -165,7 +264,9 @@ export const ProductService = {
   async getProductById(id: number): Promise<Product | null> {
     try {
       const supabase = createSupabaseClient()
-      const { data, error } = await supabase
+
+      // Primeiro, tenta buscar com hidden_from_delivery
+      let { data, error } = await supabase
         .from("products")
         .select(`
           id,
@@ -178,12 +279,41 @@ export const ProductService = {
           categories!products_category_id_fkey(name),
           active,
           hidden,
+          hidden_from_table,
+          hidden_from_delivery,
           allowed_additionals,
           additionals_limit,
           needs_spoon
         `)
         .eq("id", id)
         .single()
+
+      // Se der erro (possivelmente porque a coluna não existe), tenta sem hidden_from_delivery
+      if (error && error.message?.includes('hidden_from_delivery')) {
+        const fallbackResult = await supabase
+          .from("products")
+          .select(`
+            id,
+            name,
+            description,
+            image,
+            sizes,
+            table_sizes,
+            category_id,
+            categories!products_category_id_fkey(name),
+            active,
+            hidden,
+            hidden_from_table,
+            allowed_additionals,
+            additionals_limit,
+            needs_spoon
+          `)
+          .eq("id", id)
+          .single()
+
+        data = fallbackResult.data
+        error = fallbackResult.error
+      }
 
       if (error) {
         console.error(`Erro ao buscar produto ${id}:`, error)
@@ -207,6 +337,8 @@ export const ProductService = {
           : "",
         active: Boolean(data.active),
         hidden: Boolean(data.hidden || false),
+        hiddenFromTable: Boolean(data.hidden_from_table || false),
+        hiddenFromDelivery: Boolean(data.hidden_from_delivery || false),
         allowedAdditionals: Array.isArray(data.allowed_additionals) ? data.allowed_additionals : [],
         hasAdditionals: Array.isArray(data.allowed_additionals) && data.allowed_additionals.length > 0,
         additionalsLimit: typeof data.additionals_limit === 'number' ? data.additionals_limit : undefined,
@@ -240,7 +372,6 @@ export const ProductService = {
           allowed_additionals: product.allowedAdditionals || [],
           additionals_limit: product.additionalsLimit || 5,
           needs_spoon: product.needsSpoon || false,
-          store_id: "00000000-0000-0000-0000-000000000000", // Store ID padrão
         }
 
         console.log("Dados para atualização:", updateData)
@@ -279,6 +410,7 @@ export const ProductService = {
           categoryId: Number(data.category_id),
           active: Boolean(data.active),
           hidden: Boolean(data.hidden || false),
+          hiddenFromDelivery: Boolean(data.hidden_from_delivery || false),
           allowedAdditionals: Array.isArray(data.allowed_additionals) ? data.allowed_additionals : [],
           hasAdditionals: Array.isArray(data.allowed_additionals) && data.allowed_additionals.length > 0,
           additionalsLimit: typeof data.additionals_limit === 'number' ? data.additionals_limit : undefined,
@@ -300,7 +432,6 @@ export const ProductService = {
           allowed_additionals: product.allowedAdditionals || [],
           additionals_limit: product.additionalsLimit || 5,
           needs_spoon: product.needsSpoon || false,
-          store_id: "00000000-0000-0000-0000-000000000000", // Store ID padrão
         }
 
         console.log("Dados para criação:", insertData)
@@ -415,10 +546,10 @@ export const ProductService = {
  */
 function isTableContext(): boolean {
   if (typeof window === 'undefined') return false
-  
+
   const currentPath = window.location.pathname
   const mesaAtual = localStorage.getItem('mesa_atual')
-  
+
   // Verificar se estamos na rota de mesa OU se há dados de mesa no localStorage
   return currentPath.startsWith('/mesa/') || !!mesaAtual
 }
@@ -431,24 +562,16 @@ function applyTablePricesIfNeeded(products: Product[]): Product[] {
   if (!isTableContext()) {
     return products
   }
-  
-  console.log('🍽️ Contexto de mesa detectado - aplicando preços de mesa automaticamente')
-  
+
   return products.map(product => {
     // Verificar se o produto tem preços de mesa configurados
     if (product.tableSizes && Array.isArray(product.tableSizes) && product.tableSizes.length > 0) {
-      console.log(`🍽️ ✅ Aplicando preços de mesa para: ${product.name}`)
-      console.log(`📦 Preço delivery: R$ ${product.sizes[0]?.price}`)
-      console.log(`🍽️ Preço mesa: R$ ${product.tableSizes[0]?.price}`)
-      console.log(`📊 Limites de adicionais para mesa:`, product.tableSizes.map(s => `${s.size}: ${s.additionalsLimit || 'sem limite'}`).join(', '))
-      
       // Aplicar os preços de mesa substituindo os preços padrão
       return {
         ...product,
         sizes: product.tableSizes
       }
     } else {
-      console.log(`🍽️ ❌ SEM preços de mesa para: ${product.name} - usando preços padrão`)
       return product
     }
   })
@@ -464,10 +587,308 @@ export async function getActiveProductsWithContext(): Promise<Product[]> {
 
 /**
  * Buscar produtos visíveis com aplicação automática de preços de mesa
+ * Detecta automaticamente se está em contexto de mesa ou delivery
  */
 export async function getVisibleProductsWithContext(): Promise<Product[]> {
-  const products = await getVisibleProducts()
-  return applyTablePricesIfNeeded(products)
+  // Detectar contexto baseado na URL ou localStorage
+  let isTableContext = false
+  
+  if (typeof window !== 'undefined') {
+    // Verificar se está na rota de mesa
+    const currentPath = window.location.pathname
+    if (currentPath.startsWith('/mesa/')) {
+      isTableContext = true
+    } else {
+      // Verificar se há dados de mesa no localStorage
+      const mesaAtual = localStorage.getItem('mesa_atual')
+      if (mesaAtual) {
+        try {
+          const mesa = JSON.parse(mesaAtual)
+          if (mesa && mesa.id) {
+            isTableContext = true
+          }
+        } catch (e) {
+          // Ignorar erro de parsing
+        }
+      }
+    }
+  }
+
+  // Usar a função apropriada baseada no contexto
+  let products: Product[]
+  if (isTableContext) {
+    console.log('ProductService: Carregando produtos para contexto de mesa')
+    products = await getVisibleProductsForTable()
+    // Aplicar preços de mesa se disponíveis
+    return applyTablePricesIfNeeded(products)
+  } else {
+    console.log('ProductService: Carregando produtos para contexto de delivery')
+    products = await getVisibleProductsForDelivery()
+    // Para delivery, não aplicar preços de mesa
+    return products
+  }
+}
+
+/**
+ * Obter produtos visíveis no delivery (ativos, não ocultos geralmente, e não ocultos específicamente do delivery)
+ */
+export async function getVisibleProductsForDelivery(): Promise<Product[]> {
+  try {
+    const supabase = createSupabaseClient()
+    const { data, error } = await supabase
+      .from("products")
+      .select(`
+          id,
+          name,
+          description,
+          image,
+          sizes,
+          table_sizes,
+          category_id,
+          categories!products_category_id_fkey(name),
+          active,
+          hidden,
+          hidden_from_table,
+          hidden_from_delivery,
+          allowed_additionals,
+          additionals_limit,
+          needs_spoon
+        `)
+      .eq("active", true)
+      .eq("hidden", false)
+      .eq("hidden_from_delivery", false)
+      .order("id")
+
+    if (error) {
+      console.error("Erro ao buscar produtos visíveis no delivery:", error)
+      // Fallback para quando a coluna hidden_from_delivery não existe ainda
+      if (error.message?.includes("hidden_from_delivery")) {
+        console.warn("Coluna hidden_from_delivery não existe. Aplicar migração.")
+        // Fallback: buscar apenas produtos ativos e não ocultos (sem filtro de delivery)
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("products")
+          .select(`
+              id,
+              name,
+              description,
+              image,
+              sizes,
+              table_sizes,
+              category_id,
+              categories!products_category_id_fkey(name),
+              active,
+              hidden,
+              hidden_from_table,
+              allowed_additionals,
+              additionals_limit,
+              needs_spoon
+            `)
+          .eq("active", true)
+          .eq("hidden", false)
+          .order("id")
+
+        if (fallbackError) {
+          console.error("Erro no fallback para produtos visíveis no delivery:", fallbackError)
+          return []
+        }
+
+        return (fallbackData || []).map((item: any) => ({
+          id: Number(item.id),
+          name: String(item.name),
+          description: String(item.description || ""),
+          image: String(item.image || ""),
+          sizes: Array.isArray(item.sizes) ? item.sizes : [],
+          tableSizes: Array.isArray(item.table_sizes) ? item.table_sizes : undefined,
+          categoryId: Number(item.category_id),
+          categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories
+            ? String((item.categories as any).name)
+            : "",
+          active: Boolean(item.active),
+          hidden: Boolean(item.hidden || false),
+          hiddenFromTable: Boolean(item.hidden_from_table || false),
+          hiddenFromDelivery: false, // Fallback: assume que não está oculto do delivery
+          allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
+          hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
+          additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
+          needsSpoon: typeof item.needs_spoon === 'boolean' ? item.needs_spoon : undefined,
+        }))
+      }
+      return []
+    }
+
+    return (data || []).map((item: any) => ({
+      id: Number(item.id),
+      name: String(item.name),
+      description: String(item.description || ""),
+      image: String(item.image || ""),
+      sizes: Array.isArray(item.sizes) ? item.sizes : [],
+      tableSizes: Array.isArray(item.table_sizes) ? item.table_sizes : undefined,
+      categoryId: Number(item.category_id),
+      categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories
+        ? String((item.categories as any).name)
+        : "",
+      active: Boolean(item.active),
+      hidden: Boolean(item.hidden || false),
+      hiddenFromTable: Boolean(item.hidden_from_table || false),
+      hiddenFromDelivery: Boolean(item.hidden_from_delivery || false),
+      allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
+      hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
+      additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
+      needsSpoon: typeof item.needs_spoon === 'boolean' ? item.needs_spoon : undefined,
+    }))
+  } catch (error) {
+    console.error("Erro ao buscar produtos visíveis no delivery:", error)
+    return []
+  }
+}
+
+/**
+ * Obter produtos visíveis em mesa (ativos, não ocultos geralmente, e não ocultos específicamente de mesa)
+ */
+export async function getVisibleProductsForTable(): Promise<Product[]> {
+  try {
+    const supabase = createSupabaseClient()
+    const { data, error } = await supabase
+      .from("products")
+      .select(`
+          id,
+          name,
+          description,
+          image,
+          sizes,
+          table_sizes,
+          category_id,
+          categories!products_category_id_fkey(name),
+          active,
+          hidden,
+          hidden_from_table,
+          allowed_additionals,
+          additionals_limit,
+          needs_spoon
+        `)
+      .eq("active", true)
+      .eq("hidden", false)
+      .eq("hidden_from_table", false)
+      .order("id")
+
+    if (error) {
+      console.error("Erro ao buscar produtos visíveis em mesa:", error)
+      // Fallback para quando a coluna hidden_from_table não existe ainda
+      if (error.message?.includes("hidden_from_table")) {
+        console.warn("Coluna hidden_from_table não existe. Aplicar migração.")
+        // Fallback: buscar apenas produtos ativos e não ocultos (sem filtro de mesa)
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("products")
+          .select(`
+              id,
+              name,
+              description,
+              image,
+              sizes,
+              table_sizes,
+              category_id,
+              categories!products_category_id_fkey(name),
+              active,
+              hidden,
+              allowed_additionals,
+              additionals_limit,
+              needs_spoon
+            `)
+          .eq("active", true)
+          .eq("hidden", false)
+          .order("id")
+
+        if (fallbackError) {
+          console.error("Erro no fallback para produtos visíveis em mesa:", fallbackError)
+          return []
+        }
+
+        return (fallbackData || []).map((item: any) => ({
+          id: Number(item.id),
+          name: String(item.name),
+          description: String(item.description || ""),
+          image: String(item.image || ""),
+          sizes: Array.isArray(item.sizes) ? item.sizes : [],
+          tableSizes: Array.isArray(item.table_sizes) ? item.table_sizes : undefined,
+          categoryId: Number(item.category_id),
+          categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories
+            ? String((item.categories as any).name)
+            : "",
+          active: Boolean(item.active),
+          hidden: Boolean(item.hidden || false),
+          hiddenFromTable: false, // Fallback: assume que não está oculto de mesa
+          allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
+          hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
+          additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
+          needsSpoon: typeof item.needs_spoon === 'boolean' ? item.needs_spoon : undefined,
+        }))
+      }
+      return []
+    }
+
+    return (data || []).map((item: any) => ({
+      id: Number(item.id),
+      name: String(item.name),
+      description: String(item.description || ""),
+      image: String(item.image || ""),
+      sizes: Array.isArray(item.sizes) ? item.sizes : [],
+      tableSizes: Array.isArray(item.table_sizes) ? item.table_sizes : undefined,
+      categoryId: Number(item.category_id),
+      categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories
+        ? String((item.categories as any).name)
+        : "",
+      active: Boolean(item.active),
+      hidden: Boolean(item.hidden || false),
+      hiddenFromTable: Boolean(item.hidden_from_table || false),
+      allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
+      hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
+      additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
+      needsSpoon: typeof item.needs_spoon === 'boolean' ? item.needs_spoon : undefined,
+    }))
+  } catch (error) {
+    console.error("Erro ao buscar produtos visíveis em mesa:", error)
+    return []
+  }
+}
+
+/**
+ * Alternar visibilidade do produto no delivery
+ */
+export async function toggleDeliveryVisibility(productId: number): Promise<boolean> {
+  try {
+    const supabase = createSupabaseClient()
+
+    // Primeiro, obter o estado atual
+    const { data: currentProduct, error: fetchError } = await supabase
+      .from("products")
+      .select("hidden_from_delivery")
+      .eq("id", productId)
+      .single()
+
+    if (fetchError) {
+      console.error("Erro ao buscar produto para alternar visibilidade no delivery:", fetchError)
+      return false
+    }
+
+    // Alternar o estado
+    const newHiddenFromDelivery = !currentProduct.hidden_from_delivery
+
+    const { error } = await supabase
+      .from("products")
+      .update({ hidden_from_delivery: newHiddenFromDelivery })
+      .eq("id", productId)
+
+    if (error) {
+      console.error("Erro ao alternar visibilidade do produto no delivery:", error)
+      return false
+    }
+
+    console.log(`Produto ${productId} ${newHiddenFromDelivery ? 'ocultado do' : 'exibido no'} delivery`)
+    return true
+  } catch (error) {
+    console.error("Erro ao alternar visibilidade do produto no delivery:", error)
+    return false
+  }
 }
 
 // Exportar funções individuais para facilitar o uso
@@ -478,6 +899,7 @@ export const getProductById = ProductService.getProductById.bind(ProductService)
 export const saveProduct = ProductService.saveProduct.bind(ProductService)
 export const deleteProduct = ProductService.deleteProduct.bind(ProductService)
 export const toggleProductVisibility = ProductService.toggleProductVisibility.bind(ProductService)
+// getVisibleProductsForTable e getVisibleProductsForDelivery são exportadas como funções standalone acima
 
 // Exportar tipos
 export type { Product } from "../types"

@@ -3,7 +3,7 @@
  */
 
 // ID da loja padrão (Loja Principal)
-export const DEFAULT_STORE_ID = "00000000-0000-0000-0000-000000000000"
+export const DEFAULT_STORE_ID = "default-store"
 
 // Status de pedidos
 export const ORDER_STATUS = {

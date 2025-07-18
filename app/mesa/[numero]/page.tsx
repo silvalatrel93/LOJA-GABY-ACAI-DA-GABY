@@ -10,7 +10,7 @@ import StoreClosedNotice from "@/components/store-closed-notice"
 import FloatingCartButton from "@/components/floating-cart-button"
 import { getActiveSlides } from "@/lib/services/carousel-service"
 import { getActiveCategories } from "@/lib/services/category-service"
-import { getActiveProducts } from "@/lib/services/product-service"
+import { getVisibleProductsForTable } from "@/lib/services/product-service"
 import { getActivePhrases } from "@/lib/services/phrase-service"
 import { getStoreConfig } from "@/lib/services/store-config-service"
 import { getStoreStatus } from "@/lib/store-utils"
@@ -45,8 +45,7 @@ export default function MesaPage() {
 
         // Adicionar timestamp para evitar cache
         const timestamp = Date.now()
-        console.log(`🔄 Carregando dados da mesa ${numeroMesa} - Timestamp: ${timestamp}`)
-        console.log(`🆔 Sessão de carregamento: ${Math.random().toString(36).substr(2, 9)}`)
+
 
         // Verificar se a mesa existe (apenas se numeroMesa foi fornecido)
         if (numeroMesa) {
@@ -90,46 +89,31 @@ export default function MesaPage() {
         }
 
         try {
-          productsData = await getActiveProducts()
-
-          console.log(`🔍 Carregados ${productsData.length} produtos para verificar preços de mesa`)
+          productsData = await getVisibleProductsForTable()
 
           // Aplicar preços da mesa quando disponíveis
+          let produtosComPrecosMesa = 0
+          
           productsData = productsData.map(product => {
-            // Log detalhado para cada produto
-            console.log(`\n📋 Analisando produto: ${product.name}`)
-            console.log(`🆔 ID: ${product.id}`)
-            console.log(`📦 Preços padrão (sizes):`, product.sizes)
-            console.log(`🍽️ Preços de mesa (tableSizes):`, product.tableSizes)
-            console.log(`✅ Tem tableSizes definido:`, !!(product.tableSizes))
-            console.log(`📏 Quantidade de tableSizes:`, product.tableSizes?.length || 0)
-
             // Verificar se o produto tem preços de mesa configurados
-            // Usar tableSizes (camelCase) que é como está definido no tipo
             if (product.tableSizes && Array.isArray(product.tableSizes) && product.tableSizes.length > 0) {
-              console.log(`🍽️ ✅ APLICANDO preços de mesa para: ${product.name}`);
-              console.log('📦 Preços originais (delivery):', product.sizes[0]?.price);
-              console.log('🍽️ Preços de mesa:', product.tableSizes[0]?.price);
-              console.log('🔄 Substituindo sizes por tableSizes...');
-
+              produtosComPrecosMesa++
+              
               // Aplicar os preços de mesa substituindo os preços padrão
-              const updatedProduct = {
+              return {
                 ...product,
                 sizes: product.tableSizes
               }
-
-              console.log('✅ Produto atualizado com preços de mesa:', updatedProduct.sizes[0]?.price);
-              return updatedProduct
             } else {
-              console.log(`🍽️ ❌ SEM preços de mesa para: ${product.name} - usando preços padrão`);
               return product
             }
           })
 
-          console.log(`\n📊 Resumo de aplicação de preços:`);
-          const produtosComPrecosMesa = productsData.filter(p => p.tableSizes && p.tableSizes.length > 0).length;
-          console.log(`- Produtos com preços de mesa configurados: ${produtosComPrecosMesa}`);
-          console.log(`- Produtos usando preços padrão: ${productsData.length - produtosComPrecosMesa}`);
+          if (produtosComPrecosMesa > 0) {
+            console.log(`🍽️ Mesa ${numeroMesa}: ${produtosComPrecosMesa} produtos com preços específicos aplicados`)
+          }
+
+
         } catch (e) {
           console.error("Erro ao carregar produtos:", e)
           productsData = []
@@ -177,8 +161,6 @@ export default function MesaPage() {
 
   // Salvar informações da mesa no localStorage para usar no checkout
   useEffect(() => {
-    console.log('Mesa useEffect executado:', { table, hasTable: !!table })
-
     if (table) {
       const mesaData = {
         id: table.id,
@@ -187,15 +169,11 @@ export default function MesaPage() {
       }
 
       localStorage.setItem('mesa_atual', JSON.stringify(mesaData))
-      console.log('Mesa configurada no localStorage:', mesaData)
-      console.log('Verificando se foi salvo:', localStorage.getItem('mesa_atual'))
 
       // Disparar evento customizado para notificar o contexto do carrinho
       window.dispatchEvent(new CustomEvent('mesa-configurada', {
         detail: mesaData
       }))
-    } else {
-      console.log('Table é null/undefined, não salvando no localStorage')
     }
   }, [table])
 

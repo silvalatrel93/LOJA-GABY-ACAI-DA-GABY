@@ -1,5 +1,4 @@
 import { createSupabaseClient } from "../supabase-client"
-import { DEFAULT_STORE_ID } from "../constants"
 import type { CarouselSlide } from "../types"
 
 export const CarouselService = {
@@ -151,11 +150,10 @@ export const CarouselService = {
         // Criar novo slide
         const insertData = {
           title: slide.title,
-          subtitle: slide.subtitle,
+          subtitle: slide.subtitle || '',
           image: slide.image,
           active: slide.active !== undefined ? slide.active : true,
           order: slide.order || 0,
-          store_id: DEFAULT_STORE_ID,
         }
         
         const { data, error } = await supabase

@@ -1,7 +1,7 @@
 {
-  "name": "Heai Açaí e Sorvetes - Admin",
-  "short_name": "Heai Admin",
-  "description": "Painel administrativo para gerenciamento da loja Heai Açaí e Sorvetes",
+  "name": "Loja Virtual - Admin",
+  "short_name": "Loja Admin",
+  "description": "Painel administrativo para gerenciamento da loja virtual",
   "start_url": "/admin",
   "display": "standalone",
   "background_color": "#6B21A8",

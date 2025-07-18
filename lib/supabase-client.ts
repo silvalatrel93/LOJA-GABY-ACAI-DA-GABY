@@ -37,28 +37,70 @@ export function createSupabaseClient() {
 }
 
 // Função para testar a conectividade com o Supabase
-export async function testSupabaseConnection() {
-  try {
-    const supabase = createSupabaseClient()
+export async function testSupabaseConnection(maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const supabase = createSupabaseClient()
 
-    // Tentar uma consulta simples para verificar a conectividade
-    const { data, error } = await supabase
-      .from('store_config')
-      .select('count', { count: 'exact', head: true })
+      // Adicionar um pequeno delay para evitar requisições muito rápidas
+      await new Promise(resolve => setTimeout(resolve, 50 * attempt))
 
-    if (error) {
-      console.error('Erro na conexão com Supabase:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint
-      })
-      return false
+      // Tentar uma consulta simples para verificar a conectividade
+      const { data, error } = await supabase
+        .from('store_config')
+        .select('count', { count: 'exact', head: true })
+
+      if (error) {
+        console.warn(`Tentativa ${attempt} de conexão falhou:`, {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        })
+
+        if (attempt === maxRetries) {
+          return false
+        }
+        continue
+      }
+
+      return true
+    } catch (error) {
+      console.warn(`Tentativa ${attempt} falhou com erro inesperado:`, error)
+
+      if (attempt === maxRetries) {
+        return false
+      }
+
+      // Aguardar antes da próxima tentativa
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
     }
-
-    return true
-  } catch (error) {
-    console.error('Erro inesperado ao testar conexão:', error)
-    return false
   }
+  return false
+}
+
+// Função helper para executar operações com retry
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  baseDelay = 500
+): Promise<T> {
+  let lastError: any
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation()
+    } catch (error) {
+      lastError = error
+      console.warn(`Tentativa ${attempt} falhou:`, error)
+
+      // Se não é a última tentativa, aguardar antes de tentar novamente
+      if (attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt - 1) // Backoff exponencial
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+    }
+  }
+
+  throw lastError
 }

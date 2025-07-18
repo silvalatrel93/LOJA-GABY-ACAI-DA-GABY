@@ -324,6 +324,49 @@ export const CategoryService = {
   async deleteCategory(id: number): Promise<boolean> {
     try {
       const supabase = createSupabaseClient()
+
+      // Verificar se há produtos usando esta categoria
+      const { data: products, error: productsError } = await supabase
+        .from("products")
+        .select("id, name")
+        .eq("category_id", id)
+
+      if (productsError) {
+        console.error(`Erro ao verificar produtos da categoria ${id}:`, productsError)
+        throw new Error(`Erro ao verificar dependências de produtos: ${productsError.message}`)
+      }
+
+      // Verificar se há adicionais usando esta categoria
+      const { data: additionals, error: additionalsError } = await supabase
+        .from("additionals")
+        .select("id, name")
+        .eq("category_id", id)
+
+      if (additionalsError) {
+        console.error(`Erro ao verificar adicionais da categoria ${id}:`, additionalsError)
+        throw new Error(`Erro ao verificar dependências de adicionais: ${additionalsError.message}`)
+      }
+
+      // Construir mensagem de erro se houver dependências
+      const dependencies = []
+      
+      if (products && products.length > 0) {
+        const productNames = products.map(p => p.name).join(", ")
+        dependencies.push(`${products.length} produto(s): ${productNames}`)
+      }
+
+      if (additionals && additionals.length > 0) {
+        const additionalNames = additionals.map(a => a.name).join(", ")
+        dependencies.push(`${additionals.length} adicional(ais): ${additionalNames}`)
+      }
+
+      if (dependencies.length > 0) {
+        const errorMessage = `Não é possível excluir a categoria. Existem dependências: ${dependencies.join(" e ")}. Remova ou mova estes itens para outra categoria primeiro.`
+        console.error(errorMessage)
+        throw new Error(errorMessage)
+      }
+
+      // Se não há dependências, prosseguir com a exclusão
       const { error } = await supabase
         .from("categories")
         .delete()
@@ -331,13 +374,14 @@ export const CategoryService = {
 
       if (error) {
         console.error(`Erro ao deletar categoria ${id}:`, error)
-        return false
+        throw new Error(`Erro ao excluir categoria: ${error.message}`)
       }
 
       return true
     } catch (error) {
-      console.error(`Erro ao deletar categoria ${id}:`, error)
-      return false
+      const errorMessage = error instanceof Error ? error.message : `Erro desconhecido ao deletar categoria ${id}`
+      console.error(`Erro ao deletar categoria ${id}:`, errorMessage)
+      throw new Error(errorMessage)
     }
   },
 }

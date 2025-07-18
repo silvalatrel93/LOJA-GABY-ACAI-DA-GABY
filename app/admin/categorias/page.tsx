@@ -56,10 +56,14 @@ export default function CategoriesAdminPage() {
         // Atualizar a lista de categorias após excluir
         await loadCategories()
         setDeleteStatus({ id, status: "success" })
+        alert("Categoria excluída com sucesso!")
       } catch (error) {
         console.error("Erro ao excluir categoria:", error)
         setDeleteStatus({ id, status: "error" })
-        alert("Erro ao excluir categoria. Tente novamente.")
+        
+        // Mostrar a mensagem de erro específica
+        const errorMessage = error instanceof Error ? error.message : "Erro desconhecido ao excluir categoria"
+        alert(errorMessage)
       }
     }
   }

@@ -142,7 +142,7 @@ export const OrderService = {
         delivery_fee: order.deliveryFee,
         total: order.total,
         payment_method: order.paymentMethod,
-        payment_change: order.paymentChange,
+        payment_change: order.paymentChange ? parseFloat(order.paymentChange) : null,
         status: order.status,
         date: order.date.toISOString(),
         printed: order.printed || false,

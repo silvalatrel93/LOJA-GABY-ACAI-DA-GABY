@@ -78,18 +78,15 @@ export function useCategories() {
       setError(null)
       setSuccess(false)
       
-      const result = await CategoryService.deleteCategory(id)
-      
-      if (!result) {
-        setError('Erro ao excluir categoria')
-        return false
-      }
+      await CategoryService.deleteCategory(id)
       
       setSuccess(true)
       await fetchCategories() // Atualizar a lista
       return true
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao excluir categoria')
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao excluir categoria'
+      setError(errorMessage)
+      console.error('Erro no hook deleteCategory:', errorMessage)
       return false
     } finally {
       setLoading(false)

@@ -49,6 +49,12 @@ export default function NotificationsPage() {
     const oneWeekLater = new Date()
     oneWeekLater.setDate(now.getDate() + 7)
 
+    // Garantir que as datas são válidas
+    if (isNaN(now.getTime()) || isNaN(oneWeekLater.getTime())) {
+      console.error('Erro ao criar datas para nova notificação')
+      return
+    }
+
     setEditingNotification({
       id: 0, // Será substituído ao salvar
       title: "",
@@ -92,8 +98,32 @@ export default function NotificationsPage() {
       return
     }
 
+    // Validar datas
+    const startDate = new Date(editingNotification.startDate)
+    const endDate = new Date(editingNotification.endDate)
+    
+    if (isNaN(startDate.getTime())) {
+      alert("Data de início inválida")
+      return
+    }
+    
+    if (isNaN(endDate.getTime())) {
+      alert("Data de término inválida")
+      return
+    }
+    
+    if (startDate >= endDate) {
+      alert("A data de início deve ser anterior à data de término")
+      return
+    }
+
     try {
-      await saveNotification(editingNotification)
+      await saveNotification({
+        ...editingNotification,
+        startDate,
+        endDate,
+        createdAt: editingNotification.createdAt || new Date()
+      })
       await loadNotifications()
       setIsModalOpen(false)
 
@@ -107,14 +137,19 @@ export default function NotificationsPage() {
 
   const formatDate = (date: Date | string | undefined) => {
     if (!date) return 'Data inválida';
-    const d = new Date(date);
-    return d.toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+    try {
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return 'Data inválida';
+      return d.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch {
+      return 'Data inválida';
+    }
   }
 
   const getNotificationTypeIcon = (type: Notification["type"]) => {
@@ -385,7 +420,14 @@ export default function NotificationsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Data de Início</label>
                   <input
                     type="datetime-local"
-                    value={new Date(editingNotification.startDate).toISOString().slice(0, 16)}
+                    value={(() => {
+                      try {
+                        const date = new Date(editingNotification.startDate)
+                        return isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 16)
+                      } catch {
+                        return ''
+                      }
+                    })()}
                     onChange={(e) =>
                       setEditingNotification({
                         ...editingNotification,
@@ -399,7 +441,14 @@ export default function NotificationsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Data de Término</label>
                   <input
                     type="datetime-local"
-                    value={new Date(editingNotification.endDate).toISOString().slice(0, 16)}
+                    value={(() => {
+                      try {
+                        const date = new Date(editingNotification.endDate)
+                        return isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 16)
+                      } catch {
+                        return ''
+                      }
+                    })()}
                     onChange={(e) =>
                       setEditingNotification({
                         ...editingNotification,

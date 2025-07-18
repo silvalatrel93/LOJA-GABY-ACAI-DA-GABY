@@ -65,7 +65,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           if (currentPath.startsWith('/mesa/') ||
             currentPath === '/checkout' ||
             currentPath === '/carrinho') {
-            console.log('CartContext - Configurando como mesa:', mesa)
+            // Só logar se a mesa for diferente da atual para evitar spam
+            if (!tableInfo || tableInfo.id !== mesa.id) {
+              console.log('CartContext - Configurando como mesa:', mesa)
+            }
             setTableInfo(mesa)
             setIsTableOrder(true)
           } else {
@@ -92,7 +95,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
       }
     }
-  }, [])
+  }, [tableInfo])
 
   useEffect(() => {
     // Aguardar um pouco antes da primeira verificação para dar tempo da página carregar
@@ -115,8 +118,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener('mesa-configurada', handleMesaConfigurada)
 
     // Verificar periodicamente mudanças na URL (para navegação SPA)
-    // Aumentei o intervalo para 2 segundos para ser menos agressivo
-    const intervalId = setInterval(checkTableContext, 2000)
+    // Intervalo de 5 segundos para ser menos agressivo
+    const intervalId = setInterval(checkTableContext, 5000)
 
     return () => {
       clearTimeout(initialTimeout)

@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Heai Açaí e Sorvetes - Admin"
+    title: "Loja Virtual - Admin"
   },
   icons: [
     { rel: "apple-touch-icon", sizes: "180x180", url: "/icons/icon-192x192.png" },

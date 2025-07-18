@@ -1,34 +1,35 @@
-import { createSupabaseClient, testSupabaseConnection } from "../supabase-client"
+import { createSupabaseClient, testSupabaseConnection, withRetry } from "@/lib/supabase-client"
 import type { StoreConfig, OperatingHours, SpecialDate, SupabaseStoreConfig } from "../types"
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
-// Configuração padrão para usar como fallback
+// Configuração padrão básica para usar como fallback (sem dados específicos)
 const DEFAULT_STORE_CONFIG: StoreConfig = {
-  id: "main",
-  name: "Heai Açai e Sorvetes",
+  id: DEFAULT_STORE_ID,
+  name: "Loja Virtual",
   logoUrl: "",
   deliveryFee: 0,
-  maringaDeliveryFee: 0, // Taxa de entrega específica para Maringá
-  picoleDeliveryFee: 5.0, // Taxa de entrega específica para picolés
-  minimumPicoleOrder: 20.0, // Valor mínimo para isenção da taxa de entrega de picolés
-  moreninhaDeliveryFee: 5.0, // Taxa de entrega específica para moreninha
-  minimumMoreninhaOrder: 17.0, // Valor mínimo para isenção da taxa de entrega de moreninha
   isOpen: true,
   carousel_initialized: false,
   operatingHours: {
-    "segunda-feira": { open: true, hours: "10:00 - 22:00" },
-    "terça-feira": { open: true, hours: "10:00 - 22:00" },
-    "quarta-feira": { open: true, hours: "10:00 - 22:00" },
-    "quinta-feira": { open: true, hours: "10:00 - 22:00" },
-    "sexta-feira": { open: true, hours: "10:00 - 22:00" },
-    sábado: { open: true, hours: "10:00 - 22:00" },
-    domingo: { open: true, hours: "10:00 - 22:00" },
+    "segunda-feira": { open: true, hours: "08:00 - 18:00" },
+    "terça-feira": { open: true, hours: "08:00 - 18:00" },
+    "quarta-feira": { open: true, hours: "08:00 - 18:00" },
+    "quinta-feira": { open: true, hours: "08:00 - 18:00" },
+    "sexta-feira": { open: true, hours: "08:00 - 18:00" },
+    sábado: { open: true, hours: "08:00 - 18:00" },
+    domingo: { open: false, hours: "Fechado" },
   },
   specialDates: [],
-  whatsappNumber: "5511999999999",
-  pixKey: "09300021990",
+  whatsappNumber: "",
+  pixKey: "",
   lastUpdated: new Date().toISOString(),
-  maxPicolesPerOrder: 20
+  maxPicolesPerOrder: 10,
+  // Campos extras removidos que não existem na tabela real
+  maringaDeliveryFee: 0,
+  picoleDeliveryFee: 0,
+  minimumPicoleOrder: 0,
+  moreninhaDeliveryFee: 0,
+  minimumMoreninhaOrder: 0,
 }
 
 import { DEFAULT_STORE_ID } from "../constants"
@@ -40,18 +41,29 @@ export const StoreConfigService = {
     try {
       // Primeiro, testar a conectividade
       const isConnected = await testSupabaseConnection()
+      
       if (!isConnected) {
-        console.warn("Conexão com Supabase falhou, usando configuração padrão")
+        console.warn("❌ getStoreConfig - Conexão com Supabase falhou, usando configuração padrão")
         return this.getDefaultConfig()
       }
 
       const supabase = createSupabaseClient()
 
-      const { data, error } = await supabase
-        .from("store_config")
-        .select("*")
-        .eq("store_id", DEFAULT_STORE_ID)
-        .maybeSingle()
+
+
+      const { data, error } = await withRetry(async () => {
+        const result = await supabase
+          .from("store_config")
+          .select("*")
+          .eq("id", DEFAULT_STORE_ID)
+          .maybeSingle()
+
+        if (result.error) {
+          throw result.error
+        }
+
+        return result
+      })
 
       if (error) {
         console.warn("Erro ao buscar configurações da loja:", {
@@ -76,14 +88,14 @@ export const StoreConfigService = {
           const { data: multipleData, error: limitError } = await supabase
             .from("store_config")
             .select("*")
-            .eq("store_id", DEFAULT_STORE_ID)
+            .eq("id", DEFAULT_STORE_ID)
             .limit(1)
 
           if (!limitError && multipleData && multipleData.length > 0) {
             const config = multipleData[0] as unknown as SupabaseStoreConfig
             return {
-              id: typeof config.id === 'string' ? config.id : 'main',
-              name: typeof config.name === 'string' ? config.name : 'Heai Açai e Sorvetes',
+              id: typeof config.id === 'string' ? config.id : DEFAULT_STORE_ID,
+              name: typeof config.name === 'string' ? config.name : 'Loja Virtual',
               logoUrl: typeof config.logo_url === 'string' ? config.logo_url : '',
               deliveryFee: typeof config.delivery_fee === 'number'
                 ? config.delivery_fee
@@ -110,21 +122,17 @@ export const StoreConfigService = {
               specialDates: Array.isArray(config.special_dates)
                 ? config.special_dates
                 : [],
-              whatsappNumber: typeof config.whatsapp_number === 'string'
-                ? config.whatsapp_number
-                : '5511999999999',
-              pixKey: typeof config.pix_key === 'string'
-                ? config.pix_key
-                : '09300021990',
+              whatsappNumber: DEFAULT_STORE_CONFIG.whatsappNumber, // Usar valor padrão
+              pixKey: DEFAULT_STORE_CONFIG.pixKey, // Usar valor padrão
               lastUpdated: typeof config.last_updated === 'string'
                 ? config.last_updated
                 : new Date().toISOString(),
               carousel_initialized: typeof config.carousel_initialized === 'boolean'
                 ? config.carousel_initialized
                 : false,
-              maxPicolesPerOrder: typeof config.max_picoles_per_order === 'number'
-                ? config.max_picoles_per_order
-                : 20,
+              maxPicolesPerOrder: typeof config.max_picoles === 'number'
+                ? config.max_picoles
+                : 10,
             }
           }
         }
@@ -134,21 +142,22 @@ export const StoreConfigService = {
       }
 
       if (!data) {
-        console.log("Nenhuma configuração de loja encontrada, tentando criar configuração padrão...")
+        console.log("❌ getStoreConfig - Nenhuma configuração de loja encontrada, tentando criar configuração padrão...")
         const createdConfig = await this.createDefaultStoreConfig()
         if (createdConfig) {
+          console.log("✅ getStoreConfig - Configuração padrão criada:", createdConfig)
           return createdConfig
         }
-        console.log("Retornando configuração padrão")
+        console.log("⚠️ getStoreConfig - Retornando configuração padrão")
         return this.getDefaultConfig()
       }
 
       const config = data as unknown as SupabaseStoreConfig
 
       // Garantir que temos valores padrão para todos os campos obrigatórios
-      return {
-        id: typeof config.id === 'string' ? config.id : 'main',
-        name: typeof config.name === 'string' ? config.name : 'Heai Açai e Sorvetes',
+      const finalConfig = {
+        id: typeof config.id === 'string' ? config.id : DEFAULT_STORE_ID,
+        name: typeof config.name === 'string' ? config.name : 'Loja Virtual',
         logoUrl: typeof config.logo_url === 'string' ? config.logo_url : '',
         deliveryFee: typeof config.delivery_fee === 'number'
           ? config.delivery_fee
@@ -191,6 +200,8 @@ export const StoreConfigService = {
           ? config.max_picoles_per_order
           : 20, // Valor padrão de 20 se não estiver definido
       }
+      
+      return finalConfig
     } catch (error) {
       console.error("Erro inesperado ao buscar configurações da loja:", {
         error: error,
@@ -209,24 +220,16 @@ export const StoreConfigService = {
       const supabase = createSupabaseClient()
 
       const defaultConfigData = {
-        id: 'main',
-        store_id: DEFAULT_STORE_ID,
+        id: DEFAULT_STORE_ID,
         name: DEFAULT_STORE_CONFIG.name,
         logo_url: DEFAULT_STORE_CONFIG.logoUrl,
         delivery_fee: DEFAULT_STORE_CONFIG.deliveryFee,
-        maringa_delivery_fee: DEFAULT_STORE_CONFIG.maringaDeliveryFee,
-        picole_delivery_fee: DEFAULT_STORE_CONFIG.picoleDeliveryFee,
-        minimum_picole_order: DEFAULT_STORE_CONFIG.minimumPicoleOrder,
-        moreninha_delivery_fee: DEFAULT_STORE_CONFIG.moreninhaDeliveryFee,
-        minimum_moreninha_order: DEFAULT_STORE_CONFIG.minimumMoreninhaOrder,
         is_open: DEFAULT_STORE_CONFIG.isOpen,
         operating_hours: DEFAULT_STORE_CONFIG.operatingHours,
         special_dates: DEFAULT_STORE_CONFIG.specialDates,
-        whatsapp_number: DEFAULT_STORE_CONFIG.whatsappNumber,
-        pix_key: DEFAULT_STORE_CONFIG.pixKey,
         last_updated: new Date().toISOString(),
         carousel_initialized: DEFAULT_STORE_CONFIG.carousel_initialized,
-        max_picoles_per_order: DEFAULT_STORE_CONFIG.maxPicolesPerOrder
+        max_picoles: DEFAULT_STORE_CONFIG.maxPicolesPerOrder
       }
 
       const { data, error } = await supabase
@@ -263,14 +266,16 @@ export const StoreConfigService = {
 
   // Salvar configurações da loja
   async saveStoreConfig(config: Partial<StoreConfig>): Promise<StoreConfig | null> {
+
+    
     try {
       console.log("Iniciando salvamento das configurações da loja:", config)
       const supabase = createSupabaseClient()
 
       // Validar e padronizar os dados de entrada
       const validatedConfig: StoreConfig = {
-        id: typeof config.id === 'string' && config.id.trim() ? config.id : 'main',
-        name: typeof config.name === 'string' && config.name.trim() ? config.name : 'Heai Açai e Sorvetes',
+        id: typeof config.id === 'string' && config.id.trim() ? config.id : DEFAULT_STORE_ID,
+        name: typeof config.name === 'string' && config.name.trim() ? config.name : 'Loja Virtual',
         logoUrl: typeof config.logoUrl === 'string' ? config.logoUrl : '',
         deliveryFee: typeof config.deliveryFee === 'number' ? config.deliveryFee : 0,
         maringaDeliveryFee: typeof config.maringaDeliveryFee === 'number' ? config.maringaDeliveryFee : 0,
@@ -292,40 +297,30 @@ export const StoreConfigService = {
 
       console.log("Configurações validadas:", validatedConfig)
 
-      // Preparar os dados para salvar no formato do Supabase
-      const configData: Omit<SupabaseStoreConfig, 'store_id' | 'id'> = {
+      // Preparar os dados para salvar no formato do Supabase (apenas colunas que existem)
+      const configData = {
         name: validatedConfig.name,
         logo_url: validatedConfig.logoUrl || '', // Garante que seja string
         delivery_fee: validatedConfig.deliveryFee,
-        maringa_delivery_fee: validatedConfig.maringaDeliveryFee,
-        picole_delivery_fee: validatedConfig.picoleDeliveryFee,
-        minimum_picole_order: validatedConfig.minimumPicoleOrder,
-        moreninha_delivery_fee: validatedConfig.moreninhaDeliveryFee,
-        minimum_moreninha_order: validatedConfig.minimumMoreninhaOrder,
         is_open: validatedConfig.isOpen,
         operating_hours: validatedConfig.operatingHours,
         special_dates: validatedConfig.specialDates || [], // Garante um array vazio se for undefined
-        whatsapp_number: validatedConfig.whatsappNumber, // Pode ser undefined
-        pix_key: validatedConfig.pixKey || '09300021990', // Adiciona a chave PIX
         last_updated: validatedConfig.lastUpdated || new Date().toISOString(), // Garante uma data válida
-        carousel_initialized: validatedConfig.carousel_initialized ?? false, // Controle de inicialização do carrossel
-        max_picoles_per_order: typeof config.maxPicolesPerOrder === 'number'
-          ? config.maxPicolesPerOrder
-          : 20, // Valor padrão de 20 se não estiver definido
+        max_picoles: typeof validatedConfig.maxPicolesPerOrder === 'number'
+          ? validatedConfig.maxPicolesPerOrder
+          : 10, // Valor padrão de 10 se não estiver definido
+        carousel_initialized: validatedConfig.carousel_initialized,
       }
 
 
-      // Usar o ID da configuração existente ou 'main' como fallback
+              // Usar o ID da configuração existente ou DEFAULT_STORE_ID como fallback
       const configId = validatedConfig.id
 
       // Preparar dados finais para o upsert
       const finalData = {
         ...configData,
-        id: configId,
-        store_id: DEFAULT_STORE_ID
+        id: configId
       };
-
-      console.log("Dados finais para upsert:", { id: finalData.id, name: (finalData as any).name || 'N/A' })
 
       // Atualizar ou inserir os dados no Supabase
       const { data, error } = await supabase
@@ -349,27 +344,17 @@ export const StoreConfigService = {
 
       // Garantir que temos valores padrão para todos os campos obrigatórios
       const result: StoreConfig = {
-        id: typeof savedConfig.id === 'string' ? savedConfig.id : 'main',
+        id: typeof savedConfig.id === 'string' ? savedConfig.id : DEFAULT_STORE_ID,
         name: typeof savedConfig.name === 'string' ? savedConfig.name : 'Loja',
         logoUrl: typeof savedConfig.logo_url === 'string' ? savedConfig.logo_url : '',
         deliveryFee: typeof savedConfig.delivery_fee === 'number'
           ? savedConfig.delivery_fee
           : Number(savedConfig.delivery_fee) || 0,
-        maringaDeliveryFee: typeof savedConfig.maringa_delivery_fee === 'number'
-          ? savedConfig.maringa_delivery_fee
-          : Number(savedConfig.maringa_delivery_fee) || 8.0,
-        picoleDeliveryFee: typeof savedConfig.picole_delivery_fee === 'number'
-          ? savedConfig.picole_delivery_fee
-          : Number(savedConfig.picole_delivery_fee) || 5.0,
-        minimumPicoleOrder: typeof savedConfig.minimum_picole_order === 'number'
-          ? savedConfig.minimum_picole_order
-          : Number(savedConfig.minimum_picole_order) || 20.0,
-        moreninhaDeliveryFee: typeof savedConfig.moreninha_delivery_fee === 'number'
-          ? savedConfig.moreninha_delivery_fee
-          : Number(savedConfig.moreninha_delivery_fee) || 5.0,
-        minimumMoreninhaOrder: typeof savedConfig.minimum_moreninha_order === 'number'
-          ? savedConfig.minimum_moreninha_order
-          : Number(savedConfig.minimum_moreninha_order) || 17.0,
+        maringaDeliveryFee: 8.0, // Valor padrão
+        picoleDeliveryFee: 5.0, // Valor padrão
+        minimumPicoleOrder: 20.0, // Valor padrão
+        moreninhaDeliveryFee: 5.0, // Valor padrão
+        minimumMoreninhaOrder: 17.0, // Valor padrão
         isOpen: Boolean(savedConfig.is_open),
         operatingHours: savedConfig.operating_hours && typeof savedConfig.operating_hours === 'object'
           ? savedConfig.operating_hours
@@ -377,15 +362,15 @@ export const StoreConfigService = {
         specialDates: Array.isArray(savedConfig.special_dates)
           ? savedConfig.special_dates
           : [],
-        whatsappNumber: typeof savedConfig.whatsapp_number === 'string'
-          ? savedConfig.whatsapp_number
-          : '',
+        whatsappNumber: '', // Valor padrão
+        pixKey: '09300021990', // Valor padrão
         lastUpdated: typeof savedConfig.last_updated === 'string'
           ? savedConfig.last_updated
           : new Date().toISOString(),
-        maxPicolesPerOrder: typeof savedConfig.max_picoles_per_order === 'number'
-          ? savedConfig.max_picoles_per_order
+        maxPicolesPerOrder: typeof (savedConfig as any).max_picoles === 'number'
+          ? (savedConfig as any).max_picoles
           : 20, // Valor padrão de 20 se não estiver definido
+        carousel_initialized: Boolean((savedConfig as any).carousel_initialized),
       }
 
       return result

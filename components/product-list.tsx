@@ -160,9 +160,14 @@ export default function ProductList({ products: _initialProducts = [], categorie
         const categoriesWithAll = [allOption, ...activeCategories]
         setCategories(categoriesWithAll)
 
-        // Carregar todos os produtos de uma vez
-        const allProductsList = await getVisibleProductsWithContext()
-        setAllProducts(allProductsList)
+        // Se produtos foram passados como props (ex: página de mesa), usar eles
+        // Caso contrário, carregar produtos do contexto
+        if (_initialProducts && _initialProducts.length > 0) {
+          setAllProducts(_initialProducts)
+        } else {
+          const allProductsList = await getVisibleProductsWithContext()
+          setAllProducts(allProductsList)
+        }
 
         // Selecionar a primeira categoria por padrão
         if (categoriesWithAll.length > 0) {
@@ -176,7 +181,14 @@ export default function ProductList({ products: _initialProducts = [], categorie
     }
 
     initializeData()
-  }, [])
+  }, [_initialProducts])
+
+  // Atualizar produtos quando os props mudarem (importante para páginas de mesa)
+  useEffect(() => {
+    if (_initialProducts && _initialProducts.length > 0) {
+      setAllProducts(_initialProducts)
+    }
+  }, [_initialProducts])
 
   // Filtrar produtos com base na categoria selecionada (feito no cliente)
   const filteredProducts = useMemo(() => {

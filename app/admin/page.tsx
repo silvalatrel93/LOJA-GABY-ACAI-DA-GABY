@@ -28,7 +28,8 @@ import {
   Shield,
   LogOut,
 } from "lucide-react"
-import { ProductVisibilityToggle } from "@/components/admin/product-visibility-toggle"
+import { TableVisibilityToggle } from "@/components/admin/table-visibility-toggle"
+import DeliveryVisibilityToggle from "@/components/admin/delivery-visibility-toggle"
 import { TablePricingManager } from "@/components/admin/table-pricing-manager"
 import SocialShare from "@/components/social-share"
 import {
@@ -184,6 +185,7 @@ export default function AdminPage() {
       additionalsLimit: 5, // Limite padrão de 5 adicionais
       active: true, // Adicionar a propriedade active que estava faltando
       hidden: false, // Por padrão, o produto é visível
+      hiddenFromTable: false, // Por padrão, o produto é visível em mesa
       needsSpoon: false, // Por padrão, o produto não precisa de colher
     })
     setIsModalOpen(true)
@@ -791,51 +793,82 @@ export default function AdminPage() {
                                   </div>
                                 )}
                               </div>
-                              <div className="p-3 xs:p-4 flex-1 min-w-0">
-                                <div className="flex justify-between items-start gap-2">
-                                  <div className="min-w-0 flex-1">
-                                    <h3 className="font-semibold text-purple-900 text-sm xs:text-base truncate">
-                                      {product.name}
-                                      {product.hidden && (
-                                        <span className="ml-1 xs:ml-2 text-xs bg-gray-100 text-gray-600 px-1.5 xs:px-2 py-0.5 rounded-full inline-block border border-gray-200">
-                                          Oculto
-                                        </span>
-                                      )}
-                                    </h3>
-                                    <span className="text-xs bg-blue-50 text-blue-700 px-1.5 xs:px-2 py-0.5 rounded-full inline-block mt-1 border border-blue-100">
+                              <div className="p-2 xs:p-3 sm:p-4 flex-1 min-w-0">
+                                {/* Header com nome e badges de status */}
+                                <div className="mb-2 sm:mb-3">
+                                  <h3 className="font-semibold text-purple-900 text-sm xs:text-base sm:text-lg mb-1 sm:mb-2 line-clamp-1">
+                                    {product.name}
+                                  </h3>
+                                  
+                                  {/* Badges de status organizados responsivamente */}
+                                  <div className="flex flex-wrap gap-1 xs:gap-1.5 sm:gap-2 text-[9px] xs:text-[10px] sm:text-xs">
+                                    <span className="bg-blue-50 text-blue-700 px-1 xs:px-1.5 sm:px-2 py-0.5 rounded-full border border-blue-100 flex-shrink-0">
                                       Adicionais: {getAdditionalCount(product)}
                                     </span>
+                                    
+                                    {product.hiddenFromDelivery && (
+                                      <span className="bg-purple-100 text-purple-600 px-1 xs:px-1.5 sm:px-2 py-0.5 rounded-full border border-purple-200 flex-shrink-0">
+                                        <span className="hidden sm:inline">Delivery: Oculto</span>
+                                        <span className="sm:hidden">Del: ✗</span>
+                                      </span>
+                                    )}
+                                    
+                                    {product.hiddenFromTable && (
+                                      <span className="bg-orange-100 text-orange-600 px-1 xs:px-1.5 sm:px-2 py-0.5 rounded-full border border-orange-200 flex-shrink-0">
+                                        <span className="hidden sm:inline">Mesa: Oculto</span>
+                                        <span className="sm:hidden">Mesa: ✗</span>
+                                      </span>
+                                    )}
                                   </div>
-                                  <div className="flex space-x-0.5 xs:space-x-1 flex-shrink-0">
-                                    {/* Botão de visibilidade */}
-                                    <ProductVisibilityToggle
+                                </div>
+                                
+                                {/* Controles de visibilidade */}
+                                <div className="flex flex-col xs:flex-row xs:justify-between xs:items-center gap-2">
+                                  {/* Botões específicos de delivery e mesa */}
+                                  <div className="flex space-x-1.5 xs:space-x-2 flex-shrink-0">
+                                    <DeliveryVisibilityToggle
                                       productId={product.id}
-                                      initialHidden={product.hidden}
-                                      onToggle={(newHidden: boolean) => {
-                                        // Atualizar o estado local após alternar a visibilidade
+                                      isHidden={product.hiddenFromDelivery || false}
+                                      onToggle={(productId: number, newHiddenFromDelivery: boolean) => {
+                                        // Atualizar o estado local após alternar a visibilidade no delivery
                                         const updatedProducts = products.map(p =>
-                                          p.id === product.id ? { ...p, hidden: newHidden } : p
+                                          p.id === productId ? { ...p, hiddenFromDelivery: newHiddenFromDelivery } : p
                                         );
                                         setProducts(updatedProducts);
                                       }}
                                     />
+                                    <TableVisibilityToggle
+                                      productId={product.id}
+                                      initialHiddenFromTable={product.hiddenFromTable}
+                                      onToggle={(newHiddenFromTable: boolean) => {
+                                        // Atualizar o estado local após alternar a visibilidade em mesa
+                                        const updatedProducts = products.map(p =>
+                                          p.id === product.id ? { ...p, hiddenFromTable: newHiddenFromTable } : p
+                                        );
+                                        setProducts(updatedProducts);
+                                      }}
+                                    />
+                                  </div>
+                                  
+                                  {/* Botões de ação */}
+                                  <div className="flex space-x-1 xs:space-x-1.5 flex-shrink-0">
                                     <button
                                       onClick={() => handleEditProduct(product)}
-                                      className="text-blue-600 hover:text-blue-800 p-1.5 xs:p-2 rounded-full hover:bg-blue-50 transition-colors touch-manipulation"
+                                      className="text-blue-600 hover:text-blue-800 p-1 xs:p-1.5 sm:p-2 rounded-full hover:bg-blue-50 transition-colors touch-manipulation"
                                       aria-label="Editar produto"
                                     >
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="xs:w-[18px] xs:h-[18px]"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="xs:w-4 xs:h-4 sm:w-5 sm:h-5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                                     </button>
                                     <button
                                       onClick={() => handleDeleteProduct(product.id)}
-                                      className="text-red-600 hover:text-red-800 p-1.5 xs:p-2 rounded-full hover:bg-red-50 transition-colors touch-manipulation"
+                                      className="text-red-600 hover:text-red-800 p-1 xs:p-1.5 sm:p-2 rounded-full hover:bg-red-50 transition-colors touch-manipulation"
                                       disabled={deleteStatus?.id === product.id && deleteStatus.status === "pending"}
                                       aria-label="Excluir produto"
                                     >
                                       {deleteStatus?.id === product.id && deleteStatus.status === "pending" ? (
-                                        <span className="animate-pulse text-xs">...</span>
+                                        <span className="animate-pulse text-[10px] xs:text-xs">...</span>
                                       ) : (
-                                        <Trash2 size={16} className="xs:w-[18px] xs:h-[18px]" />
+                                        <Trash2 className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" />
                                       )}
                                     </button>
                                   </div>
@@ -898,30 +931,45 @@ export default function AdminPage() {
                 </select>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="product-visibility"
-                  checked={!editingProduct.hidden}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, hidden: !e.target.checked })}
-                  className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                />
-                <label htmlFor="product-visibility" className="text-sm font-medium text-gray-700">
-                  Produto visível para clientes
-                </label>
-              </div>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="product-visibility"
+                    checked={!editingProduct.hidden}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, hidden: !e.target.checked })}
+                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                  />
+                  <label htmlFor="product-visibility" className="text-sm font-medium text-gray-700">
+                    Produto visível para clientes
+                  </label>
+                </div>
 
-              <div className="flex items-center space-x-2 mt-3">
-                <input
-                  type="checkbox"
-                  id="product-needs-spoon"
-                  checked={editingProduct.needsSpoon}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, needsSpoon: e.target.checked })}
-                  className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                />
-                <label htmlFor="product-needs-spoon" className="text-sm font-medium text-gray-700">
-                  Precisa de Colher? (Pergunta ao cliente)
-                </label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="product-table-visibility"
+                    checked={!editingProduct.hiddenFromTable}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, hiddenFromTable: !e.target.checked })}
+                    className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                  />
+                  <label htmlFor="product-table-visibility" className="text-sm font-medium text-gray-700">
+                    Produto visível no sistema de mesa
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="product-needs-spoon"
+                    checked={editingProduct.needsSpoon}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, needsSpoon: e.target.checked })}
+                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                  />
+                  <label htmlFor="product-needs-spoon" className="text-sm font-medium text-gray-700">
+                    Precisa de Colher? (Pergunta ao cliente)
+                  </label>
+                </div>
               </div>
 
               <div>
@@ -1246,7 +1294,7 @@ export default function AdminPage() {
       )}
 
       {/* Botão de compartilhamento social para o PWA */}
-      <SocialShare title="Heai Açaí e Sorvetes - Admin" message="Acesse o painel administrativo da Heai Açaí e Sorvetes!" />
+      <SocialShare title="Loja Virtual - Admin" message="Acesse o painel administrativo da Loja Virtual!" />
     </div>
   )
 }

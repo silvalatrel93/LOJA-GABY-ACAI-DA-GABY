@@ -23,6 +23,7 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [isLoadingConfig, setIsLoadingConfig] = useState(true)
 
   // Função para detectar rolagem da página
   const handleScroll = useCallback(() => {
@@ -43,6 +44,28 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
         setStoreConfig(config)
       } catch (error) {
         console.error("Erro ao carregar configuração da loja:", error)
+        // Em caso de erro, usar fallback
+        setStoreConfig({
+          id: 'default-store',
+          name: 'Loja Virtual',
+          logoUrl: '',
+          deliveryFee: 0,
+          maringaDeliveryFee: 0,
+          picoleDeliveryFee: 5,
+          minimumPicoleOrder: 20,
+          moreninhaDeliveryFee: 5,
+          minimumMoreninhaOrder: 17,
+          isOpen: true,
+          operatingHours: {},
+          specialDates: [],
+          whatsappNumber: '5511999999999',
+          pixKey: '09300021990',
+          lastUpdated: new Date().toISOString(),
+          carousel_initialized: false,
+          maxPicolesPerOrder: 20
+        })
+      } finally {
+        setIsLoadingConfig(false)
       }
     }
 
@@ -59,6 +82,8 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
       window.removeEventListener('scroll', handleScroll)
     }
   }, [handleScroll])
+
+
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
@@ -93,10 +118,10 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
               <Link href="/" className="flex items-center">
                 {storeConfig?.logoUrl && (
                   <div className="relative w-8 h-8 sm:w-10 sm:h-10 mr-2 transition-all duration-300 ease-in-out transform hover:scale-110">
-                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white/20 shadow-sm">
+                    <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white/20 shadow-sm">
                       <Image
                         src={storeConfig.logoUrl || "/placeholder.svg"}
-                        alt={`Logo ${storeConfig.name || "Heai Açai e Sorvetes"}`}
+                        alt={`Logo ${storeConfig?.name || "Loja Virtual"}`}
                         fill
                         className="object-cover rounded-full"
                         priority
@@ -105,7 +130,11 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
                   </div>
                 )}
                 <span className="text-lg sm:text-xl font-bold transition-all duration-300">
-                  {storeConfig?.name || "Heai Açai e Sorvetes"}
+                  {isLoadingConfig ? (
+                    <span className="animate-pulse">●●●</span>
+                  ) : (
+                    storeConfig?.name || "Loja Virtual"
+                  )}
                 </span>
               </Link>
             </div>
@@ -158,7 +187,7 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
         >
           <div className="w-full max-w-screen-xl mx-auto px-3 sm:px-4 text-center">
             <p className="text-sm sm:text-base">
-              © {new Date().getFullYear()} {storeConfig?.name || "Heai Açai e Sorvetes"} - Todos os direitos reservados
+              © {new Date().getFullYear()} {isLoadingConfig ? "..." : (storeConfig?.name || "Loja Virtual")} - Todos os direitos reservados
             </p>
           </div>
         </footer>

@@ -1,6 +1,5 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { PageContent } from "../types"
-import { DEFAULT_STORE_ID } from "../constants"
 
 // Serviço para gerenciar conteúdo das páginas
 export const PageContentService = {
@@ -32,6 +31,10 @@ export const PageContentService = {
       return null
     }
 
+    if (!data) {
+      return null
+    }
+
     const typedData = data as any
 
     return {
@@ -49,6 +52,10 @@ export const PageContentService = {
 
     if (error) {
       console.error(`Erro ao buscar conteúdo da página com slug ${slug}:`, error)
+      return null
+    }
+
+    if (!data) {
       return null
     }
 
@@ -71,13 +78,16 @@ export const PageContentService = {
       title: pageContent.title,
       content: pageContent.content,
       last_updated: new Date().toISOString(),
-      store_id: DEFAULT_STORE_ID, // Adicionar o ID da loja padrão
     }
 
     const { data, error } = await supabase.from("page_content").upsert(pageContentData).select().maybeSingle()
 
     if (error) {
       console.error("Erro ao salvar conteúdo da página:", error)
+      return null
+    }
+
+    if (!data) {
       return null
     }
 
@@ -104,88 +114,11 @@ export const PageContentService = {
     return true
   },
 
-  // Inicializar conteúdo padrão das páginas
+  // Nota: Inicialização de conteúdo padrão foi removida para evitar dados mockup
+  // Os usuários devem criar seu próprio conteúdo através do painel administrativo
   async initializeDefaultPageContent(): Promise<void> {
-    console.log("Verificando conteúdo das páginas...")
-
-    // Página Sobre
-    const sobreContent = await this.getPageContent("sobre")
-
-    if (!sobreContent) {
-      console.log("Inicializando conteúdo da página Sobre...")
-
-      await this.savePageContent({
-        id: "sobre",
-        title: "Sobre Nós",
-        content: `
-# Sobre a Açaí Delícia
-
-Bem-vindo à Açaí Delícia, onde servimos o melhor açaí da cidade!
-
-## Nossa História
-
-Fundada em 2020, a Açaí Delícia nasceu da paixão por oferecer produtos de qualidade e sabor incomparável. Utilizamos apenas ingredientes frescos e de alta qualidade para garantir a melhor experiência para nossos clientes.
-
-## Nosso Compromisso
-
-- Qualidade superior
-- Atendimento excelente
-- Preços justos
-- Entrega rápida
-
-Venha nos visitar e experimente o melhor açaí da região!
-        `,
-        lastUpdated: new Date(),
-      })
-
-      console.log("Conteúdo da página Sobre inicializado com sucesso!")
-    } else {
-      console.log("Conteúdo da página Sobre encontrado, pulando inicialização.")
-    }
-
-    // Página Delivery
-    const deliveryContent = await this.getPageContent("delivery")
-
-    if (!deliveryContent) {
-      console.log("Inicializando conteúdo da página Delivery...")
-
-      await this.savePageContent({
-        id: "delivery",
-        title: "Delivery",
-        content: `
-# Delivery
-
-Entregamos em toda a cidade! Peça agora mesmo e receba seu açaí fresquinho em casa.
-
-## Áreas de Entrega
-
-- Centro
-- Zona Norte
-- Zona Sul
-- Zona Leste
-- Zona Oeste
-
-## Tempo de Entrega
-
-O tempo médio de entrega é de 30 a 45 minutos, dependendo da sua localização.
-
-## Taxa de Entrega
-
-A taxa de entrega varia de acordo com a região. Consulte o valor ao fazer seu pedido.
-
-## Formas de Pagamento
-
-- Dinheiro
-- Cartão de Crédito/Débito
-- Pix
-        `,
-        lastUpdated: new Date(),
-      })
-
-      console.log("Conteúdo da página Delivery inicializado com sucesso!")
-    } else {
-      console.log("Conteúdo da página Delivery encontrado, pulando inicialização.")
-    }
+    console.log("Função de inicialização de conteúdo desabilitada - sem dados mockup")
+    // Não inicializa dados automáticos - deixa para o usuário configurar
   },
 }
 
