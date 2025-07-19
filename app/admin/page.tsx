@@ -625,6 +625,8 @@ export default function AdminPage() {
               <p className="text-sm text-gray-600">Edite o conteúdo das páginas do site</p>
             </div>
           </Link>
+
+
         </div>
 
         <div className="bg-gradient-to-br from-white via-white to-purple-50 rounded-xl shadow-sm hover:shadow-lg p-3 sm:p-4 md:p-5 mb-4 sm:mb-6 border border-transparent hover:border-purple-100/50 transition-all duration-500 relative overflow-hidden group/container">
@@ -799,20 +801,20 @@ export default function AdminPage() {
                                   <h3 className="font-semibold text-purple-900 text-sm xs:text-base sm:text-lg mb-1 sm:mb-2 line-clamp-1">
                                     {product.name}
                                   </h3>
-                                  
+
                                   {/* Badges de status organizados responsivamente */}
                                   <div className="flex flex-wrap gap-1 xs:gap-1.5 sm:gap-2 text-[9px] xs:text-[10px] sm:text-xs">
                                     <span className="bg-blue-50 text-blue-700 px-1 xs:px-1.5 sm:px-2 py-0.5 rounded-full border border-blue-100 flex-shrink-0">
                                       Adicionais: {getAdditionalCount(product)}
                                     </span>
-                                    
+
                                     {product.hiddenFromDelivery && (
                                       <span className="bg-purple-100 text-purple-600 px-1 xs:px-1.5 sm:px-2 py-0.5 rounded-full border border-purple-200 flex-shrink-0">
                                         <span className="hidden sm:inline">Delivery: Oculto</span>
                                         <span className="sm:hidden">Del: ✗</span>
                                       </span>
                                     )}
-                                    
+
                                     {product.hiddenFromTable && (
                                       <span className="bg-orange-100 text-orange-600 px-1 xs:px-1.5 sm:px-2 py-0.5 rounded-full border border-orange-200 flex-shrink-0">
                                         <span className="hidden sm:inline">Mesa: Oculto</span>
@@ -821,7 +823,7 @@ export default function AdminPage() {
                                     )}
                                   </div>
                                 </div>
-                                
+
                                 {/* Controles de visibilidade */}
                                 <div className="flex flex-col xs:flex-row xs:justify-between xs:items-center gap-2">
                                   {/* Botões específicos de delivery e mesa */}
@@ -849,7 +851,7 @@ export default function AdminPage() {
                                       }}
                                     />
                                   </div>
-                                  
+
                                   {/* Botões de ação */}
                                   <div className="flex space-x-1 xs:space-x-1.5 flex-shrink-0">
                                     <button

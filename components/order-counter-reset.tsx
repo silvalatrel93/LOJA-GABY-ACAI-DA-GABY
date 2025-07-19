@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { createSupabaseClient } from "@/lib/supabase-client"
 import { RefreshCw } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 
@@ -22,50 +21,52 @@ export default function OrderCounterReset() {
     setShowConfirmDialog(false)
   }
 
-  // Função para redefinir o contador de pedidos usando a função RPC do Supabase
+  // Função para redefinir o contador de pedidos usando a API
   const resetOrderCounter = async () => {
     setIsResetting(true)
     closeConfirmDialog()
-    
+
     try {
-      const supabase = createSupabaseClient()
       toast.loading("Zerando contador de pedidos...")
       console.log("Iniciando processo de zerar contador de pedidos...")
-      
-      // Chamar a função RPC reset_order_counter no Supabase
-      console.log("Chamando função RPC reset_order_counter...")
-      const { data, error } = await supabase.rpc('reset_order_counter')
-      
-      if (error) {
-        console.error("Erro ao chamar função RPC reset_order_counter:", error)
+
+      // Chamar a API que exclui todos os pedidos e reseta o contador
+      console.log("Chamando API /api/admin/reset-order-counter...")
+      const response = await fetch('/api/admin/reset-order-counter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        console.error("Erro na API de reset:", result)
         toast.dismiss()
-        toast.error("Erro ao zerar contador de pedidos")
+        toast.error(`Erro ao zerar contador: ${result.error || 'Erro desconhecido'}`)
         setIsResetting(false)
         return
       }
-      
-      console.log("Resultado da função RPC:", data)
+
+      console.log("Reset executado com sucesso:", result)
       toast.dismiss()
-      
-      if (data === true) {
-        console.log("Contador de pedidos zerado com sucesso! Próximo pedido será #1")
-      } else {
-        console.log("Houve um problema ao zerar o contador de pedidos")
-        toast.error("Houve um problema ao zerar o contador de pedidos")
-        setIsResetting(false)
-        return
-      }
-      
+
       toast.success("Contador de pedidos zerado com sucesso!")
-      toast.info("O próximo pedido começará com o ID #1")
-      
+      toast.info("Todos os pedidos foram excluídos e o próximo pedido começará com o ID #1")
+
       // Recarregar a página após um breve intervalo
       setTimeout(() => {
         window.location.reload()
       }, 2000)
     } catch (error) {
-      console.error("Erro inesperado:", error)
-      toast.error("Ocorreu um erro ao redefinir o contador")
+      console.error("Erro inesperado:", {
+        message: error instanceof Error ? error.message : 'Erro desconhecido',
+        stack: error instanceof Error ? error.stack : undefined,
+        fullError: error
+      })
+      toast.dismiss()
+      toast.error(`Erro inesperado: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     } finally {
       setIsResetting(false)
     }
@@ -103,27 +104,27 @@ export default function OrderCounterReset() {
           )}
         </div>
       </div>
-      
+
       {/* Diálogo de confirmação */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Zerar contador de pedidos</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja zerar o contador de pedidos? 
+              Tem certeza que deseja zerar o contador de pedidos?
               O próximo pedido começará com o ID #1.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={closeConfirmDialog}
               className="sm:flex-1"
             >
               Cancelar
             </Button>
-            <Button 
-              onClick={resetOrderCounter} 
+            <Button
+              onClick={resetOrderCounter}
               disabled={isResetting}
               className="bg-amber-600 hover:bg-amber-700 sm:flex-1"
             >
@@ -140,6 +141,6 @@ export default function OrderCounterReset() {
         </DialogContent>
       </Dialog>
     </>
-  
+
   )
 }
