@@ -53,15 +53,16 @@ export const MapsService = {
   /**
    * Gera uma URL do Google Maps para rota de entrega
    * @param address Endereço de destino
-   * @param origin Endereço de origem (opcional, usa o endereço padrão da loja se não fornecido)
+   * @param origin Endereço de origem (opcional, usa "Sua localização" se não fornecido)
    * @returns URL do Google Maps com rota
    */
   generateRouteUrl(address: Address, origin?: string): string {
     const formattedAddress = this.formatAddressForMaps(address);
     const encodedDestination = encodeURIComponent(formattedAddress);
 
-    // Usar o endereço padrão da loja se não fornecido
-    const originAddress = origin || DEFAULT_STORE_ADDRESS;
+    // Sempre usar "Sua localização" como origem para que o GPS detecte automaticamente
+    // Isso permite que o entregador use sua localização atual como ponto de partida
+    const originAddress = "Sua localização";
     const encodedOrigin = encodeURIComponent(originAddress);
 
     return `https://www.google.com/maps/dir/?api=1&origin=${encodedOrigin}&destination=${encodedDestination}&travelmode=driving`;
@@ -164,4 +165,4 @@ export const MapsService = {
 export const generateMapsUrl = MapsService.generateMapsUrl.bind(MapsService);
 export const generateRouteUrl = MapsService.generateRouteUrl.bind(MapsService);
 export const openMapsRoute = MapsService.openMapsRoute.bind(MapsService);
-export const shareRouteWithDelivery = MapsService.shareRouteWithDelivery.bind(MapsService); 
+export const shareRouteWithDelivery = MapsService.shareRouteWithDelivery.bind(MapsService);
