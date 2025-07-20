@@ -907,7 +907,7 @@ export default function OrdersPage() {
                           </p>
                         )}
                         <p className="font-medium">
-                          {order.address.street}, {order.address.number}
+                          {order.address.street}{order.address.number ? `, ${order.address.number}` : ''}
                         </p>
                         <p className="text-sm text-gray-600">
                           {order.address.neighborhood}
@@ -1167,7 +1167,7 @@ export default function OrdersPage() {
                 <h3 className="font-semibold text-sm text-gray-700 mb-2">Pedido #{selectedDeliveryOrder.id}</h3>
                 <p className="text-sm text-gray-600">
                   Cliente: {selectedDeliveryOrder.customerName}<br />
-                  Endereço: {selectedDeliveryOrder.address.street}, {selectedDeliveryOrder.address.number} - {selectedDeliveryOrder.address.neighborhood}
+                  Endereço: {selectedDeliveryOrder.address.street}{selectedDeliveryOrder.address.number ? `, ${selectedDeliveryOrder.address.number}` : ''} - {selectedDeliveryOrder.address.neighborhood}
                 </p>
               </div>
 
