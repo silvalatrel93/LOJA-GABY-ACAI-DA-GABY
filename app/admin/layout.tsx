@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import type { Metadata, Viewport } from 'next';
 
 export const metadata: Metadata = {
-  manifest: "/manifest.json",
+  manifest: "/admin-manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

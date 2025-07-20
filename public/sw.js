@@ -1,5 +1,5 @@
 // Nome do cache
-const CACHE_NAME = 'heai-acai-cache-v1';
+const CACHE_NAME = 'pedifacil-admin-cache-v2';
 
 // Arquivos para cache inicial
 const urlsToCache = [
@@ -7,6 +7,7 @@ const urlsToCache = [
   '/admin',
   '/offline.html',
   '/manifest.json',
+  '/admin-manifest.json',
   '/placeholder.svg',
   '/placeholder.svg',
   '/placeholder-logo.svg',
