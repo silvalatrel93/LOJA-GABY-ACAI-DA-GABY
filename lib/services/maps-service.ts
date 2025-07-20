@@ -53,19 +53,16 @@ export const MapsService = {
   /**
    * Gera uma URL do Google Maps para rota de entrega
    * @param address Endereço de destino
-   * @param origin Endereço de origem (opcional, usa "Sua localização" se não fornecido)
+   * @param origin Endereço de origem (opcional, usa localização atual se não fornecido)
    * @returns URL do Google Maps com rota
    */
   generateRouteUrl(address: Address, origin?: string): string {
     const formattedAddress = this.formatAddressForMaps(address);
     const encodedDestination = encodeURIComponent(formattedAddress);
 
-    // Sempre usar "Sua localização" como origem para que o GPS detecte automaticamente
+    // Não especificar origem para que o Google Maps use automaticamente a localização atual
     // Isso permite que o entregador use sua localização atual como ponto de partida
-    const originAddress = "Sua localização";
-    const encodedOrigin = encodeURIComponent(originAddress);
-
-    return `https://www.google.com/maps/dir/?api=1&origin=${encodedOrigin}&destination=${encodedDestination}&travelmode=driving`;
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodedDestination}&travelmode=driving`;
   },
 
   /**
