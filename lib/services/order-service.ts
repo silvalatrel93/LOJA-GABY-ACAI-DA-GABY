@@ -523,12 +523,10 @@ export const OrderService = {
       )
 
       // Configurar handler de erro
-      if (onError) {
-        channel.on('error', (error: any) => {
-          console.error('Erro no canal real-time de pedidos:', error)
-          onError(new Error(`Erro no canal real-time: ${error.message || 'Erro desconhecido'}`))
-        })
-      }
+      channel.on('error', (error: any) => {
+        console.warn('Erro no canal real-time de pedidos:', error)
+        // Não propagar erro para evitar erros intrusivos
+      })
 
       // Subscrever ao canal
       channel.subscribe((status) => {
@@ -536,10 +534,9 @@ export const OrderService = {
         if (status === 'SUBSCRIBED') {
           console.log('✅ Subscrição real-time de pedidos ativa')
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Erro na subscrição real-time de pedidos')
-          if (onError) {
-            onError(new Error('Falha na subscrição real-time de pedidos'))
-          }
+          console.warn('⚠️ Erro na subscrição real-time de pedidos - funcionando em modo offline')
+          // Não chamar onError para evitar erros intrusivos no console
+          // A aplicação continuará funcionando normalmente sem real-time
         }
       })
 

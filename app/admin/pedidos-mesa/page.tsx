@@ -34,6 +34,11 @@ export default function PedidosMesaPage() {
   const [showSoundActivationMessage, setShowSoundActivationMessage] = useState(false)
   const [selectedOrderForPrint, setSelectedOrderForPrint] = useState<Order | null>(null)
   const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false)
+  
+  // Estados para sistema de impressão automática
+  const [printQueue, setPrintQueue] = useState<Order[]>([])
+  const [currentPrintIndex, setCurrentPrintIndex] = useState(0)
+  const [shouldAutoPrint, setShouldAutoPrint] = useState(false)
 
   const { playSound } = useNotificationSound()
   const prevOrdersRef = useRef<Order[]>([])
@@ -354,7 +359,7 @@ export default function PedidosMesaPage() {
       await updateOrderStatus(orderId, newStatus)
       await loadOrders()
 
-      // Se estiver aceitando um pedido (mudando de 'new' para 'preparing'), parar o som
+      // Se estiver aceitando um pedido (mudando de 'new' para 'preparing'), parar o som E IMPRIMIR
       if (newStatus === 'preparing') {
         stopTableSound()
 
@@ -364,6 +369,18 @@ export default function PedidosMesaPage() {
           setShowNewOrderNotification(false)
           setNewOrdersCount(0)
           setNewOrdersData([])
+        }
+        
+        // IMPRESSÃO AUTOMÁTICA QUANDO ACEITAR PEDIDO
+        const order = orders.find(o => o.id === orderId)
+        if (order) {
+          console.log(`Configurando impressão automática para o pedido #${orderId} após aceitar`)
+          setPrintQueue([order])        // Fila com 1 item
+          setCurrentPrintIndex(0)       // Índice inicial
+          setSelectedOrderForPrint(order) // Pedido atual
+          setIsPrinterModalOpen(true)   // Abrir modal
+          setShouldAutoPrint(true)      // Ativar auto-print
+          setCurrentPrintIndex(1)       // Próximo índice
         }
       }
     } catch (error) {
@@ -426,8 +443,16 @@ export default function PedidosMesaPage() {
         console.error("Erro ao marcar pedido como impresso:", error)
       }
     }
+    
+    // Resetar estado atual
     setIsPrinterModalOpen(false)
     setSelectedOrderForPrint(null)
+    setShouldAutoPrint(false)
+    
+    // Processar próximo da fila
+    setTimeout(() => {
+      processNextPrintInQueue()
+    }, 1000)
   }
 
   // Função para aceitar os novos pedidos
@@ -443,6 +468,21 @@ export default function PedidosMesaPage() {
 
       // Recarregar a lista de pedidos para refletir as mudanças
       await loadOrders()
+
+      // IMPRESSÃO AUTOMÁTICA DE TODOS OS PEDIDOS ACEITOS
+      if (newOrders.length > 0) {
+        console.log(`Configurando impressão automática para ${newOrders.length} pedidos aceitos em lote`)
+        
+        // Configurar fila de impressão com todos os pedidos aceitos
+        setPrintQueue(newOrders)
+        setCurrentPrintIndex(0)
+        
+        // Iniciar com o primeiro pedido
+        setSelectedOrderForPrint(newOrders[0])
+        setIsPrinterModalOpen(true)
+        setShouldAutoPrint(true)
+        setCurrentPrintIndex(1)
+      }
 
     } catch (error) {
       console.error('Erro ao aceitar pedidos:', error)
@@ -462,6 +502,96 @@ export default function PedidosMesaPage() {
       window.scrollTo({ top: 300, behavior: 'smooth' })
     }
   }
+
+  // Função para processar próximo item da fila de impressão
+  const processNextPrintInQueue = React.useCallback(() => {
+    if (printQueue.length > 0 && currentPrintIndex < printQueue.length) {
+      const nextOrder = printQueue[currentPrintIndex]
+      
+      // Configurar próximo pedido
+      setSelectedOrderForPrint(nextOrder)
+      setCurrentPrintIndex(prev => prev + 1)
+      
+      // Delay para evitar sobrecarga
+      setTimeout(() => {
+        setIsPrinterModalOpen(true)
+        setShouldAutoPrint(true)
+      }, 1000)
+    } else {
+      // Fila concluída
+      handlePrintQueueComplete()
+    }
+  }, [printQueue, currentPrintIndex])
+
+  // Função de conclusão da fila de impressão
+  const handlePrintQueueComplete = React.useCallback(() => {
+    const queueLength = printQueue.length
+    
+    // Resetar estados
+    setPrintQueue([])
+    setCurrentPrintIndex(0)
+    setShouldAutoPrint(false)
+    setIsPrinterModalOpen(false)
+    setSelectedOrderForPrint(null)
+    
+    // Notificação de conclusão
+    if (typeof window !== 'undefined' && queueLength > 1) {
+      // Som de conclusão
+      try {
+        const audio = new Audio('/sounds/completion.mp3')
+        audio.play().catch(() => {})
+      } catch (error) {
+        console.log('Erro ao reproduzir som de conclusão:', error)
+      }
+      
+      // Alerta visual
+      alert(`✅ Impressão concluída! ${queueLength} etiquetas foram processadas.`)
+    }
+  }, [printQueue.length])
+
+  // Função para cancelar fila de impressão
+  const handleCancelPrintQueue = React.useCallback(() => {
+    if (confirm('Deseja cancelar a impressão dos pedidos restantes?')) {
+      handlePrintQueueComplete()
+    }
+  }, [handlePrintQueueComplete])
+
+  // Função para marcar múltiplos pedidos como entregues e imprimir
+  const handleBulkDelivered = React.useCallback(async () => {
+    const readyOrders = orders.filter(order => order.status === 'ready')
+    
+    if (readyOrders.length === 0) {
+      alert('Nenhum pedido pronto encontrado para marcar como entregue.')
+      return
+    }
+
+    if (!confirm(`Marcar ${readyOrders.length} pedido(s) como entregue e imprimir etiquetas?`)) {
+      return
+    }
+
+    try {
+      // Atualizar todos os pedidos
+      await Promise.all(
+        readyOrders.map(order => updateOrderStatus(order.id, 'delivered'))
+      )
+      
+      await loadOrders(true)
+      
+      // Configurar fila de impressão para múltiplos pedidos
+      setTimeout(() => {
+        setPrintQueue(readyOrders)
+        setCurrentPrintIndex(0)
+        setSelectedOrderForPrint(readyOrders[0])
+        setIsPrinterModalOpen(true)
+        setShouldAutoPrint(true)
+        setCurrentPrintIndex(1)
+      }, 500)
+      
+    } catch (error) {
+      console.error('Erro ao atualizar pedidos:', error)
+      alert('Erro ao atualizar pedidos. Tente novamente.')
+    }
+  }, [orders, loadOrders])
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order)
@@ -1121,16 +1251,61 @@ export default function PedidosMesaPage() {
             <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-auto">
               <div className="p-4 border-b">
                 <h2 className="text-lg font-semibold text-purple-900">Imprimir Etiqueta</h2>
+                
+                {/* Indicador de progresso para múltiplos pedidos */}
+                {printQueue.length > 1 && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-blue-800">
+                        Imprimindo {currentPrintIndex} de {printQueue.length} pedidos
+                      </span>
+                      <button
+                        onClick={handleCancelPrintQueue}
+                        className="text-xs px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                      >
+                        Cancelar Fila
+                      </button>
+                    </div>
+                    
+                    {/* Barra de progresso */}
+                    <div className="w-full bg-blue-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${(currentPrintIndex / printQueue.length) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="p-4">
-                <OrderLabelPrinter order={selectedOrderForPrint} onPrintComplete={handlePrintComplete} />
+                <OrderLabelPrinter 
+                  order={selectedOrderForPrint} 
+                  onPrintComplete={handlePrintComplete}
+                  autoPrint={shouldAutoPrint}
+                />
               </div>
 
-              <div className="p-4 border-t flex justify-end">
+              <div className="p-4 border-t flex justify-between">
+                {printQueue.length > 1 && (
+                  <button
+                    onClick={handleCancelPrintQueue}
+                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 mr-2"
+                  >
+                    Cancelar Fila ({printQueue.length - currentPrintIndex} restantes)
+                  </button>
+                )}
                 <button
-                  onClick={() => setIsPrinterModalOpen(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700"
+                  onClick={() => {
+                    setIsPrinterModalOpen(false)
+                    setShouldAutoPrint(false)
+                    if (printQueue.length <= 1) {
+                      setPrintQueue([])
+                      setCurrentPrintIndex(0)
+                      setSelectedOrderForPrint(null)
+                    }
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 ml-auto"
                 >
                   Fechar
                 </button>

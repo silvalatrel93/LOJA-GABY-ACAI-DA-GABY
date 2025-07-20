@@ -201,9 +201,9 @@ export default function OrderLabelPrinter({ order, onPrintComplete, autoPrint = 
     // Calcular altura da forma de pagamento baseada no conteúdo
     let paymentText = "Forma de pagamento: "
     if (order.paymentMethod === "pix") {
-      paymentText += "Pix na Entrega"
+      paymentText += "Pix"
     } else if (order.paymentMethod === "card") {
-      paymentText += "Cartão na Entrega"
+      paymentText += "Cartão"
     } else if (order.paymentMethod === "money") {
       paymentText += "Dinheiro"
       if (order.paymentChange && parseFloat(order.paymentChange) > 0) {
@@ -858,9 +858,9 @@ export default function OrderLabelPrinter({ order, onPrintComplete, autoPrint = 
       doc.setFont("courier", "normal")
       let paymentText = "Forma de pagamento: "
       if (order.paymentMethod === "pix") {
-        paymentText += "Pix na Entrega"
+        paymentText += "Pix"
       } else if (order.paymentMethod === "card") {
-        paymentText += "Cartão na Entrega"
+        paymentText += "Cartão"
       } else if (order.paymentMethod === "money") {
         paymentText += "Dinheiro"
         if (order.paymentChange && parseFloat(order.paymentChange) > 0) {
@@ -1164,8 +1164,8 @@ export default function OrderLabelPrinter({ order, onPrintComplete, autoPrint = 
           <div className="section">
             <div className="mb-1">
               <span className="font-medium">Forma de pagamento:</span> {
-                order.paymentMethod === "pix" ? "Pix na Entrega" :
-                order.paymentMethod === "card" ? "Cartão na Entrega" :
+                order.paymentMethod === "pix" ? "Pix" :
+                order.paymentMethod === "card" ? "Cartão" :
                 "Dinheiro"
               }
             </div>
