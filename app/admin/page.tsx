@@ -27,6 +27,7 @@ import {
   QrCode,
   Shield,
   LogOut,
+  Calculator,
 } from "lucide-react"
 import { TableVisibilityToggle } from "@/components/admin/table-visibility-toggle"
 import DeliveryVisibilityToggle from "@/components/admin/delivery-visibility-toggle"
@@ -593,6 +594,19 @@ export default function AdminPage() {
             <div>
               <h2 className="text-lg font-semibold text-emerald-600 mb-0.5">Dashboard de Relatórios</h2>
               <p className="text-sm text-gray-600">Análise de vendas e histórico de pedidos</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/calculadora"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-red-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-red-200"
+          >
+            <div className="bg-red-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <Calculator size={22} className="text-red-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold bg-gradient-to-r from-red-500 to-red-700 bg-clip-text text-transparent mb-0.5">Calculadora iFood</h2>
+              <p className="text-sm text-gray-600">Compare custos iFood vs seu sistema</p>
             </div>
           </Link>
 

@@ -80,6 +80,7 @@ export default function SideMenu({ isOpen, onClose }: SideMenuProps) {
                 Delivery
               </Link>
             </li>
+
           </ul>
         </nav>
       </div>
