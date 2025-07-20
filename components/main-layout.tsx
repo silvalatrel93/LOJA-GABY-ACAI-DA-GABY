@@ -95,8 +95,8 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
         {/* Cabeçalho com efeito de transição e glassmorphism */}
         <header
           className={`text-white fixed top-0 left-0 right-0 w-full z-30 transition-all duration-300 ease-in-out header-animation py-3 ${scrolled
-              ? 'bg-gradient-to-r from-purple-800 to-purple-950 backdrop-blur-md shadow-lg shadow-purple-900/30'
-              : 'bg-gradient-to-r from-purple-800 to-purple-950'
+            ? 'bg-gradient-to-r from-purple-800 to-purple-950 backdrop-blur-md shadow-lg shadow-purple-900/30'
+            : 'bg-gradient-to-r from-purple-800 to-purple-950'
             }`}
           style={{
             width: "100vw",
