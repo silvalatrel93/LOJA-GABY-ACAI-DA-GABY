@@ -29,11 +29,16 @@ export class AuthService {
     try {
       // Usar um salt fixo baseado em uma variável de ambiente ou gerar um dinamicamente
       const salt = process.env.NEXT_PUBLIC_PASSWORD_SALT || 'heai-acai-salt-default';
+      console.log('[DEBUG] Salt usado:', salt);
+      console.log('[DEBUG] Password + Salt:', password + salt);
       
       // Criar o hash usando SHA-256 com salt
-      return createHash('sha256')
+      const hash = createHash('sha256')
         .update(password + salt)
         .digest('hex');
+      
+      console.log('[DEBUG] Hash gerado:', hash);
+      return hash;
     } catch (error) {
       console.error('Erro ao gerar hash da senha:', error);
       // Fallback para um método mais simples em caso de erro
@@ -162,12 +167,20 @@ export class AuthService {
       }
       
       console.log('Senha encontrada no banco de dados, verificando hash...');
+      console.log('Hash armazenado no banco:', data.value);
       
       // Verificar se a senha fornecida corresponde ao hash armazenado
       const hashedPassword = this.generatePasswordHash(password);
+      console.log('Hash gerado para senha fornecida:', hashedPassword);
+      console.log('Senha fornecida (para debug):', password);
+      
       const isValid = hashedPassword === data.value;
       
       console.log('Resultado da verificação de senha:', isValid ? 'Válida' : 'Inválida');
+      console.log('Comparação detalhada:');
+      console.log('  Armazenado:', data.value);
+      console.log('  Gerado:    ', hashedPassword);
+      console.log('  Iguais?:   ', isValid);
       
       return isValid;
     } catch (error) {

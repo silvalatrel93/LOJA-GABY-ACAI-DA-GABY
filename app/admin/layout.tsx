@@ -6,11 +6,12 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Loja Virtual - Admin"
+    title: "PediFacil - Admin"
   },
   icons: [
-    { rel: "apple-touch-icon", sizes: "180x180", url: "/icons/icon-192x192.png" },
-    { rel: "mask-icon", url: "/icons/icon-192x192.png", color: "#6B21A8" }
+    { rel: "apple-touch-icon", sizes: "180x180", url: "/icons/apple-touch-icon.png" },
+    { rel: "mask-icon", url: "/icons/favicon.svg", color: "#6B21A8" },
+    { rel: "icon", type: "image/png", sizes: "96x96", url: "/icons/favicon-96x96.png" }
   ]
 };
 

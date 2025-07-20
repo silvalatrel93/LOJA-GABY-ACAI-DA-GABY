@@ -9,8 +9,10 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   ...homeMetadata,
   icons: [
-    { rel: "icon", type: "image/png", sizes: "32x32", url: "/icons/icon-72x72.png" },
-    { rel: "icon", type: "image/png", sizes: "16x16", url: "/icons/icon-72x72.png" },
+    { rel: "icon", type: "image/x-icon", url: "/icons/favicon.ico" },
+    { rel: "icon", type: "image/png", sizes: "96x96", url: "/icons/favicon-96x96.png" },
+    { rel: "apple-touch-icon", sizes: "180x180", url: "/icons/apple-touch-icon.png" },
+    { rel: "manifest", url: "/manifest.json" }
   ]
 }
 

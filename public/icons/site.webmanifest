@@ -1,21 +1,21 @@
 {
-  "name": "MyWebSite",
-  "short_name": "MySite",
+  "name": "PediFacil - Sistema de Delivery",
+  "short_name": "PediFacil",
   "icons": [
     {
-      "src": "/web-app-manifest-192x192.png",
+      "src": "/icons/web-app-manifest-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/web-app-manifest-512x512.png",
+      "src": "/icons/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#92c730",
-  "background_color": "#7b30c7",
+  "theme_color": "#6B21A8",
+  "background_color": "#6B21A8",
   "display": "standalone"
 }

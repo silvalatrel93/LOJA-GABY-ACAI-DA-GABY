@@ -1,20 +1,20 @@
 import type { Metadata } from 'next';
 
 export const homeMetadata: Metadata = {
-  title: 'Loja Virtual - Deliciosos produtos para você',
-  description: 'Experimente nossos deliciosos açaís, sorvetes e muito mais. Faça seu pedido online e receba em casa!',
-      keywords: ['açaí', 'sorvete', 'delivery', 'sobremesa', 'loja virtual'],
+  title: 'PediFacil - Sistema de Delivery Completo',
+  description: 'Sistema completo de delivery com gestão de pedidos, cardápio digital e painel administrativo. Faça seu pedido online!',
+  keywords: ['delivery', 'pedidos', 'restaurante', 'cardápio', 'sistema', 'pedifacil'],
   openGraph: {
-    title: 'Loja Virtual',
-    description: 'Deliciosos açaís, sorvetes e muito mais! Peça agora e receba em casa.',
-    url: 'https://heai-acai.vercel.app',
-    siteName: 'Loja Virtual',
+    title: 'PediFacil - Sistema de Delivery',
+    description: 'Sistema completo de delivery com gestão de pedidos e cardápio digital.',
+    url: 'https://pedi-facil-loja-2.vercel.app',
+    siteName: 'PediFacil',
     images: [
       {
-        url: 'https://i.postimg.cc/9QjPdk40/logo-heai.webp',
-        width: 800,
-        height: 600,
-        alt: 'Loja Virtual',
+        url: '/icons/web-app-manifest-512x512.png',
+        width: 512,
+        height: 512,
+        alt: 'PediFacil - Sistema de Delivery',
       },
     ],
     locale: 'pt_BR',
@@ -22,9 +22,9 @@ export const homeMetadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Loja Virtual',
-    description: 'Deliciosos açaís, sorvetes e muito mais! Peça agora e receba em casa.',
-    images: ['https://i.postimg.cc/9QjPdk40/logo-heai.webp'],
+    title: 'PediFacil - Sistema de Delivery',
+    description: 'Sistema completo de delivery com gestão de pedidos e cardápio digital.',
+    images: ['/icons/web-app-manifest-512x512.png'],
   },
   robots: {
     index: true,
