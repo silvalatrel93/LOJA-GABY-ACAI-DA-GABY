@@ -429,8 +429,6 @@ export default function OrdersPage() {
     setIsPrinterModalOpen(true);
   }, []);
 
-  // Funções auxiliares removidas - usando as definições mais adiante no código
-
   const handleStatusChange = React.useCallback(async (orderId: Order['id'], status: OrderStatus, order?: Order): Promise<void> => {
     try {
       await updateOrderStatus(orderId, status);
@@ -494,6 +492,19 @@ export default function OrdersPage() {
       alert(`Erro ao excluir o pedido #${order.id}. Tente novamente.`);
     }
   }, [loadOrders]);
+
+  const handlePrintComplete = React.useCallback(async () => {
+    if (selectedOrder?.id) {
+      try {
+        await markOrderAsPrinted(selectedOrder.id);
+        await loadOrders(true); // Usar carregamento silencioso
+      } catch (error) {
+        console.error("Erro ao marcar pedido como impresso:", error);
+      }
+    }
+    setIsPrinterModalOpen(false);
+    setSelectedOrder(null);
+    setShouldAutoPrint(false); // Resetar estado de impressão automática
 
   // Função para processar a fila de impressão
   const processNextPrintInQueue = React.useCallback(() => {
@@ -619,57 +630,60 @@ export default function OrdersPage() {
   }
 
   // Funções para compartilhamento de rota
+  const handleSendWhatsApp = React.useCallback((order: Order) => {
+    const whatsappUrl = WhatsAppService.prepareOrderConfirmation(order);
+    if (whatsappUrl && typeof window !== 'undefined') {
+      window.open(whatsappUrl, '_blank');
+    }
+  }, []);
 
-  // handleSendDeliveryNotification já definido anteriormente
-
-  // handleOpenMapsRoute já definido anteriormente
-
-  // handleShareRouteWithDelivery e handleConfirmShareRoute já definidos anteriormente
-
-  // Função para atualizar a lista de pedidos
-  const handleRefresh = React.useCallback(async () => {
-    setIsRefreshing(true);
+  const handleSendDeliveryNotification = React.useCallback(async (order: Order) => {
     try {
-      await loadOrders(false);
-    } finally {
-      setIsRefreshing(false);
+      await WhatsAppService.sendDeliveryNotification(order);
+    } catch (error) {
+      console.error('Erro ao enviar notificação de entrega:', error);
     }
-  }, [loadOrders]);
-
-  // Função para fechar notificação de novos pedidos
-  const handleCloseNotification = React.useCallback(() => {
-    setShowNewOrderNotification(false);
-    setNewOrdersCount(0);
-    stopContinuousSound();
-  }, [stopContinuousSound]);
-
-  // Função para imprimir múltiplos pedidos
-  const handlePrintMultiple = React.useCallback((selectedOrders: Order[]) => {
-    if (selectedOrders.length === 0) return;
-    
-    // Configurar fila de impressão
-    setPrintQueue(selectedOrders);
-    setCurrentPrintIndex(0);
-    
-    // Iniciar com o primeiro pedido
-    setSelectedOrder(selectedOrders[0]);
-    setIsPrinterModalOpen(true);
-    setShouldAutoPrint(true);
-    setCurrentPrintIndex(1);
   }, []);
 
-  // Função para alternar som
-  const handleToggleSound = React.useCallback(() => {
-    setIsSoundEnabled(prev => !prev);
-    if (isSoundEnabled) {
-      stopContinuousSound();
+  const handleOpenMapsRoute = React.useCallback((order: Order) => {
+    const mapsUrl = MapsService.generateRouteUrl(order.address);
+    if (mapsUrl && typeof window !== 'undefined') {
+      window.open(mapsUrl, '_blank');
     }
-  }, [isSoundEnabled, stopContinuousSound]);
-
-  // Função para alternar envio automático de WhatsApp
-  const handleToggleAutoWhatsApp = React.useCallback(() => {
-    setAutoSendWhatsApp(prev => !prev);
   }, []);
+
+  const handleShareRouteWithDelivery = React.useCallback((order: Order) => {
+    setSelectedDeliveryOrder(order);
+    setShowDeliveryModal(true);
+  }, []);
+
+  const handleConfirmShareRoute = React.useCallback((phone: string, saveAsDefault: boolean) => {
+    if (selectedDeliveryOrder) {
+      // Salvar como padrão se solicitado
+      if (saveAsDefault) {
+        DeliveryConfigService.updateDefaultDeliveryPhone(phone);
+        setDefaultDeliveryPhone(phone);
+      }
+
+      // Gerar URL do WhatsApp com a rota
+      const routeUrl = MapsService.generateRouteUrl(selectedDeliveryOrder.address);
+      const message = `🚚 *Entrega - Pedido #${selectedDeliveryOrder.id}*\n\n` +
+        `📍 *Endereço:*\n${selectedDeliveryOrder.address.street}${selectedDeliveryOrder.address.number ? `, ${selectedDeliveryOrder.address.number}` : ''} - ${selectedDeliveryOrder.address.neighborhood}\n\n` +
+        `📞 *Cliente:* ${selectedDeliveryOrder.customerName}\n` +
+        `📞 *Telefone:* ${selectedDeliveryOrder.customerPhone}\n\n` +
+        `🗺️ *Ver rota no Google Maps:*\n${routeUrl}`;
+
+      const whatsappUrl = `https://wa.me/55${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+      
+      if (typeof window !== 'undefined') {
+        window.open(whatsappUrl, '_blank');
+      }
+
+      // Fechar modal
+      setShowDeliveryModal(false);
+      setSelectedDeliveryOrder(null);
+    }
+  }, [selectedDeliveryOrder]);
 
   return (
     <div className="min-h-screen flex flex-col">

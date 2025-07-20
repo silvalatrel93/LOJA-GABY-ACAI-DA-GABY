@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useEffect, ReactNode } from "react"
+import { useRef, useState, useEffect, useCallback, ReactNode } from "react"
 import { Printer, Download } from "lucide-react"
 import { formatCurrency, cleanSizeDisplay } from "@/lib/utils"
 import { format } from "date-fns"
@@ -14,12 +14,13 @@ import { getSalmoAleatorio } from "@/lib/salmos"
 interface OrderLabelPrinterProps {
   order: Order
   onPrintComplete: () => void
+  autoPrint?: boolean
 }
 
 // Largura configurável da etiqueta (80mm ou 58mm são os padrões de impressora térmica)
 const LABEL_WIDTH_MM = 80 // Configurado para MP-4200 TH (58-82.5mm)
 
-export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabelPrinterProps) {
+export default function OrderLabelPrinter({ order, onPrintComplete, autoPrint = false }: OrderLabelPrinterProps) {
   const printContainerRef = useRef<HTMLDivElement>(null)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [storeName, setStoreName] = useState("Loja Virtual")
@@ -283,7 +284,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
   };
 
   // Função para imprimir diretamente na impressora
-  const handlePrint = () => {
+  const handlePrint = useCallback(() => {
     if (!isLogoReady) {
       // Se a logo ainda não estiver pronta, tente novamente em breve
       setTimeout(handlePrint, 100)
@@ -499,8 +500,45 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
         printDocument.close()
 
         // Imprimir e remover o iframe
+        console.log('OrderLabelPrinter - Executando window.print() agora!');
         printIframe.contentWindow?.focus()
-        printIframe.contentWindow?.print()
+        
+        // Tentar diferentes métodos de impressão para maximizar compatibilidade
+        try {
+          if (printIframe.contentWindow) {
+            // Método 1: Tentar API moderna do Chrome/Edge para impressão silenciosa
+            if ((window as any).chrome && (window as any).chrome.runtime) {
+              console.log('Tentando impressão via Chrome API...');
+              printIframe.contentWindow.print();
+            }
+            // Método 2: Tentar com configurações de impressão otimizadas
+            else {
+              console.log('Usando método de impressão padrão...');
+              printIframe.contentWindow.print();
+            }
+          }
+        } catch (error) {
+          console.log('Erro na impressão:', error);
+          // Fallback para método básico
+          printIframe.contentWindow?.print();
+        }
+        
+        // Tentar clicar automaticamente no botão "Imprimir" do diálogo após um pequeno delay
+        setTimeout(() => {
+          try {
+            // Simular tecla Enter para confirmar a impressão
+            const event = new KeyboardEvent('keydown', {
+              key: 'Enter',
+              code: 'Enter',
+              keyCode: 13,
+              which: 13,
+              bubbles: true
+            });
+            document.dispatchEvent(event);
+          } catch (error) {
+            console.log('Não foi possível simular Enter automaticamente:', error);
+          }
+        }, 100);
 
         // Remover o iframe após a impressão
         setTimeout(() => {
@@ -509,7 +547,19 @@ export default function OrderLabelPrinter({ order, onPrintComplete }: OrderLabel
         }, 1000)
       }
     }
-  }
+  }, [isLogoReady, storeName, onPrintComplete])
+
+  // useEffect para impressão automática
+  useEffect(() => {
+    if (autoPrint && isLogoReady) {
+      // Aguardar um pequeno delay para garantir que o componente esteja totalmente renderizado
+      const timer = setTimeout(() => {
+        handlePrint()
+      }, 500)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [autoPrint, isLogoReady, handlePrint])
 
   // Função para carregar uma imagem e retornar como base64
   const loadImage = (url: string): Promise<string> => {
