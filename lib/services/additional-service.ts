@@ -11,7 +11,7 @@ export const AdditionalService = {
       const supabase = createSupabaseClient()
       const { data, error } = await supabase
         .from("additionals")
-        .select("*, category:categories(name)")
+        .select("*, category:additional_categories(name)")
         .order("name")
 
       if (error) {
@@ -29,7 +29,7 @@ export const AdditionalService = {
         id: Number(item.id),
         name: String(item.name),
         price: Number(item.price),
-        categoryId: Number(item.category_id),
+        categoryId: Number(item.additional_category_id),
         categoryName: item.category && typeof item.category === 'object' && item.category !== null && 'name' in item.category ? String((item.category as any).name) : "",
         active: Boolean(item.active),
         image: item.image ? String(item.image) : "",
@@ -48,7 +48,7 @@ export const AdditionalService = {
       const supabase = createSupabaseClient()
       const { data, error } = await supabase
         .from("additionals")
-        .select("*, category:categories(name)")
+        .select("*, category:additional_categories(name)")
         .eq("active", true)
         .order("name")
 
@@ -67,7 +67,7 @@ export const AdditionalService = {
         id: Number(item.id),
         name: String(item.name),
         price: Number(item.price),
-        categoryId: Number(item.category_id),
+        categoryId: Number(item.additional_category_id),
         categoryName: item.category && typeof item.category === 'object' && item.category !== null && 'name' in item.category ? String((item.category as any).name) : "",
         active: Boolean(item.active),
         image: item.image ? String(item.image) : "",
@@ -103,7 +103,7 @@ export const AdditionalService = {
       // Buscar todos os adicionais ativos que estão na lista de permitidos
       const { data, error } = await supabase
         .from("additionals")
-        .select("*, category:categories(name)")
+        .select("*, category:additional_categories(name)")
         .eq("active", true)
         .in("id", productData.allowed_additionals)
 
@@ -122,7 +122,7 @@ export const AdditionalService = {
         id: Number(item.id),
         name: String(item.name),
         price: Number(item.price),
-        categoryId: Number(item.category_id),
+        categoryId: Number(item.additional_category_id),
         categoryName: item.category && typeof item.category === 'object' && item.category !== null && 'name' in item.category ? String((item.category as any).name) : "",
         active: Boolean(item.active),
         image: item.image ? String(item.image) : "",
@@ -160,7 +160,7 @@ export const AdditionalService = {
       // Buscar todos os adicionais ativos que estão na lista de permitidos
       const { data, error } = await supabase
         .from("additionals")
-        .select("*, category:categories(name)")
+        .select("*, category:additional_categories(name)")
         .eq("active", true)
         .in("id", productData.allowed_additionals)
 
@@ -185,7 +185,7 @@ export const AdditionalService = {
           id: Number(item.id),
           name: String(item.name),
           price: Number(item.price),
-          categoryId: Number(item.category_id),
+          categoryId: Number(item.additional_category_id),
           categoryName: item.category && typeof item.category === 'object' && item.category !== null && 'name' in item.category ? String((item.category as any).name) : "",
           active: Boolean(item.active),
           image: item.image ? String(item.image) : "",
@@ -218,7 +218,7 @@ export const AdditionalService = {
       const supabase = createSupabaseClient()
       const { data, error } = await supabase
         .from("additionals")
-        .select("*, category:categories(name)")
+        .select("*, category:additional_categories(name)")
         .eq("id", id)
         .single()
 
@@ -235,7 +235,7 @@ export const AdditionalService = {
         id: Number(data.id),
         name: String(data.name),
         price: Number(data.price),
-        categoryId: Number(data.category_id),
+        categoryId: Number(data.additional_category_id),
         categoryName: data.category && typeof data.category === 'object' && data.category !== null && 'name' in data.category ? String((data.category as any).name) : "",
         active: Boolean(data.active),
         image: data.image ? String(data.image) : "",
@@ -257,7 +257,8 @@ export const AdditionalService = {
         const updateData = {
           name: additional.name,
           price: additional.price,
-          category_id: additional.categoryId,
+          category_id: 2, // Valor padrão para satisfazer constraint NOT NULL
+          additional_category_id: additional.categoryId,
           active: additional.active,
           image: additional.image || null,
         }
@@ -270,7 +271,7 @@ export const AdditionalService = {
           .single()
 
         if (error) {
-          console.error("Erro ao atualizar adicional:", error)
+          console.error("Erro ao atualizar adicional:", JSON.stringify(error, null, 2))
           return { data: null, error: new Error(error.message) }
         }
 
@@ -282,7 +283,7 @@ export const AdditionalService = {
           id: Number(data.id),
           name: String(data.name),
           price: Number(data.price),
-          categoryId: Number(data.category_id),
+          categoryId: Number(data.additional_category_id),
           active: Boolean(data.active),
           image: data.image ? String(data.image) : "",
         }
@@ -293,7 +294,8 @@ export const AdditionalService = {
         const insertData = {
           name: additional.name,
           price: additional.price,
-          category_id: additional.categoryId,
+          category_id: 2, // Valor padrão para satisfazer constraint NOT NULL
+          additional_category_id: additional.categoryId,
           active: additional.active !== undefined ? additional.active : true,
           image: additional.image || null,
         }
@@ -305,7 +307,7 @@ export const AdditionalService = {
           .single()
 
         if (error) {
-          console.error("Erro ao criar adicional:", error)
+          console.error("Erro ao criar adicional:", JSON.stringify(error, null, 2))
           return { data: null, error: new Error(error.message) }
         }
 
@@ -317,7 +319,7 @@ export const AdditionalService = {
           id: Number(data.id),
           name: String(data.name),
           price: Number(data.price),
-          categoryId: Number(data.category_id),
+          categoryId: Number(data.additional_category_id),
           active: Boolean(data.active),
           image: data.image ? String(data.image) : "",
         }
@@ -325,7 +327,7 @@ export const AdditionalService = {
         return { data: result, error: null }
       }
     } catch (error) {
-      console.error("Erro ao salvar adicional:", error)
+      console.error("Erro ao salvar adicional:", JSON.stringify(error, null, 2))
       return { data: null, error: error instanceof Error ? error : new Error(String(error)) }
     }
   },
@@ -370,7 +372,7 @@ export const AdditionalService = {
       // Buscar os registros da página
       const { data, error } = await supabase
         .from("additionals")
-        .select("*, category:categories(name)")
+        .select("*, category:additional_categories(name)")
         .order("name")
         .range(offset, offset + limit - 1)
 
@@ -387,7 +389,7 @@ export const AdditionalService = {
         id: Number(item.id),
         name: String(item.name),
         price: Number(item.price),
-        categoryId: Number(item.category_id),
+        categoryId: Number(item.additional_category_id),
         categoryName: item.category && typeof item.category === 'object' && item.category !== null && 'name' in item.category ? String((item.category as any).name) : "",
         active: Boolean(item.active),
         image: item.image ? String(item.image) : "",

@@ -713,7 +713,7 @@ function CheckoutPageContent() {
                   className="h-5 w-5 text-purple-600 focus:ring-purple-500"
                 />
                 <label htmlFor="pix" className="ml-3 block text-base text-gray-700">
-                  Pix
+                  {isTableOrder ? "Pix" : "Pix na Entrega"}
                 </label>
               </div>
 
@@ -728,7 +728,7 @@ function CheckoutPageContent() {
                   className="h-5 w-5 text-purple-600 focus:ring-purple-500"
                 />
                 <label htmlFor="card" className="ml-3 block text-base text-gray-700">
-                  Cartão
+                  {isTableOrder ? "Cartão" : "Cartão na Entrega"}
                 </label>
               </div>
 
