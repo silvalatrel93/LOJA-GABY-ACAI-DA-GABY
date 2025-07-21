@@ -8,6 +8,11 @@ import { useRouter } from 'next/navigation'
 import { useCart } from '@/lib/cart-context'
 import { LoaderIcon, CheckCircle, AlertCircle } from 'lucide-react'
 
+// Inicializar Mercado Pago
+if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY) {
+  initMercadoPago(process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY)
+}
+
 interface MercadoPagoCheckoutProps {
   total: number
   customerData: {
@@ -28,14 +33,6 @@ interface PaymentStatus {
   paymentId?: string
 }
 
-interface PixPaymentData {
-  id: string
-  status: string
-  qr_code_base64: string
-  qr_code: string
-  ticket_url?: string
-}
-
 function MercadoPagoCheckoutComponent({
   total,
   customerData,
@@ -51,128 +48,11 @@ function MercadoPagoCheckoutComponent({
     message: ''
   })
   const [isProcessing, setIsProcessing] = useState(false)
-  const [isInitialized, setIsInitialized] = useState(false)
-  const [initError, setInitError] = useState<string | null>(null)
-  const [pixPaymentData, setPixPaymentData] = useState<PixPaymentData | null>(null)
-  const [showPixQR, setShowPixQR] = useState(false)
-
-  // Carregar credenciais e inicializar Mercado Pago
-  useEffect(() => {
-    const initializeMercadoPago = async () => {
-      try {
-        console.log('🚀 Inicializando Mercado Pago...')
-        
-        // Carregar credenciais do admin
-        const response = await fetch('/api/mercado-pago/credentials?loja_id=default-store')
-        const result = await response.json()
-        
-        if (!response.ok) {
-          throw new Error(result.error || 'Erro ao carregar credenciais')
-        }
-        
-        if (!result.public_key) {
-          throw new Error('Public Key não encontrada. Configure as credenciais no admin.')
-        }
-        
-        console.log('🔑 Public Key carregada, inicializando SDK...')
-        
-        // Inicializar Mercado Pago com a chave do admin
-        if (typeof window !== 'undefined') {
-          initMercadoPago(result.public_key)
-          setIsInitialized(true)
-          console.log('✅ Mercado Pago inicializado com sucesso!')
-        }
-        
-      } catch (error) {
-        console.error('❌ Erro ao inicializar Mercado Pago:', error)
-        const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido'
-        setInitError(errorMsg)
-        setPaymentStatus({
-          status: 'error',
-          message: errorMsg
-        })
-      }
-    }
-    
-    initializeMercadoPago()
-  }, [])
 
   // Configuração de inicialização do Payment Brick
   const initialization = {
     amount: total,
     preferenceId: undefined // Para pagamentos diretos
-  }
-
-  // Função para criar pagamento PIX
-  const createPixPayment = async () => {
-    try {
-      setIsProcessing(true)
-      setPaymentStatus({
-        status: 'processing',
-        message: 'Gerando QR Code PIX...'
-      })
-
-      // Preparar dados do pagador
-      const payerData = {
-        email: customerData.email,
-        first_name: customerData.name.split(' ')[0],
-        last_name: customerData.name.split(' ').slice(1).join(' ') || customerData.name,
-        identification: customerData.document ? {
-          type: 'CPF',
-          number: customerData.document.replace(/\D/g, '')
-        } : undefined
-      }
-
-      // Gerar referência externa única
-      const externalReference = `pix_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
-      // Criar pagamento PIX
-      const response = await fetch('/api/mercado-pago/create-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          loja_id: 'default-store',
-          payment_method_id: 'pix',
-          transaction_amount: total,
-          description: `Pedido PediFacil - ${externalReference}`,
-          payer: payerData,
-          external_reference: externalReference
-        })
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Erro ao criar pagamento PIX')
-      }
-
-      // Salvar dados do PIX
-      setPixPaymentData({
-        id: result.id,
-        status: result.status,
-        qr_code_base64: result.point_of_interaction?.transaction_data?.qr_code_base64 || '',
-        qr_code: result.point_of_interaction?.transaction_data?.qr_code || '',
-        ticket_url: result.point_of_interaction?.transaction_data?.ticket_url
-      })
-
-      setShowPixQR(true)
-      setPaymentStatus({
-        status: 'pending',
-        message: 'QR Code PIX gerado! Escaneie para pagar.',
-        paymentId: result.id
-      })
-
-    } catch (error) {
-      console.error('❌ Erro ao criar pagamento PIX:', error)
-      setPaymentStatus({
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Erro ao gerar PIX'
-      })
-    } finally {
-      setIsProcessing(false)
-    }
   }
 
   // Customização dos métodos de pagamento
@@ -187,25 +67,6 @@ function MercadoPagoCheckoutComponent({
     visual: {
       style: {
         theme: 'default' as const
-      }
-    },
-    callbacks: {
-      onReady: () => {
-        console.log('💳 Payment Brick carregado')
-      },
-      onSubmit: async ({ selectedPaymentMethod, formData }: any) => {
-        console.log('💳 Método selecionado:', selectedPaymentMethod, formData)
-        
-        // Se for PIX, interceptar e criar pagamento customizado
-        if (selectedPaymentMethod === 'pix' || formData?.payment_method_id === 'pix') {
-          console.log('💳 Interceptando pagamento PIX')
-          await createPixPayment()
-          return { status: 'success' } // Retornar sucesso para o brick
-        }
-        
-        // Para outros métodos, continuar com o fluxo normal
-        console.log('💳 Processando pagamento normal:', selectedPaymentMethod)
-        return onSubmit({ selectedPaymentMethod, formData })
       }
     }
   }
@@ -242,24 +103,14 @@ function MercadoPagoCheckoutComponent({
           installments: formData.installments || 1,
           payer: payerData,
           external_reference: externalReference,
-          description: `Pedido PediFácil - ${orderData.items?.length || 0} item(s)`,
-          loja_id: 'default-store',
+          description: `Pedido HEAI AÇAÍ - ${orderData.items?.length || 0} item(s)`,
           metadata: {
             order_data: JSON.stringify(orderData),
             customer_phone: customerData.phone
           }
         }
 
-        console.log('💳 Dados de pagamento detalhados:', {
-          transaction_amount: paymentData.transaction_amount,
-          payment_method_id: paymentData.payment_method_id,
-          has_token: !!paymentData.token,
-          token_length: paymentData.token ? paymentData.token.length : 0,
-          token_preview: paymentData.token ? paymentData.token.substring(0, 10) + '...' : 'N/A',
-          installments: paymentData.installments,
-          payer_email: paymentData.payer.email,
-          external_reference: paymentData.external_reference
-        })
+        console.log('Enviando dados de pagamento:', paymentData)
 
         // Enviar para API
         const response = await fetch('/api/mercado-pago/process-payment', {
@@ -273,31 +124,12 @@ function MercadoPagoCheckoutComponent({
         const result = await response.json()
 
         if (!response.ok) {
-          console.error('❌ Erro na API:', {
-            status: response.status,
-            error: result.error,
-            details: result.details
-          })
-          
-          // Mensagens de erro mais específicas
-          let errorMessage = result.error || 'Erro ao processar pagamento'
-          
-          if (result.details && result.details.includes('token')) {
-            errorMessage = 'Erro no token do cartão. Verifique os dados e tente novamente.'
-          } else if (result.details && result.details.includes('credentials')) {
-            errorMessage = 'Erro nas credenciais do Mercado Pago. Entre em contato com o suporte.'
-          } else if (response.status === 500) {
-            errorMessage = 'Erro interno do servidor. Tente novamente em alguns instantes.'
-          }
-          
-          throw new Error(errorMessage)
+          throw new Error(result.error || 'Erro ao processar pagamento')
         }
 
         console.log('Resposta do pagamento:', result)
 
         // Verificar status do pagamento
-        console.log('Status recebido:', result.status, 'Status detail:', result.status_detail);
-        
         if (result.status === 'approved') {
           setPaymentStatus({
             status: 'success',
@@ -332,41 +164,26 @@ function MercadoPagoCheckoutComponent({
 
           resolve(result)
 
-        } else if (result.status === 'in_process') {
-          setPaymentStatus({
-            status: 'processing',
-            message: 'Pagamento em processamento. Aguarde a confirmação.',
-            paymentId: result.id
-          })
-
-          onSuccess?.(result)
-          
-          setTimeout(() => {
-            router.push('/checkout/pending?payment_id=' + result.id)
-          }, 2000)
-
-          resolve(result)
-
-        } else if (result.status === 'rejected') {
-          setPaymentStatus({
-            status: 'error',
-            message: `Pagamento rejeitado: ${result.status_detail || 'Verifique os dados e tente novamente.'}`
-          })
-
-          onError?.(new Error(`Pagamento rejeitado: ${result.status_detail}`))
-          reject(new Error(`Pagamento rejeitado: ${result.status_detail}`))
-
         } else {
-          // Log para debug de status não tratados
-          console.warn('Status não tratado:', result.status, result.status_detail);
+          // Mapear códigos de erro para mensagens amigáveis
+          const getErrorMessage = (status: string, detail: string) => {
+            const errorMessages: Record<string, string> = {
+              'cc_rejected_high_risk': 'Cartão rejeitado por segurança. Tente outro cartão ou entre em contato com seu banco.',
+              'cc_rejected_insufficient_amount': 'Cartão rejeitado por fundos insuficientes. Verifique seu limite disponível.',
+              'cc_rejected_bad_filled_card_number': 'Número do cartão inválido. Verifique os dados digitados.',
+              'cc_rejected_bad_filled_date': 'Data de validade inválida. Verifique a data do cartão.',
+              'cc_rejected_bad_filled_security_code': 'Código de segurança inválido. Verifique o CVV do cartão.',
+              'cc_rejected_call_for_authorize': 'Cartão rejeitado. Entre em contato com seu banco para autorizar o pagamento.',
+              'cc_rejected_card_disabled': 'Cartão desabilitado. Entre em contato com seu banco.',
+              'cc_rejected_duplicated_payment': 'Pagamento duplicado. Aguarde alguns minutos antes de tentar novamente.',
+              'cc_rejected_max_attempts': 'Número máximo de tentativas excedido. Tente novamente mais tarde.',
+              'rejected': 'Pagamento rejeitado. Verifique os dados ou tente outro cartão.'
+            }
+            
+            return errorMessages[detail] || errorMessages[status] || `Pagamento ${status}: ${detail}`
+          }
           
-          setPaymentStatus({
-            status: 'error',
-            message: `Status inesperado: ${result.status}. Entre em contato com o suporte.`
-          })
-
-          onError?.(new Error(`Status inesperado: ${result.status}`))
-          reject(new Error(`Status inesperado: ${result.status}`))
+          throw new Error(getErrorMessage(result.status, result.status_detail || ''))
         }
 
       } catch (error) {
@@ -399,6 +216,20 @@ function MercadoPagoCheckoutComponent({
       message: 'Erro ao carregar formulário de pagamento'
     })
     onError?.(error)
+  }
+
+  // Se não tiver chave pública, mostrar erro
+  if (!process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY) {
+    return (
+      <div className="p-4 border border-red-200 rounded-lg bg-red-50">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 text-red-500" />
+          <p className="text-red-700">
+            Chave pública do Mercado Pago não configurada
+          </p>
+        </div>
+      </div>
+    )
   }
 
   // Mostrar status do pagamento se houver
@@ -438,53 +269,6 @@ function MercadoPagoCheckoutComponent({
               ID do pagamento: {paymentStatus.paymentId}
             </p>
           )}
-          
-          {/* QR Code PIX */}
-          {showPixQR && pixPaymentData && (
-            <div className="mt-4 p-4 bg-white border border-gray-200 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-3 text-center">
-                📱 Escaneie o QR Code para pagar
-              </h4>
-              
-              {pixPaymentData.qr_code_base64 && (
-                <div className="flex justify-center mb-4">
-                  <img 
-                    src={`data:image/png;base64,${pixPaymentData.qr_code_base64}`}
-                    alt="QR Code PIX"
-                    className="w-48 h-48 border border-gray-300 rounded-lg"
-                  />
-                </div>
-              )}
-              
-              {pixPaymentData.qr_code && (
-                <div className="space-y-3">
-                  <p className="text-sm text-gray-600 text-center">
-                    Ou copie e cole o código PIX:
-                  </p>
-                  <div className="bg-gray-50 p-3 rounded border">
-                    <code className="text-xs break-all text-gray-700">
-                      {pixPaymentData.qr_code}
-                    </code>
-                  </div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(pixPaymentData.qr_code)
-                      alert('Código PIX copiado!')
-                    }}
-                    className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded transition-colors"
-                  >
-                    📋 Copiar Código PIX
-                  </button>
-                </div>
-              )}
-              
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
-                <p className="text-sm text-blue-700 text-center">
-                  ℹ️ O pagamento será confirmado automaticamente após a transferência.
-                </p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     )
@@ -507,23 +291,10 @@ function MercadoPagoCheckoutComponent({
           Escolha a forma de pagamento
         </h3>
         
-        {!isInitialized || isLoading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <LoaderIcon className="w-6 h-6 animate-spin text-purple-500" />
-            <span className="ml-2 text-gray-600">
-              {!isInitialized ? 'Inicializando Mercado Pago...' : 'Carregando...'}
-            </span>
-          </div>
-        ) : initError ? (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-red-500" />
-              <p className="font-medium text-red-700">Erro na inicialização</p>
-            </div>
-            <p className="text-red-600 mt-1">{initError}</p>
-            <p className="text-sm text-red-500 mt-2">
-              Verifique se as credenciais estão configuradas em <strong>/admin/mercado-pago</strong>
-            </p>
+            <span className="ml-2 text-gray-600">Carregando...</span>
           </div>
         ) : (
           <Payment
@@ -556,4 +327,4 @@ const MercadoPagoCheckout = dynamic(
   { ssr: false }
 )
 
-export default MercadoPagoCheckout
+export default MercadoPagoCheckout 

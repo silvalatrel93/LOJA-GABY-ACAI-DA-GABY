@@ -63,8 +63,8 @@ export function MercadoPagoCredentialsForm({ lojaId, onCredentialsSaved }: Merca
         setCredentials(data);
         setFormData({
           public_key: data.public_key || '',
-          access_token: data.id ? '••••••••••••••••' : '', // Mostrar indicador se existe
-          chave_pix: data.has_pix_key ? '••••••••••••' : '', // Mostrar indicador se existe
+          access_token: '', // Não retornamos o access_token por segurança
+          chave_pix: '', // Não retornamos a chave PIX por segurança
           webhook_url: data.webhook_url || '',
           is_sandbox: data.is_sandbox,
         });
@@ -135,58 +135,29 @@ export function MercadoPagoCredentialsForm({ lojaId, onCredentialsSaved }: Merca
       return;
     }
 
-    // Verificar se os campos contêm indicadores visuais
-    if (formData.access_token === '••••••••••••••••') {
-      toast.error('Por favor, digite um novo Access Token para atualizar as credenciais');
-      return;
-    }
-
-    console.log('🚀 Iniciando salvamento de credenciais...');
     setSaving(true);
     try {
-      const payload = {
-        loja_id: lojaId,
-        public_key: formData.public_key,
-        access_token: formData.access_token,
-        chave_pix: formData.chave_pix,
-        webhook_url: formData.webhook_url,
-        is_sandbox: formData.is_sandbox,
-      };
-      
-      console.log('📦 Payload:', {
-        ...payload,
-        access_token: payload.access_token ? payload.access_token.substring(0, 10) + '...' : 'vazio',
-        public_key: payload.public_key ? payload.public_key.substring(0, 10) + '...' : 'vazio'
-      });
-      
       const response = await fetch('/api/mercado-pago/credentials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      console.log('📝 Resposta da API:', { status: response.status, ok: response.ok });
-      const result = await response.json();
-      console.log('📝 Resultado:', result);
-
-      if (response.ok) {
-        console.log('✅ Credenciais salvas com sucesso!');
-        toast.success('Credenciais salvas com sucesso!');
-        setValidationStatus({ isValid: true, message: 'Credenciais salvas e validadas!' });
-        
-        // Atualizar estado credentials para que o botão mude imediatamente
-        setCredentials({
-          id: result.data?.id || 'temp-id',
+        body: JSON.stringify({
+          loja_id: lojaId,
           public_key: formData.public_key,
-          has_pix_key: !!formData.chave_pix,
+          access_token: formData.access_token,
+          chave_pix: formData.chave_pix,
           webhook_url: formData.webhook_url,
           is_sandbox: formData.is_sandbox,
-          is_active: true
-        });
-        
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success('Credenciais salvas com sucesso!');
+        setValidationStatus({ isValid: true, message: 'Credenciais salvas e validadas!' });
+        await loadCredentials();
         onCredentialsSaved?.();
       } else {
-        console.error('❌ Erro ao salvar:', result);
         toast.error(result.error || 'Erro ao salvar credenciais');
         setValidationStatus({
           isValid: false,
@@ -240,26 +211,6 @@ export function MercadoPagoCredentialsForm({ lojaId, onCredentialsSaved }: Merca
 
   const toggleShowToken = (field: keyof typeof showTokens) => {
     setShowTokens(prev => ({ ...prev, [field]: !prev[field] }));
-  };
-
-  // Handler inteligente para access_token
-  const handleAccessTokenChange = (value: string) => {
-    // Se o valor atual é o indicador visual, limpar ao começar a digitar
-    if (formData.access_token === '••••••••••••••••' && value !== formData.access_token) {
-      setFormData(prev => ({ ...prev, access_token: value }));
-    } else {
-      setFormData(prev => ({ ...prev, access_token: value }));
-    }
-  };
-
-  // Handler inteligente para chave_pix
-  const handleChavePixChange = (value: string) => {
-    // Se o valor atual é o indicador visual, limpar ao começar a digitar
-    if (formData.chave_pix === '••••••••••••' && value !== formData.chave_pix) {
-      setFormData(prev => ({ ...prev, chave_pix: value }));
-    } else {
-      setFormData(prev => ({ ...prev, chave_pix: value }));
-    }
   };
 
   const maskToken = (token: string, show: boolean) => {
@@ -337,7 +288,7 @@ export function MercadoPagoCredentialsForm({ lojaId, onCredentialsSaved }: Merca
               id="access_token"
               type={showTokens.access_token ? 'text' : 'password'}
               value={maskToken(formData.access_token, showTokens.access_token)}
-              onChange={(e) => handleAccessTokenChange(e.target.value)}
+              onChange={(e) => setFormData(prev => ({ ...prev, access_token: e.target.value }))}
               placeholder={formData.is_sandbox ? 'TEST-...' : 'APP_USR-...'}
               className="pr-10"
             />
@@ -363,7 +314,7 @@ export function MercadoPagoCredentialsForm({ lojaId, onCredentialsSaved }: Merca
               id="chave_pix"
               type={showTokens.chave_pix ? 'text' : 'password'}
               value={maskToken(formData.chave_pix, showTokens.chave_pix)}
-              onChange={(e) => handleChavePixChange(e.target.value)}
+              onChange={(e) => setFormData(prev => ({ ...prev, chave_pix: e.target.value }))}
               placeholder="CPF, CNPJ, email ou chave aleatória"
               className="pr-10"
             />
@@ -449,7 +400,7 @@ export function MercadoPagoCredentialsForm({ lojaId, onCredentialsSaved }: Merca
                 Salvando...
               </>
             ) : (
-              credentials ? 'Credenciais Salvas' : 'Salvar Credenciais'
+              'Salvar Credenciais'
             )}
           </Button>
 

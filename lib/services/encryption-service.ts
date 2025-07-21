@@ -16,11 +16,8 @@ export class EncryptionService {
       // Gerar IV aleatório
       const iv = crypto.randomBytes(16);
       
-      // Garantir que a chave tenha 32 bytes
-      const key = crypto.createHash('sha256').update(ENCRYPTION_KEY).digest();
-      
       // Criar cipher
-      const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+      const cipher = crypto.createCipher(ALGORITHM, ENCRYPTION_KEY);
       cipher.setAAD(Buffer.from('mercado-pago-credentials'));
       
       // Criptografar
@@ -55,11 +52,8 @@ export class EncryptionService {
       const authTag = Buffer.from(parts[1], 'hex');
       const encrypted = parts[2];
 
-      // Garantir que a chave tenha 32 bytes
-      const key = crypto.createHash('sha256').update(ENCRYPTION_KEY).digest();
-
       // Criar decipher
-      const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+      const decipher = crypto.createDecipher(ALGORITHM, ENCRYPTION_KEY);
       decipher.setAAD(Buffer.from('mercado-pago-credentials'));
       decipher.setAuthTag(authTag);
 

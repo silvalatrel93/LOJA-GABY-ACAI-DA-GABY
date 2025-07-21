@@ -336,51 +336,6 @@ function CheckoutPageContent() {
       return
     }
 
-    // Se for pagamento online, redirecionar para página de pagamento
-    if (formData.paymentMethod === 'mercado_pago') {
-      // Salvar dados no localStorage para a página de pagamento
-      const checkoutData = {
-        customerData: {
-          name: formData.name,
-          phone: formData.phone,
-          email: formData.name + '@pedifacil.com',
-          document: '11111111111'
-        },
-        orderData: {
-          items: cart,
-          deliveryInfo: isTableOrder ? tableInfo : {
-            address: formData.address,
-            neighborhood: formData.neighborhood,
-            number: formData.number,
-            complement: formData.complement,
-            city: formData.city
-          },
-          isTableOrder,
-          tableInfo
-        },
-        total: total
-      }
-      
-      localStorage.setItem('checkout_data', JSON.stringify(checkoutData))
-      
-      // Redirecionar para página de pagamento
-      const params = new URLSearchParams({
-        name: formData.name,
-        phone: formData.phone,
-        total: total.toString()
-      })
-      
-      if (!isTableOrder) {
-        params.append('address', formData.address)
-        params.append('neighborhood', formData.neighborhood)
-        params.append('number', formData.number)
-        params.append('city', formData.city)
-      }
-      
-      router.push(`/pagamento?${params.toString()}`)
-      return
-    }
-
     setIsSubmitting(true)
 
     try {
@@ -747,22 +702,6 @@ function CheckoutPageContent() {
             <h2 className="text-lg sm:text-xl font-semibold text-purple-900 mb-4">Forma de Pagamento</h2>
 
             <div className="space-y-3">
-              {/* Pagamento Online com Mercado Pago */}
-              <div className="flex items-center">
-                <input
-                  type="radio"
-                  id="mercado_pago"
-                  name="paymentMethod"
-                  value="mercado_pago"
-                  checked={formData.paymentMethod === "mercado_pago"}
-                  onChange={handleChange}
-                  className="h-5 w-5 text-purple-600 focus:ring-purple-500"
-                />
-                <label htmlFor="mercado_pago" className="ml-3 block text-base text-gray-700">
-                  💳 Pagar Online (Cartão/PIX)
-                </label>
-              </div>
-
               <div className="flex items-center">
                 <input
                   type="radio"
@@ -850,8 +789,6 @@ function CheckoutPageContent() {
               </div>
             </div>
           </div>
-
-
 
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4">
             <h2 className="text-lg sm:text-xl font-semibold text-purple-900 mb-4">Resumo do Pedido</h2>
@@ -976,7 +913,6 @@ function CheckoutPageContent() {
                   Processando...
                 </>
               ) : storeStatus.isOpen ? (
-                formData.paymentMethod === "mercado_pago" ? "Ir para Pagamento Online" :
                 formData.paymentMethod === "pix" ? "Pagar com PIX" :
                   formData.paymentMethod === "card" ? "Pagar com Cartão" :
                     formData.paymentMethod === "money" ? "Pagar em Dinheiro" :

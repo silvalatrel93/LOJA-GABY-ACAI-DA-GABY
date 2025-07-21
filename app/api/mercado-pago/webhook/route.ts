@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import MercadoPagoService from '@/lib/services/mercado-pago-service';
-import { createSupabaseClient } from '@/lib/supabase-client';
+import { MercadoPagoConfig, Payment } from 'mercadopago';
 
-const mercadoPagoService = new MercadoPagoService();
-const supabase = createSupabaseClient();
+// Configurar cliente do Mercado Pago
+const client = new MercadoPagoConfig({
+  accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!,
+  options: { timeout: 5000 }
+});
+
+const payment = new Payment(client);
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,20 +38,23 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // Atualizar transação no banco usando nosso serviço
-        const updated = await mercadoPagoService.updateTransactionFromWebhook(paymentId.toString(), body.data);
+        // Buscar detalhes do pagamento
+        const paymentResult = await payment.get({ id: paymentId });
         
-        if (updated) {
-          console.log(`Transação ${paymentId} atualizada via webhook`);
-          
-          // Processar atualização do pedido
-          await processPaymentUpdate(body.data);
-        } else {
-          console.log(`Falha ao atualizar transação ${paymentId}`);
-        }
+        console.log('Detalhes do pagamento:', {
+          id: paymentResult.id,
+          status: paymentResult.status,
+          status_detail: paymentResult.status_detail,
+          external_reference: paymentResult.external_reference,
+          transaction_amount: paymentResult.transaction_amount
+        });
+
+        // Aqui você pode implementar a lógica para atualizar o status do pedido
+        // baseado no status do pagamento
+        await processPaymentUpdate(paymentResult);
 
       } catch (error) {
-        console.error('Erro ao processar webhook:', error);
+        console.error('Erro ao buscar pagamento:', error);
       }
     }
 
