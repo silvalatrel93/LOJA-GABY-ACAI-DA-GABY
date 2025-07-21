@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
+import MercadoPagoService from '@/lib/services/mercado-pago-service';
 
 // Configurar cliente do Mercado Pago
-const client = new MercadoPagoConfig({
-  accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!,
-  options: { timeout: 5000 }
-});
-
-const payment = new Payment(client);
+// const client = new MercadoPagoConfig({
+//   accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!,
+//   options: { timeout: 5000 }
+// });
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +20,8 @@ export async function POST(request: NextRequest) {
       payer,
       external_reference,
       description,
-      metadata
+      metadata,
+      loja_id = 'default-store'
     } = body;
 
     // Validar dados obrigatórios
@@ -31,6 +31,25 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Obter credenciais da loja
+    const mercadoPagoService = new MercadoPagoService();
+    const credentials = await mercadoPagoService.getCredentials(loja_id);
+    
+    if (!credentials) {
+      return NextResponse.json(
+        { error: 'Credenciais do Mercado Pago não configuradas para esta loja' },
+        { status: 400 }
+      );
+    }
+
+    // Configurar cliente do Mercado Pago com credenciais da loja
+    const client = new MercadoPagoConfig({
+      accessToken: credentials.access_token,
+      options: { timeout: 5000 }
+    });
+
+    const payment = new Payment(client);
 
     // Criar payment request
     const paymentRequest = {
@@ -59,7 +78,19 @@ export async function POST(request: NextRequest) {
       binary_mode: false
     };
 
+    console.log('📤 Enviando request para Mercado Pago:', {
+      transaction_amount: paymentRequest.transaction_amount,
+      payment_method_id: paymentRequest.payment_method_id,
+      payer_email: paymentRequest.payer.email
+    });
+    
     const result = await payment.create({ body: paymentRequest });
+    
+    console.log('📥 Resposta do Mercado Pago:', {
+      id: result.id,
+      status: result.status,
+      status_detail: result.status_detail
+    });
 
     return NextResponse.json({
       id: result.id,
@@ -86,6 +117,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const paymentId = searchParams.get('id');
+    const loja_id = searchParams.get('loja_id') || 'default-store';
 
     if (!paymentId) {
       return NextResponse.json(
@@ -94,6 +126,24 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Obter credenciais da loja
+    const mercadoPagoService = new MercadoPagoService();
+    const credentials = await mercadoPagoService.getCredentials(loja_id);
+    
+    if (!credentials) {
+      return NextResponse.json(
+        { error: 'Credenciais do Mercado Pago não configuradas para esta loja' },
+        { status: 400 }
+      );
+    }
+
+    // Configurar cliente do Mercado Pago com credenciais da loja
+    const client = new MercadoPagoConfig({
+      accessToken: credentials.access_token,
+      options: { timeout: 5000 }
+    });
+
+    const payment = new Payment(client);
     const result = await payment.get({ id: paymentId });
 
     return NextResponse.json({

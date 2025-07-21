@@ -44,7 +44,7 @@ interface Stats {
 }
 
 export default function MercadoPagoAdminPage() {
-  const [lojaId] = useState('loja-1'); // Em produção, pegar do contexto/auth
+  const [lojaId] = useState('default-store'); // ID da loja padrão existente no banco
   const [credentials, setCredentials] = useState<any>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
