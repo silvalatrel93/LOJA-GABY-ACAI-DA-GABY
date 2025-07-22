@@ -14,6 +14,7 @@ import { getStoreStatus } from "@/lib/store-utils"
 import { OrderService } from "@/lib/services/order-service"
 import { getProductById } from "@/lib/services/product-service"
 import { generateSimplePixQRCode } from "@/lib/pix-utils"
+import MercadoPagoCheckout from "@/components/mercado-pago-checkout"
 
 
 
@@ -152,6 +153,8 @@ function CheckoutPageContent() {
   const [storeStatus, setStoreStatus] = useState({ isOpen: true, statusText: "", statusClass: "" })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [productCategories, setProductCategories] = useState<Record<number, string>>({})
+  const [showMercadoPagoCheckout, setShowMercadoPagoCheckout] = useState(false)
+  const [mercadoPagoOrderData, setMercadoPagoOrderData] = useState<any>(null)
 
 
   // Carregar configurações da loja e status
@@ -335,6 +338,73 @@ function CheckoutPageContent() {
       return
     }
 
+    // Se for pagamento com Mercado Pago, mostrar checkout transparente
+    if (formData.paymentMethod === "mercado_pago") {
+      // Validar campos obrigatórios para delivery
+      if (!isTableOrder) {
+        if (!formData.name || !formData.phone || !formData.address || !formData.city) {
+          alert("Por favor, preencha todos os campos obrigatórios.")
+          return
+        }
+      } else {
+        if (!formData.name || !formData.phone) {
+          alert("Por favor, preencha nome e telefone.")
+          return
+        }
+      }
+
+      // Preparar dados do pedido para o Mercado Pago
+      const orderData = {
+        customerName: formData.name,
+        customerPhone: formData.phone,
+        address: isTableOrder ? {
+          street: `Mesa ${tableInfo?.number || 'N/A'}`,
+          number: tableInfo?.name || `Mesa ${tableInfo?.number || 'N/A'}`,
+          neighborhood: "Salão",
+          complement: "",
+          addressType: "mesa",
+          city: "Local",
+          state: "PR",
+        } : {
+          street: formData.address,
+          number: formData.number,
+          neighborhood: formData.neighborhood,
+          complement: formData.complement,
+          addressType: formData.addressType,
+          city: formData.city || "Maringá",
+          state: "PR",
+        },
+        items: cart.map((item) => ({
+          productId: item.productId || item.id,
+          name: item.name,
+          size: item.size,
+          price: item.price,
+          quantity: item.quantity,
+          additionals: item.additionals,
+          needsSpoon: item.needsSpoon,
+          spoonQuantity: item.spoonQuantity,
+          notes: item.notes,
+        })),
+        subtotal,
+        deliveryFee: finalDeliveryFee,
+        total,
+        paymentMethod: formData.paymentMethod,
+        status: "pending_payment" as const,
+        date: new Date(),
+        printed: false,
+        notified: false,
+        orderType: isTableOrder ? "table" as const : "delivery" as const,
+        ...(isTableOrder && tableInfo && {
+          tableId: tableInfo.id,
+          tableName: tableInfo.name
+        }),
+      }
+
+      setMercadoPagoOrderData(orderData)
+      setShowMercadoPagoCheckout(true)
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -421,6 +491,67 @@ function CheckoutPageContent() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Callbacks do Mercado Pago
+  const handleMercadoPagoSuccess = async (paymentData: any) => {
+    try {
+      setIsSubmitting(true)
+      
+      // Atualizar dados do pedido com informações de pagamento
+      const orderWithPayment = {
+        ...mercadoPagoOrderData,
+        status: "paid" as const,
+        paymentId: paymentData.id,
+        paymentStatus: paymentData.status,
+        paymentType: paymentData.payment_type_id,
+        paymentMethodId: paymentData.payment_method_id,
+        paymentAmount: paymentData.transaction_amount,
+        paymentApprovedAt: paymentData.date_approved ? new Date(paymentData.date_approved) : new Date(),
+      }
+
+      // Salvar pedido no banco de dados
+      const result = await OrderService.createOrder(orderWithPayment)
+      
+      if (result.error) {
+        throw new Error(result.error.message)
+      }
+
+      // Extrair o ID do pedido salvo
+      if (result.data && result.data.id) {
+        setOrderId(String(result.data.id))
+      }
+
+      // Limpar carrinho
+      await clearCart()
+      
+      // Fechar checkout do Mercado Pago
+      setShowMercadoPagoCheckout(false)
+      
+      // Mostrar notificação de sucesso
+      setShowSuccessNotification(true)
+
+      // Após 5 segundos, redirecionar
+      setTimeout(() => {
+        if (isTableOrder && tableInfo) {
+          router.push(`/mesa/${tableInfo.number}`)
+        } else {
+          router.push("/")
+        }
+      }, 5000)
+      
+    } catch (error) {
+      console.error("Erro ao processar pagamento:", error)
+      alert("Erro ao processar pagamento. Por favor, entre em contato conosco.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleMercadoPagoError = (error: any) => {
+    console.error("Erro no pagamento Mercado Pago:", error)
+    alert("Erro no pagamento. Por favor, tente novamente.")
+    setShowMercadoPagoCheckout(false)
   }
 
   // Componente de notificação de sucesso
@@ -727,6 +858,30 @@ function CheckoutPageContent() {
             <h2 className="text-lg sm:text-xl font-semibold text-purple-900 mb-4">Forma de Pagamento</h2>
 
             <div className="space-y-3">
+              {/* Pagamento Online com Mercado Pago */}
+              <div className="flex items-center">
+                <input
+                  type="radio"
+                  id="mercado_pago"
+                  name="paymentMethod"
+                  value="mercado_pago"
+                  checked={formData.paymentMethod === "mercado_pago"}
+                  onChange={handleChange}
+                  className="h-5 w-5 text-purple-600 focus:ring-purple-500"
+                />
+                <label htmlFor="mercado_pago" className="ml-3 block text-base text-gray-700">
+                  <div className="flex items-center gap-2">
+                    <span>💳 Pagamento Online</span>
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                      Pix • Cartão • Boleto
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500 mt-1 block">
+                    Pague agora com segurança pelo Mercado Pago
+                  </span>
+                </label>
+              </div>
+
               <div className="flex items-center">
                 <input
                   type="radio"
@@ -938,10 +1093,11 @@ function CheckoutPageContent() {
                   Processando...
                 </>
               ) : storeStatus.isOpen ? (
-                formData.paymentMethod === "pix" ? "Pagar com PIX" :
-                  formData.paymentMethod === "card" ? "Pagar com Cartão" :
-                    formData.paymentMethod === "money" ? "Pagar em Dinheiro" :
-                      "Finalizar e Enviar Pedido"
+                formData.paymentMethod === "mercado_pago" ? "Pagar Online" :
+                  formData.paymentMethod === "pix" ? "Pagar com PIX" :
+                    formData.paymentMethod === "card" ? "Pagar com Cartão" :
+                      formData.paymentMethod === "money" ? "Pagar em Dinheiro" :
+                        "Finalizar e Enviar Pedido"
               ) : (
                 "Loja Fechada - Não é possível finalizar"
               )}
@@ -963,6 +1119,50 @@ function CheckoutPageContent() {
           </p>
         </div>
       </footer>
+
+      {/* Modal do Checkout Transparente Mercado Pago */}
+      {showMercadoPagoCheckout && mercadoPagoOrderData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Pagamento Online</h3>
+                <button
+                  onClick={() => setShowMercadoPagoCheckout(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  Total: <span className="font-semibold text-green-600">{formatCurrency(total)}</span>
+                </p>
+                <p className="text-xs text-gray-500">
+                  Pague com segurança usando Pix, Cartão ou Boleto
+                </p>
+              </div>
+
+              <MercadoPagoCheckout
+                total={total}
+                customerData={{
+                  name: formData.name,
+                  email: formData.phone + "@pedifacil.com", // Email temporário baseado no telefone
+                  phone: formData.phone,
+                  document: ""
+                }}
+                orderData={mercadoPagoOrderData}
+                onSuccess={handleMercadoPagoSuccess}
+                onError={handleMercadoPagoError}
+                isLoading={isSubmitting}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -70,44 +70,113 @@ export async function POST(request: NextRequest) {
 
 async function processPaymentUpdate(paymentData: any) {
   try {
-    const { status, external_reference } = paymentData;
+    const { status, external_reference, id: paymentId } = paymentData;
     
-    // Aqui você implementaria a lógica para atualizar o pedido
-    // Por exemplo, atualizar status no banco de dados
     console.log(`Processando atualização de pagamento:`, {
       external_reference,
       status,
+      paymentId,
       action: getActionByStatus(status)
     });
 
-    // Exemplo de ações baseadas no status:
+    // Importar OrderService dinamicamente para evitar problemas de importação
+    const { OrderService } = await import('@/lib/services/order-service');
+    const { createSupabaseClient } = await import('@/lib/supabase-client');
+    
+    const supabase = createSupabaseClient();
+
+    // Buscar pedido pela referência externa (se fornecida)
+    let orderId = null;
+    if (external_reference) {
+      // Tentar extrair ID do pedido da referência externa
+      const orderIdMatch = external_reference.match(/order_\d+_(\d+)/);
+      if (orderIdMatch) {
+        orderId = orderIdMatch[1];
+      }
+    }
+
+    // Atualizar dados de pagamento no banco
+    const updateData: any = {
+      payment_id: paymentId,
+      payment_status: status,
+      payment_type: paymentData.payment_type_id,
+      payment_method_id: paymentData.payment_method_id,
+      payment_external_reference: external_reference,
+      payment_approved_at: paymentData.date_approved ? new Date(paymentData.date_approved).toISOString() : null,
+      payment_amount: paymentData.transaction_amount,
+      payment_fee: paymentData.fee_details?.reduce((sum: number, fee: any) => sum + fee.amount, 0) || 0,
+      payment_net_amount: paymentData.transaction_amount - (paymentData.fee_details?.reduce((sum: number, fee: any) => sum + fee.amount, 0) || 0),
+      payment_installments: paymentData.installments || 1,
+      payment_issuer_id: paymentData.issuer_id,
+      payment_card_last_four_digits: paymentData.card?.last_four_digits,
+      payment_card_holder_name: paymentData.card?.cardholder?.name,
+      payment_payer_email: paymentData.payer?.email,
+      payment_payer_identification_type: paymentData.payer?.identification?.type,
+      payment_payer_identification_number: paymentData.payer?.identification?.number,
+      payment_webhook_data: paymentData,
+    };
+
+    // Ações baseadas no status:
     switch (status) {
       case 'approved':
-        // Pagamento aprovado - liberar pedido
+        // Pagamento aprovado - atualizar status do pedido
         console.log(`Pagamento aprovado para pedido ${external_reference}`);
-        // await updateOrderStatus(external_reference, 'paid');
+        updateData.status = 'paid';
         break;
         
       case 'pending':
         // Pagamento pendente
         console.log(`Pagamento pendente para pedido ${external_reference}`);
-        // await updateOrderStatus(external_reference, 'pending_payment');
+        updateData.status = 'pending_payment';
         break;
         
       case 'rejected':
-        // Pagamento rejeitado
-        console.log(`Pagamento rejeitado para pedido ${external_reference}`);
-        // await updateOrderStatus(external_reference, 'payment_failed');
-        break;
-        
       case 'cancelled':
-        // Pagamento cancelado
-        console.log(`Pagamento cancelado para pedido ${external_reference}`);
-        // await updateOrderStatus(external_reference, 'cancelled');
+        // Pagamento rejeitado/cancelado
+        console.log(`Pagamento ${status} para pedido ${external_reference}`);
+        updateData.status = 'payment_failed';
         break;
         
       default:
         console.log(`Status não reconhecido: ${status}`);
+    }
+
+    // Atualizar pedido no banco de dados
+    if (orderId) {
+      const { error } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', orderId);
+        
+      if (error) {
+        console.error('Erro ao atualizar pedido:', error);
+      } else {
+        console.log(`Pedido ${orderId} atualizado com sucesso`);
+      }
+    } else if (external_reference) {
+      // Tentar atualizar por referência externa se não conseguiu extrair o ID
+      const { error } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('payment_external_reference', external_reference);
+        
+      if (error) {
+        console.error('Erro ao atualizar pedido por referência externa:', error);
+      } else {
+        console.log(`Pedido com referência ${external_reference} atualizado com sucesso`);
+      }
+    } else {
+      // Se não temos ID nem referência, tentar atualizar por payment_id
+      const { error } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('payment_id', paymentId);
+        
+      if (error) {
+        console.error('Erro ao atualizar pedido por payment_id:', error);
+      } else {
+        console.log(`Pedido com payment_id ${paymentId} atualizado com sucesso`);
+      }
     }
 
   } catch (error) {

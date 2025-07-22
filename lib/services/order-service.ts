@@ -151,6 +151,25 @@ export const OrderService = {
         order_type: order.orderType || 'delivery', // Incluir tipo do pedido
         table_id: order.tableId || null, // Incluir ID da mesa se for pedido de mesa
         table_name: order.tableName || null, // Incluir nome da mesa se for pedido de mesa
+        // Campos do Mercado Pago
+        payment_id: (order as any).paymentId || null,
+        payment_status: (order as any).paymentStatus || 'pending',
+        payment_type: (order as any).paymentType || null,
+        payment_method_id: (order as any).paymentMethodId || null,
+        payment_external_reference: (order as any).paymentExternalReference || null,
+        payment_preference_id: (order as any).paymentPreferenceId || null,
+        payment_approved_at: (order as any).paymentApprovedAt ? (order as any).paymentApprovedAt.toISOString() : null,
+        payment_amount: (order as any).paymentAmount || null,
+        payment_fee: (order as any).paymentFee || 0,
+        payment_net_amount: (order as any).paymentNetAmount || null,
+        payment_installments: (order as any).paymentInstallments || 1,
+        payment_issuer_id: (order as any).paymentIssuerId || null,
+        payment_card_last_four_digits: (order as any).paymentCardLastFourDigits || null,
+        payment_card_holder_name: (order as any).paymentCardHolderName || null,
+        payment_payer_email: (order as any).paymentPayerEmail || null,
+        payment_payer_identification_type: (order as any).paymentPayerIdentificationType || null,
+        payment_payer_identification_number: (order as any).paymentPayerIdentificationNumber || null,
+        payment_webhook_data: (order as any).paymentWebhookData || null,
       }
 
       const { data, error } = await supabase
@@ -523,9 +542,19 @@ export const OrderService = {
       )
 
       // Configurar handler de erro
-      channel.on('error', (error: any) => {
-        console.warn('Erro no canal real-time de pedidos:', error)
-        // Não propagar erro para evitar erros intrusivos
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        // Handler já configurado acima
+      })
+      
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Subscrito com sucesso ao canal de pedidos')
+        } else if (status === 'CHANNEL_ERROR') {
+          console.warn('Erro no canal real-time de pedidos')
+          if (onError) {
+            onError(new Error('Erro na conexão real-time'))
+          }
+        }
       })
 
       // Subscrever ao canal

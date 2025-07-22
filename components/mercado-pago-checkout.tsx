@@ -113,7 +113,7 @@ function MercadoPagoCheckoutComponent({
         console.log('Enviando dados de pagamento:', paymentData)
 
         // Enviar para API
-        const response = await fetch('/api/mercado-pago/process-payment', {
+        const response = await fetch('/api/mercado-pago/process-payment-simple', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
