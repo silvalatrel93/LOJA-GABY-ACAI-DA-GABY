@@ -430,14 +430,86 @@ export const OrderService = {
     }
   },
 
-  // Obter pedidos de mesa
+  // Obter pedidos de mesa (excluindo pedidos com pagamento pendente)
   async getTableOrders(): Promise<Order[]> {
-    return this.getOrdersByType('table')
+    try {
+      const supabase = createSupabaseClient()
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("order_type", 'table')
+        .neq("status", 'pending_payment') // Excluir pedidos com pagamento pendente
+        .order("date", { ascending: false })
+
+      if (error) {
+        console.error(`Erro ao buscar pedidos de mesa:`, error)
+        return []
+      }
+
+      return (data || []).map((order: any) => ({
+        id: Number(order.id),
+        customerName: String(order.customer_name),
+        customerPhone: String(order.customer_phone),
+        address: order.address as any,
+        items: typeof order.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order.items) ? order.items : []),
+        subtotal: Number(order.subtotal),
+        deliveryFee: Number(order.delivery_fee),
+        total: Number(order.total),
+        paymentMethod: String(order.payment_method),
+        paymentChange: order.payment_change ? String(order.payment_change) : undefined,
+        status: order.status as OrderStatus,
+        date: new Date(String(order.date)),
+        printed: Boolean(order.printed),
+        notified: Boolean(order.notified),
+        orderType: (order.order_type as OrderType) || 'table',
+        tableId: order.table_id ? Number(order.table_id) : undefined,
+        tableName: order.table_name ? String(order.table_name) : undefined,
+      }))
+    } catch (error) {
+      console.error(`Erro ao buscar pedidos de mesa:`, error)
+      return []
+    }
   },
 
-  // Obter pedidos de delivery
+  // Obter pedidos de delivery (excluindo pedidos com pagamento pendente)
   async getDeliveryOrders(): Promise<Order[]> {
-    return this.getOrdersByType('delivery')
+    try {
+      const supabase = createSupabaseClient()
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("order_type", 'delivery')
+        .neq("status", 'pending_payment') // Excluir pedidos com pagamento pendente
+        .order("date", { ascending: false })
+
+      if (error) {
+        console.error(`Erro ao buscar pedidos de delivery:`, error)
+        return []
+      }
+
+      return (data || []).map((order: any) => ({
+        id: Number(order.id),
+        customerName: String(order.customer_name),
+        customerPhone: String(order.customer_phone),
+        address: order.address as any,
+        items: typeof order.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order.items) ? order.items : []),
+        subtotal: Number(order.subtotal),
+        deliveryFee: Number(order.delivery_fee),
+        total: Number(order.total),
+        paymentMethod: String(order.payment_method),
+        paymentChange: order.payment_change ? String(order.payment_change) : undefined,
+        status: order.status as OrderStatus,
+        date: new Date(String(order.date)),
+        printed: Boolean(order.printed),
+        notified: Boolean(order.notified),
+        orderType: (order.order_type as OrderType) || 'delivery',
+        tableId: order.table_id ? Number(order.table_id) : undefined,
+        tableName: order.table_name ? String(order.table_name) : undefined,
+      }))
+    } catch (error) {
+      console.error(`Erro ao buscar pedidos de delivery:`, error)
+      return []
+    }
   },
 
   // Obter pedidos de uma mesa específica

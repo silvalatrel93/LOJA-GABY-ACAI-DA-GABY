@@ -560,6 +560,8 @@ export default function OrdersPage() {
     switch (status) {
       case "new":
         return "Novo"
+      case "pending_payment":
+        return "Pago"
       case "preparing":
         return "Em Preparo"
       case "delivering":
@@ -1158,9 +1160,11 @@ export default function OrdersPage() {
                           <span className="text-right font-medium">
                             {order.paymentMethod === "pix"
                               ? "Pix na Entrega"
-                              : order.paymentMethod === "card"
-                                ? "Cartão na Entrega"
-                                : "Dinheiro"
+                              : order.paymentMethod === "mercado_pago_pix"
+                                ? "PIX - Mercado Pago"
+                                : order.paymentMethod === "card"
+                                  ? "Cartão na Entrega"
+                                  : "Dinheiro"
                             }
                           </span>
 

@@ -131,7 +131,7 @@ export interface SpecialDate {
 }
 
 // Status do pedido
-export type OrderStatus = 'new' | 'pending' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'completed' | 'cancelled' | 'canceled';
+export type OrderStatus = 'new' | 'pending' | 'pending_payment' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'completed' | 'cancelled' | 'canceled';
 
 // Tipo do pedido
 export type OrderType = 'delivery' | 'table';
