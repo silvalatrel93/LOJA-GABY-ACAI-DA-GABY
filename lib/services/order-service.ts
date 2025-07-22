@@ -531,22 +531,6 @@ export const OrderService = {
         }
       )
 
-      // Configurar handler de erro
-      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
-        // Handler já configurado acima
-      })
-      
-      channel.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('Subscrito com sucesso ao canal de pedidos')
-        } else if (status === 'CHANNEL_ERROR') {
-          console.warn('Erro no canal real-time de pedidos')
-          if (onError) {
-            onError(new Error('Erro na conexão real-time'))
-          }
-        }
-      })
-
       // Subscrever ao canal
       channel.subscribe((status) => {
         console.log('Status da subscrição real-time de pedidos:', status)
@@ -554,8 +538,9 @@ export const OrderService = {
           console.log('✅ Subscrição real-time de pedidos ativa')
         } else if (status === 'CHANNEL_ERROR') {
           console.warn('⚠️ Erro na subscrição real-time de pedidos - funcionando em modo offline')
-          // Não chamar onError para evitar erros intrusivos no console
-          // A aplicação continuará funcionando normalmente sem real-time
+          if (onError) {
+            onError(new Error('Erro na conexão real-time'))
+          }
         }
       })
 
