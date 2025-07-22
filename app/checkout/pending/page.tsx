@@ -14,6 +14,13 @@ interface PaymentInfo {
   date_created: string
   payment_method_id: string
   external_reference?: string
+  point_of_interaction?: {
+    transaction_data?: {
+      qr_code?: string
+      qr_code_base64?: string
+      ticket_url?: string
+    }
+  }
 }
 
 function PendingContent() {
@@ -207,6 +214,63 @@ function PendingContent() {
                       <span className="font-mono text-sm">{paymentInfo.external_reference}</span>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Código PIX */}
+            {paymentInfo && paymentInfo.payment_method_id === 'pix' && paymentInfo.point_of_interaction?.transaction_data && (
+              <div className="bg-green-50 rounded-lg p-6 mb-8">
+                <h3 className="text-lg font-semibold text-green-900 mb-4">
+                  💳 Código PIX para Pagamento
+                </h3>
+                
+                {/* QR Code */}
+                {paymentInfo.point_of_interaction.transaction_data.qr_code_base64 && (
+                  <div className="text-center mb-6">
+                    <div className="bg-white p-4 rounded-lg inline-block shadow-sm">
+                      <img 
+                        src={`data:image/png;base64,${paymentInfo.point_of_interaction.transaction_data.qr_code_base64}`}
+                        alt="QR Code PIX"
+                        className="w-48 h-48 mx-auto"
+                      />
+                    </div>
+                    <p className="text-sm text-green-700 mt-2">
+                      Escaneie este QR Code com o app do seu banco
+                    </p>
+                  </div>
+                )}
+                
+                {/* Código PIX para copiar */}
+                {paymentInfo.point_of_interaction.transaction_data.qr_code && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-green-900 mb-2">
+                      Ou copie o código PIX:
+                    </label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={paymentInfo.point_of_interaction.transaction_data.qr_code}
+                        readOnly
+                        className="flex-1 p-3 border border-green-300 rounded-lg bg-white font-mono text-sm"
+                      />
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(paymentInfo.point_of_interaction?.transaction_data?.qr_code || '')
+                          alert('Código PIX copiado!')
+                        }}
+                        className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="bg-green-100 rounded-lg p-4">
+                  <p className="text-green-800 text-sm">
+                    ⏰ <strong>Atenção:</strong> O código PIX expira em 30 minutos. Após o pagamento, a confirmação é automática e instantânea.
+                  </p>
                 </div>
               </div>
             )}

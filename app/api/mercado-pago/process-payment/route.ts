@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
-import MercadoPagoService from '@/lib/services/mercado-pago-service';
 
-// Configurar cliente do Mercado Pago
-// const client = new MercadoPagoConfig({
-//   accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!,
-//   options: { timeout: 5000 }
-// });
+// Configurar cliente do Mercado Pago com variáveis de ambiente
+const client = new MercadoPagoConfig({
+  accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!,
+  options: { timeout: 5000 }
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,22 +31,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obter credenciais da loja
-    const mercadoPagoService = new MercadoPagoService();
-    const credentials = await mercadoPagoService.getCredentials(loja_id);
-    
-    if (!credentials) {
+    // Verificar se as credenciais estão configuradas
+    if (!process.env.MERCADO_PAGO_ACCESS_TOKEN) {
       return NextResponse.json(
-        { error: 'Credenciais do Mercado Pago não configuradas para esta loja' },
+        { error: 'Credenciais do Mercado Pago não configuradas' },
         { status: 400 }
       );
     }
-
-    // Configurar cliente do Mercado Pago com credenciais da loja
-    const client = new MercadoPagoConfig({
-      accessToken: credentials.access_token,
-      options: { timeout: 5000 }
-    });
 
     const payment = new Payment(client);
 
@@ -126,22 +116,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Obter credenciais da loja
-    const mercadoPagoService = new MercadoPagoService();
-    const credentials = await mercadoPagoService.getCredentials(loja_id);
-    
-    if (!credentials) {
+    // Verificar se as credenciais estão configuradas
+    if (!process.env.MERCADO_PAGO_ACCESS_TOKEN) {
       return NextResponse.json(
-        { error: 'Credenciais do Mercado Pago não configuradas para esta loja' },
+        { error: 'Credenciais do Mercado Pago não configuradas' },
         { status: 400 }
       );
     }
-
-    // Configurar cliente do Mercado Pago com credenciais da loja
-    const client = new MercadoPagoConfig({
-      accessToken: credentials.access_token,
-      options: { timeout: 5000 }
-    });
 
     const payment = new Payment(client);
     const result = await payment.get({ id: paymentId });
@@ -154,7 +135,8 @@ export async function GET(request: NextRequest) {
       payment_method_id: result.payment_method_id,
       transaction_amount: result.transaction_amount,
       date_created: result.date_created,
-      date_approved: result.date_approved
+      date_approved: result.date_approved,
+      point_of_interaction: result.point_of_interaction
     });
 
   } catch (error) {

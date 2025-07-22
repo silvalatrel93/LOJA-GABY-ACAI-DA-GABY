@@ -498,6 +498,11 @@ function CheckoutPageContent() {
     try {
       setIsSubmitting(true)
       
+      // Verificar se os dados do pedido existem
+      if (!mercadoPagoOrderData) {
+        throw new Error('Dados do pedido não encontrados')
+      }
+      
       // Atualizar dados do pedido com informações de pagamento
       const orderWithPayment = {
         ...mercadoPagoOrderData,
@@ -511,6 +516,16 @@ function CheckoutPageContent() {
       }
 
       // Salvar pedido no banco de dados
+      console.log('📦 Dados do pedido para criar:', {
+        customerName: orderWithPayment.customerName,
+        total: orderWithPayment.total,
+        paymentMethod: orderWithPayment.paymentMethod,
+        status: orderWithPayment.status,
+        items: orderWithPayment.items?.length || 0,
+        paymentId: orderWithPayment.paymentId,
+        paymentStatus: orderWithPayment.paymentStatus
+      })
+      
       const result = await OrderService.createOrder(orderWithPayment)
       
       if (result.error) {
@@ -541,8 +556,13 @@ function CheckoutPageContent() {
       }, 5000)
       
     } catch (error) {
-      console.error("Erro ao processar pagamento:", error)
-      alert("Erro ao processar pagamento. Por favor, entre em contato conosco.")
+      console.error("Erro ao processar pagamento:", {
+        error,
+        mercadoPagoOrderData,
+        paymentData
+      })
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
+      alert(`Erro ao processar pagamento: ${errorMessage}. Por favor, entre em contato conosco.`)
     } finally {
       setIsSubmitting(false)
     }

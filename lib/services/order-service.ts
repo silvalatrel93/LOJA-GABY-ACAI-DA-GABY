@@ -136,41 +136,32 @@ export const OrderService = {
       const orderData = {
         customer_name: order.customerName,
         customer_phone: order.customerPhone,
-        address: order.address,
-        items: order.items,
+        address: typeof order.address === 'object' ? JSON.stringify(order.address) : order.address,
+        items: Array.isArray(order.items) ? JSON.stringify(order.items) : order.items,
         subtotal: order.subtotal,
         delivery_fee: order.deliveryFee,
         total: order.total,
         payment_method: order.paymentMethod,
         payment_change: order.paymentChange ? parseFloat(order.paymentChange) : null,
         status: order.status,
-        date: order.date.toISOString(),
+        date: order.date instanceof Date ? order.date.toISOString() : new Date(order.date).toISOString(),
         printed: order.printed || false,
         notified: order.notified || false,
         store_id: DEFAULT_STORE_ID, // Store ID padrão obrigatório
         order_type: order.orderType || 'delivery', // Incluir tipo do pedido
         table_id: order.tableId || null, // Incluir ID da mesa se for pedido de mesa
         table_name: order.tableName || null, // Incluir nome da mesa se for pedido de mesa
-        // Campos do Mercado Pago
+        // Campos do Mercado Pago (apenas os básicos que existem na tabela)
         payment_id: (order as any).paymentId || null,
         payment_status: (order as any).paymentStatus || 'pending',
-        payment_type: (order as any).paymentType || null,
         payment_method_id: (order as any).paymentMethodId || null,
         payment_external_reference: (order as any).paymentExternalReference || null,
-        payment_preference_id: (order as any).paymentPreferenceId || null,
-        payment_approved_at: (order as any).paymentApprovedAt ? (order as any).paymentApprovedAt.toISOString() : null,
-        payment_amount: (order as any).paymentAmount || null,
-        payment_fee: (order as any).paymentFee || 0,
-        payment_net_amount: (order as any).paymentNetAmount || null,
-        payment_installments: (order as any).paymentInstallments || 1,
-        payment_issuer_id: (order as any).paymentIssuerId || null,
-        payment_card_last_four_digits: (order as any).paymentCardLastFourDigits || null,
-        payment_card_holder_name: (order as any).paymentCardHolderName || null,
-        payment_payer_email: (order as any).paymentPayerEmail || null,
-        payment_payer_identification_type: (order as any).paymentPayerIdentificationType || null,
-        payment_payer_identification_number: (order as any).paymentPayerIdentificationNumber || null,
-        payment_webhook_data: (order as any).paymentWebhookData || null,
+        // Campos removidos: payment_type, payment_preference_id, payment_approved_at, 
+        // payment_amount, payment_fee, payment_net_amount, payment_installments
+        // Estes campos não existem na tabela orders do banco
       }
+
+      // Debug logs removidos para produção
 
       const { data, error } = await supabase
         .from("orders")
@@ -179,19 +170,7 @@ export const OrderService = {
         .single()
 
       if (error) {
-        console.error("Erro ao criar pedido:", {
-          error,
-          errorMessage: error.message,
-          errorCode: error.code,
-          errorDetails: error.details,
-          errorHint: error.hint,
-          orderData: {
-            customer_name: order.customerName,
-            payment_method: order.paymentMethod,
-            total: order.total,
-            store_id: DEFAULT_STORE_ID
-          }
-        })
+        console.error('❌ Erro ao criar pedido:', error.message)
         return { data: null, error: new Error(error.message || 'Erro desconhecido ao criar pedido') }
       }
 

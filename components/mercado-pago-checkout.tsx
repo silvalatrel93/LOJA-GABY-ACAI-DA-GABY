@@ -9,8 +9,20 @@ import { useCart } from '@/lib/cart-context'
 import { LoaderIcon, CheckCircle, AlertCircle } from 'lucide-react'
 
 // Inicializar Mercado Pago
-if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY) {
-  initMercadoPago(process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY)
+const publicKey = process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY?.trim()
+console.log('🔑 Chave pública MP:', publicKey ? 'Configurada' : 'NÃO CONFIGURADA')
+console.log('🔍 Chave (primeiros 20 chars):', publicKey?.substring(0, 20))
+
+if (typeof window !== 'undefined' && publicKey) {
+  console.log('🚀 Inicializando Mercado Pago...')
+  try {
+    initMercadoPago(publicKey)
+    console.log('✅ Mercado Pago inicializado com sucesso!')
+  } catch (error) {
+    console.error('❌ Erro ao inicializar Mercado Pago:', error)
+  }
+} else if (typeof window !== 'undefined') {
+  console.error('❌ Chave pública do Mercado Pago não encontrada!')
 }
 
 interface MercadoPagoCheckoutProps {
@@ -219,7 +231,7 @@ function MercadoPagoCheckoutComponent({
   }
 
   // Se não tiver chave pública, mostrar erro
-  if (!process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY) {
+  if (!process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY?.trim()) {
     return (
       <div className="p-4 border border-red-200 rounded-lg bg-red-50">
         <div className="flex items-center gap-2">
