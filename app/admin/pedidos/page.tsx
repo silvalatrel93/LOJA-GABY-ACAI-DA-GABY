@@ -14,7 +14,6 @@ import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import OrderLabelPrinter from "@/components/order-label-printer"
 import OrderCounterReset from "@/components/order-counter-reset"
-import AutoPaymentChecker from "@/components/auto-payment-checker"
 import { useNotificationSound } from "@/hooks/useNotificationSound"
 
 export default function OrdersPage() {
@@ -211,55 +210,87 @@ export default function OrdersPage() {
     loadDefaultDeliveryPhone();
   }, []);
 
-  // Configurar subscrição real-time (apenas uma vez)
+  // Configurar verificação periódica de novos pedidos e subscrição real-time
   useEffect(() => {
-    console.log('🔄 Configurando subscrição real-time para pedidos...');
+    let isMounted = true;
+    let isFetching = false;
+    let realtimeChannel: any = null;
 
-    const realtimeSubscription = subscribeToOrderChanges(
-      (payload) => {
-        console.log('📨 Mudança real-time detectada:', payload);
+    // Função para carregar e processar pedidos
+    const loadAndProcessOrders = async (silent = true) => {
+      if (isFetching) return;
+      isFetching = true;
 
-        // Recarregar pedidos quando houver mudanças
-        if (payload.type === 'INSERT') {
-          console.log('🆕 Novo pedido detectado via real-time, recarregando...');
-          void loadOrders(true);
-        } else if (payload.type === 'UPDATE') {
-          console.log('🔄 Pedido atualizado via real-time, recarregando...');
-          void loadOrders(true);
-        } else if (payload.type === 'DELETE') {
-          console.log('🗑️ Pedido excluído via real-time, recarregando...');
-          void loadOrders(true);
+      try {
+        const orders = await fetchOrders(silent, isMounted);
+        if (orders && isMounted) {
+          processOrders(orders, isMounted);
         }
-      },
-      (error) => {
-        console.error('❌ Erro na subscrição real-time de pedidos:', error);
-        // Em caso de erro, continuar com polling apenas
-      }
-    );
-
-    // Limpar subscrição ao desmontar
-    return () => {
-      if (realtimeSubscription && realtimeSubscription.unsubscribe) {
-        realtimeSubscription.unsubscribe();
+      } finally {
+        if (isMounted) {
+          isFetching = false;
+        }
       }
     };
-  }, []); // Sem dependências para executar apenas uma vez
 
-  // Configurar carregamento inicial e polling
-  useEffect(() => {
     // Carregar pedidos iniciais
-    void loadOrders(false);
+    void loadAndProcessOrders(false);
 
-    // Configurar polling como fallback
+    // Configurar subscrição real-time para novos pedidos
+    const setupRealtimeSubscription = () => {
+      console.log('🔄 Configurando subscrição real-time para pedidos...');
+
+      realtimeChannel = subscribeToOrderChanges(
+        (payload) => {
+          console.log('📨 Mudança real-time detectada:', payload);
+
+          // Se for um novo pedido (INSERT), recarregar imediatamente
+          if (payload.type === 'INSERT' && isMounted) {
+            console.log('🆕 Novo pedido detectado via real-time, recarregando...');
+            void loadAndProcessOrders(true);
+          }
+          // Se for uma atualização (UPDATE), também recarregar para manter sincronizado
+          else if (payload.type === 'UPDATE' && isMounted) {
+            console.log('🔄 Pedido atualizado via real-time, recarregando...');
+            void loadAndProcessOrders(true);
+          }
+          // Se for uma exclusão (DELETE), recarregar para remover da lista
+          else if (payload.type === 'DELETE' && isMounted) {
+            console.log('🗑️ Pedido excluído via real-time, recarregando...');
+            void loadAndProcessOrders(true);
+          }
+        },
+        (error) => {
+          console.error('❌ Erro na subscrição real-time de pedidos:', error);
+          // Em caso de erro, continuar com polling apenas
+        }
+      );
+    };
+
+    // Configurar subscrição real-time
+    setupRealtimeSubscription();
+
+    // Configurar polling como fallback (intervalo maior agora que temos real-time)
     const pollingInterval = setInterval(() => {
-      void loadOrders(true);
-    }, 30000); // 30 segundos
+      if (isMounted) {
+        void loadAndProcessOrders(true);
+      }
+    }, 30000); // Aumentado para 30 segundos já que temos real-time
 
     // Armazenar a referência do intervalo
     checkIntervalRef.current = pollingInterval;
 
-    // Limpar intervalo ao desmontar
+    // Limpar intervalos, timeouts e subscrições ao desmontar
     return () => {
+      isMounted = false;
+
+      // Limpar subscrição real-time
+      if (realtimeChannel) {
+        console.log('🔌 Desconectando subscrição real-time de pedidos...');
+        realtimeChannel.unsubscribe();
+        realtimeChannel = null;
+      }
+
       if (checkIntervalRef.current) {
         clearInterval(checkIntervalRef.current);
         checkIntervalRef.current = null;
@@ -270,7 +301,7 @@ export default function OrdersPage() {
         notificationTimeoutRef.current = null;
       }
     };
-  }, [loadOrders]); // Dependência apenas do loadOrders
+  }, [fetchOrders, processOrders, isSoundEnabled]); // Dependências do efeito
 
   // Função para enviar manualmente mensagem de WhatsApp para um pedido
   const handleSendWhatsApp = React.useCallback(async (order: Order): Promise<void> => {
@@ -1008,7 +1039,7 @@ export default function OrdersPage() {
                     <div className="mt-3">
                       <h4 className="font-medium text-sm text-gray-700">Itens do Pedido</h4>
                       <ul className="space-y-3">
-                        {order.items.map((item, index) => (
+                        {(Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? JSON.parse(order.items) : [])).map((item, index) => (
                           <li key={index} className="border-b pb-2 last:border-b-0">
                             <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                               <span className="font-medium">
@@ -1349,9 +1380,6 @@ export default function OrdersPage() {
           </div>
         </div>
       )}
-      
-      {/* Componente para verificação automática de pagamentos */}
-      <AutoPaymentChecker enabled={true} intervalMs={30000} />
     </div>
   )
 }

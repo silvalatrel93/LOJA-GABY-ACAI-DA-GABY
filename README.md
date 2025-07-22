@@ -104,9 +104,7 @@ ADMIN_PASSWORD=your-admin-password
 NEXT_PUBLIC_STORE_NAME=Nome da sua Açaiteria
 NEXT_PUBLIC_WHATSAPP_NUMBER=5511999999999
 
-# Mercado Pago (opcional)
-NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY=your-mp-public-key
-MERCADO_PAGO_ACCESS_TOKEN=your-mp-access-token
+
 ```
 
 ## 📱 **Demonstração**

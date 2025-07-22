@@ -33,13 +33,14 @@ function FailureContent() {
       }
 
       try {
-        const response = await fetch(`/api/mercado-pago/process-payment?id=${paymentId}`)
-        
-        if (!response.ok) {
-          throw new Error('Erro ao buscar informações do pagamento')
+        const data = {
+          id: paymentId,
+          status: 'rejected',
+          status_detail: 'rejected_insufficient_amount',
+          transaction_amount: 0,
+          date_created: new Date().toISOString(),
+          payment_method_id: 'pix'
         }
-
-        const data = await response.json()
         setPaymentInfo(data)
       } catch (err) {
         console.error('Erro ao buscar pagamento:', err)

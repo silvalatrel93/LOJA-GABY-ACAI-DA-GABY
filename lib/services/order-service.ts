@@ -2,6 +2,18 @@ import { createSupabaseClient } from "../supabase-client"
 import type { Order, OrderStatus, OrderType } from "../types"
 import { DEFAULT_STORE_ID } from "../constants"
 
+// Função utilitária para fazer o parsing correto dos items
+const parseItems = (items: any): any[] => {
+  if (typeof items === 'string') {
+    try {
+      return JSON.parse(items)
+    } catch {
+      return []
+    }
+  }
+  return Array.isArray(items) ? items : []
+}
+
 export const OrderService = {
   // Obter todos os pedidos
   async getAllOrders(): Promise<Order[]> {
@@ -23,8 +35,8 @@ export const OrderService = {
         id: Number(order.id),
         customerName: String(order.customer_name),
         customerPhone: String(order.customer_phone),
-        address: typeof order.address === 'string' ? (() => { try { return JSON.parse(order.address) } catch { return {} } })() : order.address,
-        items: Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? (() => { try { return JSON.parse(order.items) } catch { return [] } })() : []),
+        address: order.address as any,
+        items: typeof order.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order.items) ? order.items : []),
         subtotal: Number(order.subtotal),
         deliveryFee: Number(order.delivery_fee),
         total: Number(order.total),
@@ -63,8 +75,8 @@ export const OrderService = {
         id: Number(order.id),
         customerName: String(order.customer_name),
         customerPhone: String(order.customer_phone),
-        address: typeof order.address === 'string' ? (() => { try { return JSON.parse(order.address) } catch { return {} } })() : order.address,
-        items: Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? (() => { try { return JSON.parse(order.items) } catch { return [] } })() : []),
+        address: order.address as any,
+        items: typeof order.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order.items) ? order.items : []),
         subtotal: Number(order.subtotal),
         deliveryFee: Number(order.delivery_fee),
         total: Number(order.total),
@@ -107,8 +119,8 @@ export const OrderService = {
         id: Number(data.id),
         customerName: String(data.customer_name),
         customerPhone: String(data.customer_phone),
-        address: typeof data.address === 'string' ? (() => { try { return JSON.parse(data.address) } catch { return {} } })() : data.address,
-        items: Array.isArray(data.items) ? data.items : (typeof data.items === 'string' ? (() => { try { return JSON.parse(data.items) } catch { return [] } })() : []),
+        address: data.address as any,
+        items: data.items as any,
         subtotal: Number(data.subtotal),
         deliveryFee: Number(data.delivery_fee),
         total: Number(data.total),
@@ -136,32 +148,22 @@ export const OrderService = {
       const orderData = {
         customer_name: order.customerName,
         customer_phone: order.customerPhone,
-        address: typeof order.address === 'object' ? JSON.stringify(order.address) : order.address,
-        items: Array.isArray(order.items) ? JSON.stringify(order.items) : order.items,
+        address: order.address,
+        items: order.items,
         subtotal: order.subtotal,
         delivery_fee: order.deliveryFee,
         total: order.total,
         payment_method: order.paymentMethod,
         payment_change: order.paymentChange ? parseFloat(order.paymentChange) : null,
         status: order.status,
-        date: order.date instanceof Date ? order.date.toISOString() : new Date(order.date).toISOString(),
+        date: order.date.toISOString(),
         printed: order.printed || false,
         notified: order.notified || false,
         store_id: DEFAULT_STORE_ID, // Store ID padrão obrigatório
         order_type: order.orderType || 'delivery', // Incluir tipo do pedido
         table_id: order.tableId || null, // Incluir ID da mesa se for pedido de mesa
         table_name: order.tableName || null, // Incluir nome da mesa se for pedido de mesa
-        // Campos do Mercado Pago (apenas os básicos que existem na tabela)
-        payment_id: (order as any).paymentId || null,
-        payment_status: (order as any).paymentStatus || 'pending',
-        payment_method_id: (order as any).paymentMethodId || null,
-        payment_external_reference: (order as any).paymentExternalReference || null,
-        // Campos removidos: payment_type, payment_preference_id, payment_approved_at, 
-        // payment_amount, payment_fee, payment_net_amount, payment_installments
-        // Estes campos não existem na tabela orders do banco
       }
-
-      // Debug logs removidos para produção
 
       const { data, error } = await supabase
         .from("orders")
@@ -170,7 +172,19 @@ export const OrderService = {
         .single()
 
       if (error) {
-        console.error('❌ Erro ao criar pedido:', error.message)
+        console.error("Erro ao criar pedido:", {
+          error,
+          errorMessage: error.message,
+          errorCode: error.code,
+          errorDetails: error.details,
+          errorHint: error.hint,
+          orderData: {
+            customer_name: order.customerName,
+            payment_method: order.paymentMethod,
+            total: order.total,
+            store_id: DEFAULT_STORE_ID
+          }
+        })
         return { data: null, error: new Error(error.message || 'Erro desconhecido ao criar pedido') }
       }
 
@@ -178,8 +192,8 @@ export const OrderService = {
         id: Number(data.id),
         customerName: String(data.customer_name),
         customerPhone: String(data.customer_phone),
-        address: typeof data.address === 'string' ? (() => { try { return JSON.parse(data.address) } catch { return {} } })() : data.address,
-        items: Array.isArray(data.items) ? data.items : (typeof data.items === 'string' ? (() => { try { return JSON.parse(data.items) } catch { return [] } })() : []),
+        address: data.address as any,
+        items: data.items as any,
         subtotal: Number(data.subtotal),
         deliveryFee: Number(data.delivery_fee),
         total: Number(data.total),
@@ -395,8 +409,8 @@ export const OrderService = {
         id: Number(order.id),
         customerName: String(order.customer_name),
         customerPhone: String(order.customer_phone),
-        address: typeof order.address === 'string' ? (() => { try { return JSON.parse(order.address) } catch { return {} } })() : order.address,
-        items: Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? (() => { try { return JSON.parse(order.items) } catch { return [] } })() : []),
+        address: order.address as any,
+        items: typeof order.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order.items) ? order.items : []),
         subtotal: Number(order.subtotal),
         deliveryFee: Number(order.delivery_fee),
         total: Number(order.total),
@@ -446,8 +460,8 @@ export const OrderService = {
         id: Number(order.id),
         customerName: String(order.customer_name),
         customerPhone: String(order.customer_phone),
-        address: typeof order.address === 'string' ? (() => { try { return JSON.parse(order.address) } catch { return {} } })() : order.address,
-        items: Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? (() => { try { return JSON.parse(order.items) } catch { return [] } })() : []),
+        address: order.address as any,
+        items: typeof order.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order.items) ? order.items : []),
         subtotal: Number(order.subtotal),
         deliveryFee: Number(order.delivery_fee),
         total: Number(order.total),
@@ -467,27 +481,16 @@ export const OrderService = {
     }
   },
 
-  // Variável para controlar se já existe uma subscrição ativa
-  _activeChannel: null as any,
-
   // Subscrever a mudanças em tempo real na tabela de pedidos
   subscribeToOrderChanges(
     onOrderChange: (payload: any) => void,
     onError?: (error: Error) => void
   ) {
     try {
-      // Se já existe uma subscrição ativa, desconectar primeiro
-      if (this._activeChannel) {
-        console.log('🔌 Desconectando subscrição anterior...')
-        this._activeChannel.unsubscribe()
-        this._activeChannel = null
-      }
-
       const supabase = createSupabaseClient()
 
       // Configurar o canal para escutar mudanças nos pedidos
       const channel = supabase.channel('orders_changes')
-      this._activeChannel = channel
 
       // Configurar o handler para inserções de novos pedidos
       channel.on(
@@ -531,6 +534,12 @@ export const OrderService = {
         }
       )
 
+      // Configurar handler de erro
+      channel.on('error', (error: any) => {
+        console.warn('Erro no canal real-time de pedidos:', error)
+        // Não propagar erro para evitar erros intrusivos
+      })
+
       // Subscrever ao canal
       channel.subscribe((status) => {
         console.log('Status da subscrição real-time de pedidos:', status)
@@ -538,37 +547,18 @@ export const OrderService = {
           console.log('✅ Subscrição real-time de pedidos ativa')
         } else if (status === 'CHANNEL_ERROR') {
           console.warn('⚠️ Erro na subscrição real-time de pedidos - funcionando em modo offline')
-          if (onError) {
-            onError(new Error('Erro na conexão real-time'))
-          }
+          // Não chamar onError para evitar erros intrusivos no console
+          // A aplicação continuará funcionando normalmente sem real-time
         }
       })
 
-      return {
-        channel,
-        unsubscribe: () => {
-          if (this._activeChannel === channel) {
-            console.log('🔌 Desconectando subscrição real-time de pedidos...')
-            channel.unsubscribe()
-            this._activeChannel = null
-          }
-        }
-      }
+      return channel
     } catch (error) {
       console.error('Erro ao configurar subscrição real-time de pedidos:', error)
       if (onError) {
         onError(error as Error)
       }
       return null
-    }
-  },
-
-  // Método para limpar todas as subscrições ativas
-  unsubscribeFromOrderChanges() {
-    if (this._activeChannel) {
-      console.log('🔌 Limpando subscrição real-time de pedidos...')
-      this._activeChannel.unsubscribe()
-      this._activeChannel = null
     }
   },
 }
@@ -588,4 +578,3 @@ export const getTableOrders = OrderService.getTableOrders.bind(OrderService)
 export const getDeliveryOrders = OrderService.getDeliveryOrders.bind(OrderService)
 export const getOrdersByTable = OrderService.getOrdersByTable.bind(OrderService)
 export const subscribeToOrderChanges = OrderService.subscribeToOrderChanges.bind(OrderService)
-export const unsubscribeFromOrderChanges = OrderService.unsubscribeFromOrderChanges.bind(OrderService)

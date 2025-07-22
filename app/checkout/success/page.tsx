@@ -32,21 +32,15 @@ function SuccessContent() {
         return
       }
 
-      try {
-        const response = await fetch(`/api/mercado-pago/process-payment?id=${paymentId}`)
-        
-        if (!response.ok) {
-          throw new Error('Erro ao buscar informações do pagamento')
-        }
-
-        const data = await response.json()
-        setPaymentInfo(data)
-      } catch (err) {
-        console.error('Erro ao buscar pagamento:', err)
-        setError('Erro ao carregar informações do pagamento')
-      } finally {
-        setLoading(false)
-      }
+      // Mercado Pago removido - apenas mostrar sucesso
+      setPaymentInfo({
+        id: paymentId || 'N/A',
+        status: 'approved',
+        transaction_amount: 0,
+        date_created: new Date().toISOString(),
+        payment_method_id: 'N/A'
+      })
+      setLoading(false)
     }
 
     fetchPaymentInfo()

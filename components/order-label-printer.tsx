@@ -1032,7 +1032,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete, autoPrint = 
 
           <div className="section">
             <div className="section-title">ITENS DO PEDIDO</div>
-            {order.items.map((item, index) => (
+            {(Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? JSON.parse(order.items) : [])).map((item, index) => (
               <div key={index} style={{ marginBottom: "6px" }}>
                 <div className="flex justify-between items-start w-full" style={{ fontFamily: "monospace", fontSize: "11px", marginBottom: "4px" }}>
                 <div className="flex-1 pr-2">
