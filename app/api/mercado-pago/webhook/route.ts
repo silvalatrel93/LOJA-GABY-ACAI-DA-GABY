@@ -89,7 +89,8 @@ async function processPaymentUpdate(paymentData: any) {
     let orderId = null;
     if (external_reference) {
       // Tentar extrair ID do pedido da referência externa
-      const orderIdMatch = external_reference.match(/order_\d+_(\d+)/);
+      // Formato: order_123 ou order_456_789
+      const orderIdMatch = external_reference.match(/order_(\d+)/);
       if (orderIdMatch) {
         orderId = orderIdMatch[1];
       }
@@ -202,4 +203,4 @@ export async function GET() {
     message: 'Webhook do Mercado Pago está funcionando',
     timestamp: new Date().toISOString()
   });
-} 
+}

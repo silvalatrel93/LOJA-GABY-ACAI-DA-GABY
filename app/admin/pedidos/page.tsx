@@ -14,6 +14,7 @@ import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import OrderLabelPrinter from "@/components/order-label-printer"
 import OrderCounterReset from "@/components/order-counter-reset"
+import AutoPaymentChecker from "@/components/auto-payment-checker"
 import { useNotificationSound } from "@/hooks/useNotificationSound"
 
 export default function OrdersPage() {
@@ -1348,6 +1349,9 @@ export default function OrdersPage() {
           </div>
         </div>
       )}
+      
+      {/* Componente para verificação automática de pagamentos */}
+      <AutoPaymentChecker enabled={true} intervalMs={30000} />
     </div>
   )
 }

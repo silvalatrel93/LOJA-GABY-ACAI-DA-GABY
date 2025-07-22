@@ -143,7 +143,7 @@ function CheckoutPageContent() {
     complement: "",
     addressType: "casa", // Tipo de endereço selecionado
     city: "", // Campo de cidade vazio para preenchimento manual
-    paymentMethod: "pix",
+    paymentMethod: "pix_direct",
     paymentChange: ""
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
@@ -335,6 +335,133 @@ function CheckoutPageContent() {
 
     if (cart.length === 0) {
       alert("Seu carrinho está vazio. Adicione produtos antes de finalizar o pedido.")
+      return
+    }
+
+    // Se for pagamento PIX direto, redirecionar para QR code
+    if (formData.paymentMethod === "pix_direct") {
+      // Validar campos obrigatórios para delivery
+      if (!isTableOrder) {
+        if (!formData.name || !formData.phone || !formData.address || !formData.city) {
+          alert("Por favor, preencha todos os campos obrigatórios.")
+          return
+        }
+      } else {
+        if (!formData.name || !formData.phone) {
+          alert("Por favor, preencha nome e telefone.")
+          return
+        }
+      }
+
+      setIsSubmitting(true)
+
+      try {
+        // Criar dados do pedido
+        const orderData = {
+          customerName: formData.name,
+          customerPhone: formData.phone,
+          address: isTableOrder ? {
+            street: `Mesa ${tableInfo?.number || 'N/A'}`,
+            number: tableInfo?.name || `Mesa ${tableInfo?.number || 'N/A'}`,
+            neighborhood: "Salão",
+            complement: "",
+            addressType: "mesa",
+            city: "Local",
+            state: "PR",
+          } : {
+            street: formData.address,
+            number: formData.number,
+            neighborhood: formData.neighborhood,
+            complement: formData.complement,
+            addressType: formData.addressType,
+            city: formData.city || "Maringá",
+            state: "PR",
+          },
+          items: cart.map((item) => ({
+            productId: item.productId || item.id,
+            name: item.name,
+            size: item.size,
+            price: item.price,
+            quantity: item.quantity,
+            additionals: item.additionals,
+            needsSpoon: item.needsSpoon,
+            spoonQuantity: item.spoonQuantity,
+            notes: item.notes,
+          })),
+          subtotal,
+          deliveryFee: finalDeliveryFee,
+          total,
+          paymentMethod: "pix",
+          status: "pending_payment" as const,
+          date: new Date(),
+          printed: false,
+          notified: false,
+          orderType: isTableOrder ? "table" as const : "delivery" as const,
+          ...(isTableOrder && tableInfo && {
+            tableId: tableInfo.id,
+            tableName: tableInfo.name
+          }),
+        }
+
+        // Salvar pedido primeiro
+        const orderResult = await OrderService.createOrder(orderData)
+        
+        if (orderResult.error) {
+          throw new Error(orderResult.error.message)
+        }
+
+        const orderId = orderResult.data?.id
+        if (!orderId) {
+          throw new Error('Erro ao criar pedido')
+        }
+
+        // Criar pagamento PIX
+        const pixResponse = await fetch('/api/mercado-pago/create-pix', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            transaction_amount: total,
+            payer: {
+              email: `${formData.phone}@pedifacil.com`,
+              first_name: formData.name.split(' ')[0] || formData.name,
+              last_name: formData.name.split(' ').slice(1).join(' ') || 'Cliente'
+            },
+            external_reference: `order_${orderId}`,
+            description: `Pedido PediFacil #${orderId}`,
+            metadata: {
+              order_id: orderId,
+              customer_name: formData.name,
+              customer_phone: formData.phone
+            }
+          })
+        })
+
+        if (!pixResponse.ok) {
+          throw new Error('Erro ao criar pagamento PIX')
+        }
+
+        const pixData = await pixResponse.json()
+        
+        // Limpar carrinho
+        await clearCart()
+        
+        // Redirecionar para página de QR code com dados do pagamento
+        const searchParams = new URLSearchParams({
+          payment_id: pixData.id,
+          order_id: orderId.toString(),
+          amount: total.toString()
+        })
+        
+        router.push(`/checkout/pending?${searchParams.toString()}`)
+        
+      } catch (error) {
+        console.error('Erro ao processar PIX:', error)
+        alert('Erro ao processar pagamento PIX. Tente novamente.')
+      } finally {
+        setIsSubmitting(false)
+      }
       return
     }
 
@@ -902,6 +1029,30 @@ function CheckoutPageContent() {
                 </label>
               </div>
 
+              {/* PIX Direto - Redireciona para QR Code */}
+              <div className="flex items-center">
+                <input
+                  type="radio"
+                  id="pix_direct"
+                  name="paymentMethod"
+                  value="pix_direct"
+                  checked={formData.paymentMethod === "pix_direct"}
+                  onChange={handleChange}
+                  className="h-5 w-5 text-purple-600 focus:ring-purple-500"
+                />
+                <label htmlFor="pix_direct" className="ml-3 block text-base text-gray-700">
+                  <div className="flex items-center gap-2">
+                    <span>📱 Pix</span>
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                      QR Code Instantâneo
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500 mt-1 block">
+                    Gere o QR Code imediatamente e pague agora
+                  </span>
+                </label>
+              </div>
+
               <div className="flex items-center">
                 <input
                   type="radio"
@@ -913,7 +1064,7 @@ function CheckoutPageContent() {
                   className="h-5 w-5 text-purple-600 focus:ring-purple-500"
                 />
                 <label htmlFor="pix" className="ml-3 block text-base text-gray-700">
-                  {isTableOrder ? "Pix" : "Pix na Entrega"}
+                  {isTableOrder ? "Pix na Mesa" : "Pix na Entrega"}
                 </label>
               </div>
 
