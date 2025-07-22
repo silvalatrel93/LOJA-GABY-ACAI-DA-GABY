@@ -83,6 +83,8 @@ CREATE TABLE IF NOT EXISTS store_config (
   name TEXT NOT NULL,
   logo_url TEXT NOT NULL,
   delivery_fee NUMERIC(10, 2) NOT NULL,
+  maringa_delivery_fee NUMERIC(10, 2) DEFAULT 8.0,
+  store_color TEXT DEFAULT '#8B5CF6',
   is_open BOOLEAN NOT NULL DEFAULT TRUE,
   operating_hours JSONB NOT NULL,
   special_dates JSONB NULL,

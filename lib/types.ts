@@ -103,6 +103,7 @@ export interface StoreConfig {
   minimumPicoleOrder?: number // Valor mínimo para isenção da taxa de entrega de picolés
   moreninhaDeliveryFee?: number // Taxa de entrega específica para moreninha
   minimumMoreninhaOrder?: number // Valor mínimo para isenção da taxa de entrega de moreninha
+  storeColor?: string // Cor principal da loja em formato hexadecimal
   isOpen: boolean
   operatingHours: OperatingHours
   specialDates: SpecialDate[]
@@ -209,6 +210,8 @@ export interface SupabaseStoreConfig {
   name: string
   logo_url: string
   delivery_fee: number
+  maringa_delivery_fee?: number
+  store_color?: string
   is_open: boolean
   operating_hours: OperatingHours
   special_dates?: SpecialDate[]

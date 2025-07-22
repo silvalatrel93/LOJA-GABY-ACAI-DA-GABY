@@ -95,14 +95,16 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
         {/* Cabeçalho com efeito de transição e glassmorphism */}
         <header
           className={`text-white fixed top-0 left-0 right-0 w-full z-30 transition-all duration-300 ease-in-out header-animation py-3 ${scrolled
-            ? 'bg-gradient-to-r from-purple-800 to-purple-950 backdrop-blur-md shadow-lg shadow-purple-900/30'
-            : 'bg-gradient-to-r from-purple-800 to-purple-950'
+            ? 'backdrop-blur-md shadow-lg'
+            : ''
             }`}
           style={{
             width: "100vw",
             marginLeft: "calc(-50vw + 50%)",
             marginRight: "calc(-50vw + 50%)",
             height: "56px",
+            background: storeConfig?.storeColor || '#8B5CF6',
+            boxShadow: scrolled ? `0 10px 25px -5px ${storeConfig?.storeColor || '#8B5CF6'}30` : 'none'
           }}
           data-component-name="MainLayout"
         >
@@ -110,7 +112,18 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
             <div className="flex items-center">
               <button
                 onClick={toggleMenu}
-                className="mr-2 sm:mr-3 p-1 sm:p-2 rounded-md hover:bg-purple-800 transition-all duration-300"
+                className="mr-2 sm:mr-3 p-1 sm:p-2 rounded-md transition-all duration-300"
+                style={{
+                  ':hover': {
+                    backgroundColor: `${storeConfig?.storeColor || '#8B5CF6'}80`
+                  }
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = `${storeConfig?.storeColor || '#8B5CF6'}80`
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent'
+                }}
                 aria-label="Abrir menu"
               >
                 <Menu size={20} className="sm:w-6 sm:h-6 transition-all duration-300" />
@@ -181,8 +194,13 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
 
         {/* Rodapé */}
         <footer
-          className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 sm:p-6 shadow-lg"
-          style={{ width: "100vw", marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)" }}
+          className="text-white p-4 sm:p-6 shadow-lg"
+          style={{ 
+            width: "100vw", 
+            marginLeft: "calc(-50vw + 50%)", 
+            marginRight: "calc(-50vw + 50%)",
+            background: storeConfig?.storeColor || '#8B5CF6'
+          }}
           data-component-name="MainLayout"
         >
           <div className="w-full max-w-screen-xl mx-auto px-3 sm:px-4 text-center">

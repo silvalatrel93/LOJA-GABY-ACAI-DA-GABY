@@ -9,12 +9,11 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft, Clock, MapPin, CreditCard, Truck, Home, Building, MapPinned, Copy, Check, Eye, EyeOff, CheckCircle, Users } from "lucide-react"
 import { useCart, CartProvider } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
-import { getStoreConfig } from "@/lib/services/store-config-service"
+import { getStoreConfig, type StoreConfig } from "@/lib/services/store-config-service"
 import { getStoreStatus } from "@/lib/store-utils"
 import { OrderService } from "@/lib/services/order-service"
 import { getProductById } from "@/lib/services/product-service"
 import { generateSimplePixQRCode } from "@/lib/pix-utils"
-import type { StoreConfig } from "@/lib/types"
 
 
 
@@ -463,7 +462,14 @@ function CheckoutPageContent() {
         {/* Notificação de sucesso */}
         <SuccessNotification />
 
-        <header className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 sticky top-0 z-10 shadow-lg" data-component-name="CheckoutPageContent">
+        <header 
+          className="text-white p-4 sticky top-0 z-10 shadow-lg" 
+          style={{ 
+            background: `linear-gradient(to right, ${storeConfig?.storeColor || '#8B5CF6'}, ${storeConfig?.storeColor || '#8B5CF6'}dd)`,
+            boxShadow: `0 4px 6px -1px ${storeConfig?.storeColor || '#8B5CF6'}20`
+          }}
+          data-component-name="CheckoutPageContent"
+        >
           <div className="container mx-auto flex items-center">
             <Link href="/" className="mr-4">
               <ArrowLeft size={24} />
@@ -476,7 +482,19 @@ function CheckoutPageContent() {
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Seu carrinho está vazio</h2>
           <p className="text-gray-500 mb-6 text-center">Adicione alguns produtos antes de finalizar o pedido</p>
           <Link href="/">
-            <button className="bg-purple-700 hover:bg-purple-800 text-white px-6 py-2 rounded-full">
+            <button 
+              className="text-white px-6 py-2 rounded-full transition-all duration-200"
+              style={{
+                backgroundColor: storeConfig?.storeColor || '#8B5CF6',
+                filter: 'brightness(0.9)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.filter = 'brightness(0.8)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.filter = 'brightness(0.9)'
+              }}
+            >
               Ver produtos
             </button>
           </Link>
@@ -490,7 +508,14 @@ function CheckoutPageContent() {
       {/* Notificação de sucesso */}
       <SuccessNotification />
 
-      <header className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 sticky top-0 z-10 shadow-lg" data-component-name="CheckoutPageContent">
+      <header 
+        className="text-white p-4 sticky top-0 z-10 shadow-lg" 
+        style={{ 
+          background: `linear-gradient(to right, ${storeConfig?.storeColor || '#8B5CF6'}, ${storeConfig?.storeColor || '#8B5CF6'}dd)`,
+          boxShadow: `0 4px 6px -1px ${storeConfig?.storeColor || '#8B5CF6'}20`
+        }}
+        data-component-name="CheckoutPageContent"
+      >
         <div className="container mx-auto flex items-center">
           <Link href="/carrinho" className="mr-4">
             <ArrowLeft size={24} />
@@ -924,7 +949,14 @@ function CheckoutPageContent() {
           </div>
         </form>
       </div>
-      <footer className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 mt-auto shadow-lg" data-component-name="CheckoutPageContent">
+      <footer 
+        className="text-white p-4 mt-auto shadow-lg" 
+        style={{ 
+          background: `linear-gradient(to right, ${storeConfig?.storeColor || '#8B5CF6'}, ${storeConfig?.storeColor || '#8B5CF6'}dd)`,
+          boxShadow: `0 -4px 6px -1px ${storeConfig?.storeColor || '#8B5CF6'}20`
+        }}
+        data-component-name="CheckoutPageContent"
+      >
         <div className="text-center">
           <p>
             © {new Date().getFullYear()} {storeConfig?.name || "Açaí Delícia"} - Todos os direitos reservados

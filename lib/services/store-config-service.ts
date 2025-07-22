@@ -1,6 +1,7 @@
 import { createSupabaseClient, testSupabaseConnection, withRetry } from "@/lib/supabase-client"
 import type { StoreConfig, OperatingHours, SpecialDate, SupabaseStoreConfig } from "../types"
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import { DEFAULT_STORE_ID } from "../constants"
 
 // Configuração padrão básica para usar como fallback (sem dados específicos)
 const DEFAULT_STORE_CONFIG: StoreConfig = {
@@ -8,6 +9,8 @@ const DEFAULT_STORE_CONFIG: StoreConfig = {
   name: "Loja Virtual",
   logoUrl: "",
   deliveryFee: 0,
+  maringaDeliveryFee: 8.0,
+  storeColor: "#8B5CF6",
   isOpen: true,
   carousel_initialized: false,
   operatingHours: {
@@ -31,8 +34,6 @@ const DEFAULT_STORE_CONFIG: StoreConfig = {
   moreninhaDeliveryFee: 0,
   minimumMoreninhaOrder: 0,
 }
-
-import { DEFAULT_STORE_ID } from "../constants"
 
 // Serviço para gerenciar configurações da loja
 export const StoreConfigService = {
@@ -103,6 +104,9 @@ export const StoreConfigService = {
               maringaDeliveryFee: typeof config.maringa_delivery_fee === 'number'
                 ? config.maringa_delivery_fee
                 : Number(config.maringa_delivery_fee) || 0,
+              storeColor: typeof config.store_color === 'string'
+                ? config.store_color
+                : "#8B5CF6",
               picoleDeliveryFee: typeof config.picole_delivery_fee === 'number'
                 ? config.picole_delivery_fee
                 : Number(config.picole_delivery_fee) || 5.0,
@@ -127,12 +131,8 @@ export const StoreConfigService = {
               lastUpdated: typeof config.last_updated === 'string'
                 ? config.last_updated
                 : new Date().toISOString(),
-              carousel_initialized: typeof config.carousel_initialized === 'boolean'
-                ? config.carousel_initialized
-                : false,
-              maxPicolesPerOrder: typeof config.max_picoles === 'number'
-                ? config.max_picoles
-                : 10,
+              carousel_initialized: false, // Valor padrão já que a coluna não existe na tabela
+              maxPicolesPerOrder: 10, // Valor padrão já que a coluna não existe na tabela
             }
           }
         }
@@ -165,6 +165,9 @@ export const StoreConfigService = {
         maringaDeliveryFee: typeof config.maringa_delivery_fee === 'number'
           ? config.maringa_delivery_fee
           : Number(config.maringa_delivery_fee) || 0,
+        storeColor: typeof config.store_color === 'string'
+          ? config.store_color
+          : "#8B5CF6",
         picoleDeliveryFee: typeof config.picole_delivery_fee === 'number'
           ? config.picole_delivery_fee
           : Number(config.picole_delivery_fee) || 5.0,
@@ -193,12 +196,8 @@ export const StoreConfigService = {
         lastUpdated: typeof config.last_updated === 'string'
           ? config.last_updated
           : new Date().toISOString(),
-        carousel_initialized: typeof config.carousel_initialized === 'boolean'
-          ? config.carousel_initialized
-          : false,
-        maxPicolesPerOrder: typeof config.max_picoles_per_order === 'number'
-          ? config.max_picoles_per_order
-          : 20, // Valor padrão de 20 se não estiver definido
+        carousel_initialized: false, // Valor padrão já que a coluna não existe na tabela
+        maxPicolesPerOrder: 10 // Valor padrão já que a coluna não existe na tabela
       }
       
       return finalConfig
@@ -224,12 +223,12 @@ export const StoreConfigService = {
         name: DEFAULT_STORE_CONFIG.name,
         logo_url: DEFAULT_STORE_CONFIG.logoUrl,
         delivery_fee: DEFAULT_STORE_CONFIG.deliveryFee,
+        maringa_delivery_fee: DEFAULT_STORE_CONFIG.maringaDeliveryFee || 8.0,
+        store_color: DEFAULT_STORE_CONFIG.storeColor || "#8B5CF6",
         is_open: DEFAULT_STORE_CONFIG.isOpen,
         operating_hours: DEFAULT_STORE_CONFIG.operatingHours,
         special_dates: DEFAULT_STORE_CONFIG.specialDates,
-        last_updated: new Date().toISOString(),
-        carousel_initialized: DEFAULT_STORE_CONFIG.carousel_initialized,
-        max_picoles: DEFAULT_STORE_CONFIG.maxPicolesPerOrder
+        last_updated: new Date().toISOString()
       }
 
       const { data, error } = await supabase
@@ -279,6 +278,7 @@ export const StoreConfigService = {
         logoUrl: typeof config.logoUrl === 'string' ? config.logoUrl : '',
         deliveryFee: typeof config.deliveryFee === 'number' ? config.deliveryFee : 0,
         maringaDeliveryFee: typeof config.maringaDeliveryFee === 'number' ? config.maringaDeliveryFee : 0,
+        storeColor: typeof config.storeColor === 'string' ? config.storeColor : "#8B5CF6",
         picoleDeliveryFee: typeof config.picoleDeliveryFee === 'number' ? config.picoleDeliveryFee : 5.0,
         minimumPicoleOrder: typeof config.minimumPicoleOrder === 'number' ? config.minimumPicoleOrder : 20.0,
         moreninhaDeliveryFee: typeof config.moreninhaDeliveryFee === 'number' ? config.moreninhaDeliveryFee : 5.0,
@@ -292,7 +292,7 @@ export const StoreConfigService = {
         whatsappNumber: typeof config.whatsappNumber === 'string' ? config.whatsappNumber : '',
         pixKey: typeof config.pixKey === 'string' ? config.pixKey : '09300021990',
         lastUpdated: new Date().toISOString(),
-        carousel_initialized: Boolean(config.carousel_initialized) ?? false,
+        carousel_initialized: Boolean(config.carousel_initialized || false),
       }
 
       console.log("Configurações validadas:", validatedConfig)
@@ -302,14 +302,12 @@ export const StoreConfigService = {
         name: validatedConfig.name,
         logo_url: validatedConfig.logoUrl || '', // Garante que seja string
         delivery_fee: validatedConfig.deliveryFee,
+        maringa_delivery_fee: validatedConfig.maringaDeliveryFee,
+        store_color: validatedConfig.storeColor || "#8B5CF6",
         is_open: validatedConfig.isOpen,
         operating_hours: validatedConfig.operatingHours,
         special_dates: validatedConfig.specialDates || [], // Garante um array vazio se for undefined
-        last_updated: validatedConfig.lastUpdated || new Date().toISOString(), // Garante uma data válida
-        max_picoles: typeof validatedConfig.maxPicolesPerOrder === 'number'
-          ? validatedConfig.maxPicolesPerOrder
-          : 10, // Valor padrão de 10 se não estiver definido
-        carousel_initialized: validatedConfig.carousel_initialized,
+        last_updated: validatedConfig.lastUpdated || new Date().toISOString() // Garante uma data válida
       }
 
 
@@ -350,7 +348,12 @@ export const StoreConfigService = {
         deliveryFee: typeof savedConfig.delivery_fee === 'number'
           ? savedConfig.delivery_fee
           : Number(savedConfig.delivery_fee) || 0,
-        maringaDeliveryFee: 8.0, // Valor padrão
+        maringaDeliveryFee: typeof savedConfig.maringa_delivery_fee === 'number'
+          ? savedConfig.maringa_delivery_fee
+          : Number(savedConfig.maringa_delivery_fee) || 8.0,
+        storeColor: typeof savedConfig.store_color === 'string'
+          ? savedConfig.store_color
+          : "#8B5CF6",
         picoleDeliveryFee: 5.0, // Valor padrão
         minimumPicoleOrder: 20.0, // Valor padrão
         moreninhaDeliveryFee: 5.0, // Valor padrão
@@ -367,10 +370,8 @@ export const StoreConfigService = {
         lastUpdated: typeof savedConfig.last_updated === 'string'
           ? savedConfig.last_updated
           : new Date().toISOString(),
-        maxPicolesPerOrder: typeof (savedConfig as any).max_picoles === 'number'
-          ? (savedConfig as any).max_picoles
-          : 20, // Valor padrão de 20 se não estiver definido
-        carousel_initialized: Boolean((savedConfig as any).carousel_initialized),
+        maxPicolesPerOrder: 10, // Valor padrão já que a coluna não existe na tabela
+        carousel_initialized: false, // Valor padrão já que a coluna não existe na tabela
       }
 
       return result

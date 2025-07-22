@@ -223,6 +223,28 @@ export default function StoreConfigPage() {
                 </p>
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cor Principal da Loja</label>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="color"
+                    value={storeConfig.storeColor || "#8B5CF6"}
+                    onChange={(e) => setStoreConfig({ ...storeConfig, storeColor: e.target.value })}
+                    className="w-16 h-10 border border-gray-300 rounded-md cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={storeConfig.storeColor || "#8B5CF6"}
+                    onChange={(e) => setStoreConfig({ ...storeConfig, storeColor: e.target.value })}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="#8B5CF6"
+                    pattern="^#[0-9A-Fa-f]{6}$"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Esta cor será usada como tema principal da loja (cabeçalho, botões, etc.).
+                </p>
+              </div>
+              <div>
                 <div className="flex items-center mb-2">
                   <label className="block text-sm font-medium text-gray-700">Taxa de Entrega</label>
                   <div className="ml-auto">
@@ -406,17 +428,25 @@ export default function StoreConfigPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Prévia</label>
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-center justify-center">
-                    <div className="relative w-12 h-12 mr-3">
-                      <Image
-                        src={storeConfig.logoUrl || "/placeholder.svg?key=logo&text=Açaí+Delícia"}
-                        alt="Logo"
-                        fill
-                        className="object-contain"
-                      />
+                <div className="border rounded-lg overflow-hidden bg-white">
+                  <div 
+                    className="p-4 text-white"
+                    style={{ backgroundColor: storeConfig.storeColor || "#8B5CF6" }}
+                  >
+                    <div className="flex items-center justify-center">
+                      <div className="relative w-12 h-12 mr-3">
+                        <Image
+                          src={storeConfig.logoUrl || "/placeholder.svg?key=logo&text=Açaí+Delícia"}
+                          alt="Logo"
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                      <h1 className="text-xl font-bold">{storeConfig.name}</h1>
                     </div>
-                    <h1 className="text-xl font-bold text-purple-900">{storeConfig.name}</h1>
+                  </div>
+                  <div className="p-3 bg-gray-50 text-center">
+                    <p className="text-sm text-gray-600">Exemplo de como ficará o cabeçalho da loja</p>
                   </div>
                 </div>
               </div>

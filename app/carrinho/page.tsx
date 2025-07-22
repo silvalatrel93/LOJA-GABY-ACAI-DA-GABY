@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft, Trash2, Plus, Minus } from "lucide-react"
 import { useCart, CartProvider } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
-import { getStoreConfig } from "@/lib/services/store-config-service"
+import { getStoreConfig, type StoreConfig } from "@/lib/services/store-config-service"
 import { getProductById } from "@/lib/services/product-service"
 import type { Additional } from "@/lib/types"
 
@@ -36,6 +36,7 @@ function ItemRow({ name, value, className }: { name: string; value: string; clas
 function CartPageContent() {
   const { cart, removeFromCart, updateQuantity, updateNotes, isLoading } = useCart()
   const router = useRouter()
+  const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null)
   const [deliveryFee, setDeliveryFee] = useState(5.0)
   const [picoleDeliveryFee, setPicoleDeliveryFee] = useState(5.0)
   const [minimumPicoleOrder, setMinimumPicoleOrder] = useState(20.0)
@@ -144,28 +145,29 @@ function CartPageContent() {
   useEffect(() => {
     const loadStoreConfig = async () => {
       try {
-        const storeConfig = await getStoreConfig()
-        if (storeConfig) {
-          if (storeConfig.deliveryFee !== undefined) {
-            setDeliveryFee(storeConfig.deliveryFee)
+        const config = await getStoreConfig()
+        setStoreConfig(config)
+        if (config) {
+          if (config.deliveryFee !== undefined) {
+            setDeliveryFee(config.deliveryFee)
           }
 
           // Carregar configurações específicas para picolés
-          if (storeConfig.picoleDeliveryFee !== undefined) {
-            setPicoleDeliveryFee(storeConfig.picoleDeliveryFee)
+          if (config.picoleDeliveryFee !== undefined) {
+            setPicoleDeliveryFee(config.picoleDeliveryFee)
           }
 
-          if (storeConfig.minimumPicoleOrder !== undefined) {
-            setMinimumPicoleOrder(storeConfig.minimumPicoleOrder)
+          if (config.minimumPicoleOrder !== undefined) {
+            setMinimumPicoleOrder(config.minimumPicoleOrder)
           }
 
           // Carregar configurações específicas para moreninha
-          if (storeConfig.moreninhaDeliveryFee !== undefined) {
-            setMoreninhaDeliveryFee(storeConfig.moreninhaDeliveryFee)
+          if (config.moreninhaDeliveryFee !== undefined) {
+            setMoreninhaDeliveryFee(config.moreninhaDeliveryFee)
           }
 
-          if (storeConfig.minimumMoreninhaOrder !== undefined) {
-            setMinimumMoreninhaOrder(storeConfig.minimumMoreninhaOrder)
+          if (config.minimumMoreninhaOrder !== undefined) {
+            setMinimumMoreninhaOrder(config.minimumMoreninhaOrder)
           }
         }
       } catch (error) {
@@ -255,7 +257,13 @@ function CartPageContent() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 sticky top-0 z-10 shadow-lg" data-component-name="CartPageContent">
+        <header 
+          className="text-white p-4 sticky top-0 z-10" 
+          style={{
+            background: `linear-gradient(to right, ${storeConfig?.storeColor || '#8B5CF6'}, ${storeConfig?.storeColor || '#8B5CF6'})`,
+            boxShadow: `0 10px 15px -3px ${storeConfig?.storeColor || '#8B5CF6'}40, 0 4px 6px -2px ${storeConfig?.storeColor || '#8B5CF6'}20`
+          }}
+          data-component-name="CartPageContent">
           <div className="container mx-auto flex items-center">
             <Link href="/" className="mr-4">
               <ArrowLeft size={24} />
@@ -273,7 +281,13 @@ function CartPageContent() {
   if (cart.length === 0) {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 sticky top-0 z-10 shadow-lg" data-component-name="CartPageContent">
+        <header 
+          className="text-white p-4 sticky top-0 z-10" 
+          style={{
+            background: `linear-gradient(to right, ${storeConfig?.storeColor || '#8B5CF6'}, ${storeConfig?.storeColor || '#8B5CF6'})`,
+            boxShadow: `0 10px 15px -3px ${storeConfig?.storeColor || '#8B5CF6'}40, 0 4px 6px -2px ${storeConfig?.storeColor || '#8B5CF6'}20`
+          }}
+          data-component-name="CartPageContent">
           <div className="container mx-auto flex items-center">
             <Link href="/" className="mr-4">
               <ArrowLeft size={24} />
@@ -286,7 +300,21 @@ function CartPageContent() {
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Seu carrinho está vazio</h2>
           <p className="text-gray-500 mb-6 text-center">Adicione alguns produtos antes de finalizar o pedido</p>
           <Link href="/">
-            <button className="bg-purple-700 hover:bg-purple-800 text-white px-6 py-2 rounded-full">
+            <button 
+              className="text-white px-6 py-2 rounded-full transition-all duration-200"
+              style={{
+                backgroundColor: storeConfig?.storeColor || '#8B5CF6',
+                boxShadow: `0 4px 6px -1px ${storeConfig?.storeColor || '#8B5CF6'}40`
+              }}
+              onMouseEnter={(e) => {
+                const color = storeConfig?.storeColor || '#8B5CF6';
+                const darkerColor = `${color}CC`;
+                e.target.style.backgroundColor = darkerColor;
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = storeConfig?.storeColor || '#8B5CF6';
+              }}
+            >
               Ver produtos
             </button>
           </Link>
@@ -297,7 +325,13 @@ function CartPageContent() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-gradient-to-r from-purple-800 to-purple-950 text-white p-4 sticky top-0 z-10 shadow-lg" data-component-name="CartPageContent">
+      <header 
+        className="text-white p-4 sticky top-0 z-10" 
+        style={{
+          background: `linear-gradient(to right, ${storeConfig?.storeColor || '#8B5CF6'}, ${storeConfig?.storeColor || '#8B5CF6'})`,
+          boxShadow: `0 10px 15px -3px ${storeConfig?.storeColor || '#8B5CF6'}40, 0 4px 6px -2px ${storeConfig?.storeColor || '#8B5CF6'}20`
+        }}
+        data-component-name="CartPageContent">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center">
             <Link href="/" className="mr-4">
@@ -306,7 +340,10 @@ function CartPageContent() {
             <h1 className="text-xl font-bold">Carrinho</h1>
           </div>
           <div>
-            <span className="text-sm bg-white text-purple-900 px-2 py-1 rounded-full">
+            <span 
+              className="text-sm bg-white px-2 py-1 rounded-full"
+              style={{ color: storeConfig?.storeColor || '#8B5CF6' }}
+            >
               {cart.length} {cart.length === 1 ? "item" : "itens"}
             </span>
           </div>
@@ -316,7 +353,12 @@ function CartPageContent() {
       <div className="flex-1 container mx-auto p-3 sm:p-4 max-w-4xl">
         <div className="bg-white rounded-lg shadow-md overflow-hidden mb-4">
           <div className="p-3 sm:p-4 border-b">
-            <h2 className="text-base sm:text-lg font-semibold text-purple-900">Itens do Carrinho</h2>
+            <h2 
+              className="text-base sm:text-lg font-semibold"
+              style={{ color: storeConfig?.storeColor || '#8B5CF6' }}
+            >
+              Itens do Carrinho
+            </h2>
           </div>
 
           <ul className="divide-y divide-gray-200">
@@ -342,7 +384,10 @@ function CartPageContent() {
                         <div className="flex flex-col">
                           {/* Categoria do produto */}
                           {(item.categoryName || productCategories[item.id]) && (
-                            <span className="text-xs text-purple-600 font-medium mb-0.5">
+                            <span 
+                              className="text-xs font-medium mb-0.5"
+                              style={{ color: storeConfig?.storeColor || '#8B5CF6' }}
+                            >
                               {item.categoryName || productCategories[item.id]}
                             </span>
                           )}
@@ -365,10 +410,22 @@ function CartPageContent() {
                                 return isMilkShake ? (
                                   <div className="flex items-center gap-1">
                                     {/* Controles de quantidade */}
-                                    <div className="flex items-center bg-gray-50 border border-purple-200 rounded-full h-7 shadow-sm transition-all duration-200 hover:shadow-md touch-manipulation">
+                                    <div 
+                                      className="flex items-center bg-gray-50 border rounded-full h-7 shadow-sm transition-all duration-200 hover:shadow-md touch-manipulation"
+                                      style={{ borderColor: `${storeConfig?.storeColor || '#8B5CF6'}40` }}
+                                    >
                                       <button
                                         onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                                        className="px-1 py-0.5 text-purple-700 hover:bg-purple-100 h-full w-7 flex items-center justify-center rounded-l-full transition-colors duration-200 active:bg-purple-200 touch-manipulation"
+                                        className="px-1 py-0.5 h-full w-7 flex items-center justify-center rounded-l-full transition-colors duration-200 touch-manipulation"
+                                        style={{ 
+                                          color: storeConfig?.storeColor || '#8B5CF6'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          e.target.style.backgroundColor = `${storeConfig?.storeColor || '#8B5CF6'}20`;
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.target.style.backgroundColor = 'transparent';
+                                        }}
                                         disabled={isUpdating[item.id]}
                                         aria-label="Diminuir quantidade"
                                       >
@@ -378,13 +435,25 @@ function CartPageContent() {
                                         <span className="text-xs font-medium">{item.quantity}</span>
                                         {isUpdating[item.id] && (
                                           <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="w-2 h-2 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                                            <div 
+                                              className="w-2 h-2 border-2 border-t-transparent rounded-full animate-spin"
+                                              style={{ borderColor: `${storeConfig?.storeColor || '#8B5CF6'} transparent transparent transparent` }}
+                                            ></div>
                                           </div>
                                         )}
                                       </div>
                                       <button
                                         onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                                        className="px-1 py-0.5 text-purple-700 hover:bg-purple-100 h-full w-7 flex items-center justify-center rounded-r-full transition-colors duration-200 active:bg-purple-200 touch-manipulation"
+                                        className="px-1 py-0.5 h-full w-7 flex items-center justify-center rounded-r-full transition-colors duration-200 touch-manipulation"
+                                        style={{ 
+                                          color: storeConfig?.storeColor || '#8B5CF6'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          e.target.style.backgroundColor = `${storeConfig?.storeColor || '#8B5CF6'}20`;
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.target.style.backgroundColor = 'transparent';
+                                        }}
                                         disabled={isUpdating[item.id]}
                                         aria-label="Aumentar quantidade"
                                       >
@@ -475,7 +544,17 @@ function CartPageContent() {
                           {/* Botão para expandir/colapsar observações */}
                           <button
                             onClick={() => handleToggleNotes(item.id)}
-                            className="text-xs text-purple-600 hover:text-purple-800 flex items-center"
+                            className="text-xs flex items-center transition-colors duration-200"
+                            style={{ 
+                              color: storeConfig?.storeColor || '#8B5CF6'
+                            }}
+                            onMouseEnter={(e) => {
+                              const color = storeConfig?.storeColor || '#8B5CF6';
+                              e.target.style.color = `${color}CC`;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.color = storeConfig?.storeColor || '#8B5CF6';
+                            }}
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -513,7 +592,17 @@ function CartPageContent() {
                               <div className="flex space-x-2">
                                 <button
                                   onClick={() => handleSaveNotes(item.id)}
-                                  className="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700"
+                                  className="text-xs text-white px-2 py-1 rounded transition-colors duration-200"
+                                  style={{
+                                    backgroundColor: storeConfig?.storeColor || '#8B5CF6'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    const color = storeConfig?.storeColor || '#8B5CF6';
+                                    e.target.style.backgroundColor = `${color}CC`;
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = storeConfig?.storeColor || '#8B5CF6';
+                                  }}
                                 >
                                   Salvar
                                 </button>
@@ -604,7 +693,12 @@ function CartPageContent() {
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-purple-900 mb-3 sm:mb-4">Resumo do Pedido</h2>
+          <h2 
+            className="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4"
+            style={{ color: storeConfig?.storeColor || '#8B5CF6' }}
+          >
+            Resumo do Pedido
+          </h2>
 
           <div className="space-y-3 sm:space-y-4">
             <ItemRow name="Subtotal" value={formatCurrency(subtotal)} />
@@ -677,7 +771,8 @@ function CartPageContent() {
               <ItemRow
                 name="Total"
                 value={formatCurrency(total)}
-                className="text-lg sm:text-xl md:text-2xl font-bold text-purple-900"
+                className="text-lg sm:text-xl md:text-2xl font-bold"
+                style={{ color: storeConfig?.storeColor || '#8B5CF6' }}
               />
             </div>
           </div>
@@ -719,15 +814,27 @@ function CartPageContent() {
                 <button
                   className="
                     w-full relative overflow-hidden group
-                    border-2 border-purple-700 text-purple-700 
+                    border-2 transition-all duration-300
                     py-4 sm:py-3 px-4 rounded-xl sm:rounded-lg 
                     font-semibold text-sm sm:text-base
                     shadow-sm hover:shadow-md
                     transition-all duration-300 ease-in-out
-                    hover:bg-purple-50 active:scale-[0.98]
-                    focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50
-                    touch-manipulation
-                  "
+                    active:scale-[0.98]
+                    focus:outline-none focus:ring-2 focus:ring-opacity-50
+                    touch-manipulation"
+                  style={{
+                     borderColor: storeConfig?.storeColor || '#8B5CF6',
+                     color: storeConfig?.storeColor || '#8B5CF6'
+                   }}
+                  onMouseEnter={(e) => {
+                    const color = storeConfig?.storeColor || '#8B5CF6';
+                    e.target.style.backgroundColor = `${color}10`;
+                    e.target.style.boxShadow = `0 0 0 2px ${color}40`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'transparent';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 >
                   <span className="relative z-10 flex items-center justify-center">
                     <ArrowLeft size={18} className="mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
@@ -742,16 +849,28 @@ function CartPageContent() {
             <button
               className="
                 w-full relative overflow-hidden group
-                bg-gradient-to-r from-purple-600 to-purple-800 
-                hover:from-purple-700 hover:to-purple-900 
-                text-white py-4 sm:py-3 px-4 rounded-xl sm:rounded-lg 
+                text-white transition-all duration-300
+                py-4 sm:py-3 px-4 rounded-xl sm:rounded-lg 
                 font-semibold text-sm sm:text-base
                 shadow-md hover:shadow-lg
                 transition-all duration-300 ease-in-out
                 active:scale-[0.98]
-                focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50
-                touch-manipulation
-              "
+                focus:outline-none focus:ring-2 focus:ring-opacity-50
+                touch-manipulation"
+              style={{
+                background: `linear-gradient(to right, ${storeConfig?.storeColor || '#8B5CF6'}, ${storeConfig?.storeColor || '#8B5CF6'}DD)`,
+                boxShadow: `0 4px 6px -1px ${storeConfig?.storeColor || '#8B5CF6'}40`
+              }}
+              onMouseEnter={(e) => {
+                const color = storeConfig?.storeColor || '#8B5CF6';
+                e.target.style.background = `linear-gradient(to right, ${color}CC, ${color}BB)`;
+                e.target.style.boxShadow = `0 10px 15px -3px ${color}40, 0 4px 6px -2px ${color}20`;
+              }}
+              onMouseLeave={(e) => {
+                const color = storeConfig?.storeColor || '#8B5CF6';
+                e.target.style.background = `linear-gradient(to right, ${color}, ${color}DD)`;
+                e.target.style.boxShadow = `0 4px 6px -1px ${color}40`;
+              }}
             >
               <span className="relative z-10 flex items-center justify-center">
                 Finalizar Pedido
