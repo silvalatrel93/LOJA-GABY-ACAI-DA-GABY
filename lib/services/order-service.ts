@@ -467,16 +467,27 @@ export const OrderService = {
     }
   },
 
+  // Variável para controlar se já existe uma subscrição ativa
+  _activeChannel: null as any,
+
   // Subscrever a mudanças em tempo real na tabela de pedidos
   subscribeToOrderChanges(
     onOrderChange: (payload: any) => void,
     onError?: (error: Error) => void
   ) {
     try {
+      // Se já existe uma subscrição ativa, desconectar primeiro
+      if (this._activeChannel) {
+        console.log('🔌 Desconectando subscrição anterior...')
+        this._activeChannel.unsubscribe()
+        this._activeChannel = null
+      }
+
       const supabase = createSupabaseClient()
 
       // Configurar o canal para escutar mudanças nos pedidos
       const channel = supabase.channel('orders_changes')
+      this._activeChannel = channel
 
       // Configurar o handler para inserções de novos pedidos
       channel.on(
@@ -548,13 +559,31 @@ export const OrderService = {
         }
       })
 
-      return channel
+      return {
+        channel,
+        unsubscribe: () => {
+          if (this._activeChannel === channel) {
+            console.log('🔌 Desconectando subscrição real-time de pedidos...')
+            channel.unsubscribe()
+            this._activeChannel = null
+          }
+        }
+      }
     } catch (error) {
       console.error('Erro ao configurar subscrição real-time de pedidos:', error)
       if (onError) {
         onError(error as Error)
       }
       return null
+    }
+  },
+
+  // Método para limpar todas as subscrições ativas
+  unsubscribeFromOrderChanges() {
+    if (this._activeChannel) {
+      console.log('🔌 Limpando subscrição real-time de pedidos...')
+      this._activeChannel.unsubscribe()
+      this._activeChannel = null
     }
   },
 }
@@ -574,3 +603,4 @@ export const getTableOrders = OrderService.getTableOrders.bind(OrderService)
 export const getDeliveryOrders = OrderService.getDeliveryOrders.bind(OrderService)
 export const getOrdersByTable = OrderService.getOrdersByTable.bind(OrderService)
 export const subscribeToOrderChanges = OrderService.subscribeToOrderChanges.bind(OrderService)
+export const unsubscribeFromOrderChanges = OrderService.unsubscribeFromOrderChanges.bind(OrderService)

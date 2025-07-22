@@ -210,87 +210,55 @@ export default function OrdersPage() {
     loadDefaultDeliveryPhone();
   }, []);
 
-  // Configurar verificação periódica de novos pedidos e subscrição real-time
+  // Configurar subscrição real-time (apenas uma vez)
   useEffect(() => {
-    let isMounted = true;
-    let isFetching = false;
-    let realtimeChannel: any = null;
+    console.log('🔄 Configurando subscrição real-time para pedidos...');
 
-    // Função para carregar e processar pedidos
-    const loadAndProcessOrders = async (silent = true) => {
-      if (isFetching) return;
-      isFetching = true;
+    const realtimeSubscription = subscribeToOrderChanges(
+      (payload) => {
+        console.log('📨 Mudança real-time detectada:', payload);
 
-      try {
-        const orders = await fetchOrders(silent, isMounted);
-        if (orders && isMounted) {
-          processOrders(orders, isMounted);
+        // Recarregar pedidos quando houver mudanças
+        if (payload.type === 'INSERT') {
+          console.log('🆕 Novo pedido detectado via real-time, recarregando...');
+          void loadOrders(true);
+        } else if (payload.type === 'UPDATE') {
+          console.log('🔄 Pedido atualizado via real-time, recarregando...');
+          void loadOrders(true);
+        } else if (payload.type === 'DELETE') {
+          console.log('🗑️ Pedido excluído via real-time, recarregando...');
+          void loadOrders(true);
         }
-      } finally {
-        if (isMounted) {
-          isFetching = false;
-        }
+      },
+      (error) => {
+        console.error('❌ Erro na subscrição real-time de pedidos:', error);
+        // Em caso de erro, continuar com polling apenas
+      }
+    );
+
+    // Limpar subscrição ao desmontar
+    return () => {
+      if (realtimeSubscription && realtimeSubscription.unsubscribe) {
+        realtimeSubscription.unsubscribe();
       }
     };
+  }, []); // Sem dependências para executar apenas uma vez
 
+  // Configurar carregamento inicial e polling
+  useEffect(() => {
     // Carregar pedidos iniciais
-    void loadAndProcessOrders(false);
+    void loadOrders(false);
 
-    // Configurar subscrição real-time para novos pedidos
-    const setupRealtimeSubscription = () => {
-      console.log('🔄 Configurando subscrição real-time para pedidos...');
-
-      realtimeChannel = subscribeToOrderChanges(
-        (payload) => {
-          console.log('📨 Mudança real-time detectada:', payload);
-
-          // Se for um novo pedido (INSERT), recarregar imediatamente
-          if (payload.type === 'INSERT' && isMounted) {
-            console.log('🆕 Novo pedido detectado via real-time, recarregando...');
-            void loadAndProcessOrders(true);
-          }
-          // Se for uma atualização (UPDATE), também recarregar para manter sincronizado
-          else if (payload.type === 'UPDATE' && isMounted) {
-            console.log('🔄 Pedido atualizado via real-time, recarregando...');
-            void loadAndProcessOrders(true);
-          }
-          // Se for uma exclusão (DELETE), recarregar para remover da lista
-          else if (payload.type === 'DELETE' && isMounted) {
-            console.log('🗑️ Pedido excluído via real-time, recarregando...');
-            void loadAndProcessOrders(true);
-          }
-        },
-        (error) => {
-          console.error('❌ Erro na subscrição real-time de pedidos:', error);
-          // Em caso de erro, continuar com polling apenas
-        }
-      );
-    };
-
-    // Configurar subscrição real-time
-    setupRealtimeSubscription();
-
-    // Configurar polling como fallback (intervalo maior agora que temos real-time)
+    // Configurar polling como fallback
     const pollingInterval = setInterval(() => {
-      if (isMounted) {
-        void loadAndProcessOrders(true);
-      }
-    }, 30000); // Aumentado para 30 segundos já que temos real-time
+      void loadOrders(true);
+    }, 30000); // 30 segundos
 
     // Armazenar a referência do intervalo
     checkIntervalRef.current = pollingInterval;
 
-    // Limpar intervalos, timeouts e subscrições ao desmontar
+    // Limpar intervalo ao desmontar
     return () => {
-      isMounted = false;
-
-      // Limpar subscrição real-time
-      if (realtimeChannel) {
-        console.log('🔌 Desconectando subscrição real-time de pedidos...');
-        realtimeChannel.unsubscribe();
-        realtimeChannel = null;
-      }
-
       if (checkIntervalRef.current) {
         clearInterval(checkIntervalRef.current);
         checkIntervalRef.current = null;
@@ -301,7 +269,7 @@ export default function OrdersPage() {
         notificationTimeoutRef.current = null;
       }
     };
-  }, [fetchOrders, processOrders, isSoundEnabled]); // Dependências do efeito
+  }, [loadOrders]); // Dependência apenas do loadOrders
 
   // Função para enviar manualmente mensagem de WhatsApp para um pedido
   const handleSendWhatsApp = React.useCallback(async (order: Order): Promise<void> => {
