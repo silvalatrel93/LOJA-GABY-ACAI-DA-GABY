@@ -7,12 +7,14 @@ import { useCart, CartProvider } from '@/lib/cart-context'
 import { formatCurrency } from '@/lib/utils'
 import MercadoPagoCheckout from '@/components/mercado-pago-checkout'
 import Link from 'next/link'
+import { Suspense } from 'react'
 
 // Componente interno que usa o useCart
 function PagamentoContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { cart, isTableOrder, tableInfo } = useCart()
+  const [isClient, setIsClient] = useState(false)
   
   // Dados do cliente vindos da URL
   const [customerData, setCustomerData] = useState({
@@ -27,6 +29,12 @@ function PagamentoContent() {
   const [total, setTotal] = useState(0)
 
   useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isClient) return
+    
     // Recuperar dados da URL ou localStorage
     const urlCustomerData = {
       name: searchParams.get('name') || '',
@@ -66,7 +74,19 @@ function PagamentoContent() {
     }
     
     setOrderData(orderInfo)
-  }, [searchParams, cart, isTableOrder, tableInfo])
+  }, [isClient, searchParams, cart, isTableOrder, tableInfo])
+
+  // Loading state durante hidratação
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    )
+  }
 
   // Se não há dados suficientes, redirecionar para checkout
   if (!customerData.name || !total || cart.length === 0) {
@@ -208,7 +228,16 @@ function PagamentoContent() {
 export default function PagamentoPage() {
   return (
     <CartProvider>
-      <PagamentoContent />
+      <Suspense fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+          <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Carregando...</p>
+          </div>
+        </div>
+      }>
+        <PagamentoContent />
+      </Suspense>
     </CartProvider>
   )
 }
