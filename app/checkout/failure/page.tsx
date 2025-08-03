@@ -6,6 +6,9 @@ import Link from 'next/link'
 import { XCircle, Home, RotateCcw, AlertCircle, ArrowRight, Phone } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
+// Força dynamic rendering para evitar problemas de prerendering
+export const dynamic = 'force-dynamic'
+
 interface PaymentInfo {
   id: string
   status: string
@@ -320,4 +323,4 @@ export default function CheckoutFailurePage() {
       <FailureContent />
     </Suspense>
   )
-} 
+}

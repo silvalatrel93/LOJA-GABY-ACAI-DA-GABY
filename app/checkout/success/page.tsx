@@ -6,6 +6,9 @@ import Link from 'next/link'
 import { CheckCircle, Home, FileText, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
+// Força dynamic rendering para evitar problemas de prerendering
+export const dynamic = 'force-dynamic'
+
 interface PaymentInfo {
   id: string
   status: string
@@ -200,4 +203,4 @@ export default function CheckoutSuccessPage() {
       <SuccessContent />
     </Suspense>
   )
-} 
+}

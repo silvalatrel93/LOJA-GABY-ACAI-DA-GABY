@@ -66,7 +66,14 @@ export async function getCartItems(): Promise<CartItem[]> {
   const { data, error } = await supabase.from("cart").select("*").eq("session_id", sessionId).eq("store_id", storeId)
 
   if (error) {
-    console.error("Erro ao buscar itens do carrinho:", error)
+    console.error("Erro ao buscar itens do carrinho:", {
+      error,
+      errorMessage: error.message,
+      errorCode: error.code,
+      errorDetails: error.details,
+      sessionId,
+      storeId
+    })
     return []
   }
 

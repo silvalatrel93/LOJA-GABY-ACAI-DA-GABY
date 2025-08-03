@@ -89,6 +89,7 @@ export default function HeroCarousel({ slides }: HeroCarouselProps) {
               src={slide.image || "/placeholder.svg"}
               alt={slide.title || "Banner promocional"}
               fill
+              sizes="100vw"
               className="object-contain"
               priority={currentIndex === index}
             />

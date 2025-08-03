@@ -1036,7 +1036,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete, autoPrint = 
 
           <div className="section">
             <div className="section-title">ITENS DO PEDIDO</div>
-            {(Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? JSON.parse(order.items) : [])).map((item, index) => (
+            {(Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? JSON.parse(order.items) : [])).map((item: any, index: number) => (
               <div key={index} style={{ marginBottom: "6px" }}>
                 <div className="flex justify-between items-start w-full" style={{ fontFamily: "monospace", fontSize: "11px", marginBottom: "4px" }}>
                 <div className="flex-1 pr-2">
@@ -1051,7 +1051,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete, autoPrint = 
                 {item.additionals && item.additionals.length > 0 ? (
                   <div className="mb-2">
                     <div className="additional-status font-bold">Adicionais Complementos</div>
-                    {item.additionals.map((additional, idx) => {
+                    {item.additionals.map((additional: any, idx: number) => {
                       const formattedLines = formatAdditionalLineResponsive(additional.quantity ?? 1, additional.name, additional.price)
                       
                       return (

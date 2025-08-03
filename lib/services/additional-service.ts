@@ -1,7 +1,21 @@
 import { createSupabaseClient } from "../supabase-client"
+import { createClient } from "@supabase/supabase-js"
 import type { Additional } from "../types"
 import type { AdditionalCategory } from "./additional-category-service"
 import { getActiveAdditionalCategories } from "./additional-category-service"
+
+// Função para criar cliente administrativo do Supabase
+function createAdminSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!
+  
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
 
 // Serviço para gerenciar adicionais
 export const AdditionalService = {
@@ -11,7 +25,7 @@ export const AdditionalService = {
       const supabase = createSupabaseClient()
       const { data, error } = await supabase
         .from("additionals")
-        .select("*, category:additional_categories(name)")
+        .select("*, category:categories(name)")
         .order("name")
 
       if (error) {
@@ -48,7 +62,7 @@ export const AdditionalService = {
       const supabase = createSupabaseClient()
       const { data, error } = await supabase
         .from("additionals")
-        .select("*, category:additional_categories(name)")
+        .select("*, category:categories(name)")
         .eq("active", true)
         .order("name")
 
@@ -103,7 +117,7 @@ export const AdditionalService = {
       // Buscar todos os adicionais ativos que estão na lista de permitidos
       const { data, error } = await supabase
         .from("additionals")
-        .select("*, category:additional_categories(name)")
+        .select("*, category:categories(name)")
         .eq("active", true)
         .in("id", productData.allowed_additionals)
 
@@ -160,7 +174,7 @@ export const AdditionalService = {
       // Buscar todos os adicionais ativos que estão na lista de permitidos
       const { data, error } = await supabase
         .from("additionals")
-        .select("*, category:additional_categories(name)")
+        .select("*, category:categories(name)")
         .eq("active", true)
         .in("id", productData.allowed_additionals)
 
@@ -185,7 +199,7 @@ export const AdditionalService = {
           id: Number(item.id),
           name: String(item.name),
           price: Number(item.price),
-          categoryId: Number(item.additional_category_id),
+          categoryId: Number(item.category_id),
           categoryName: item.category && typeof item.category === 'object' && item.category !== null && 'name' in item.category ? String((item.category as any).name) : "",
           active: Boolean(item.active),
           image: item.image ? String(item.image) : "",
@@ -218,7 +232,7 @@ export const AdditionalService = {
       const supabase = createSupabaseClient()
       const { data, error } = await supabase
         .from("additionals")
-        .select("*, category:additional_categories(name)")
+        .select("*, category:categories(name)")
         .eq("id", id)
         .single()
 
@@ -235,7 +249,7 @@ export const AdditionalService = {
         id: Number(data.id),
         name: String(data.name),
         price: Number(data.price),
-        categoryId: Number(data.additional_category_id),
+        categoryId: Number(data.category_id),
         categoryName: data.category && typeof data.category === 'object' && data.category !== null && 'name' in data.category ? String((data.category as any).name) : "",
         active: Boolean(data.active),
         image: data.image ? String(data.image) : "",
@@ -257,13 +271,13 @@ export const AdditionalService = {
         const updateData = {
           name: additional.name,
           price: additional.price,
-          category_id: 2, // Valor padrão para satisfazer constraint NOT NULL
-          additional_category_id: additional.categoryId,
+          category_id: additional.categoryId,
           active: additional.active,
           image: additional.image || null,
         }
 
-        const { data, error } = await supabase
+        const adminSupabase = createAdminSupabaseClient()
+        const { data, error } = await adminSupabase
           .from("additionals")
           .update(updateData)
           .eq("id", additional.id)
@@ -283,7 +297,7 @@ export const AdditionalService = {
           id: Number(data.id),
           name: String(data.name),
           price: Number(data.price),
-          categoryId: Number(data.additional_category_id),
+          categoryId: Number(data.category_id),
           active: Boolean(data.active),
           image: data.image ? String(data.image) : "",
         }
@@ -294,13 +308,13 @@ export const AdditionalService = {
         const insertData = {
           name: additional.name,
           price: additional.price,
-          category_id: 2, // Valor padrão para satisfazer constraint NOT NULL
-          additional_category_id: additional.categoryId,
+          category_id: additional.categoryId,
           active: additional.active !== undefined ? additional.active : true,
           image: additional.image || null,
         }
 
-        const { data, error } = await supabase
+        const adminSupabase = createAdminSupabaseClient()
+        const { data, error } = await adminSupabase
           .from("additionals")
           .insert(insertData)
           .select()
@@ -319,7 +333,7 @@ export const AdditionalService = {
           id: Number(data.id),
           name: String(data.name),
           price: Number(data.price),
-          categoryId: Number(data.additional_category_id),
+          categoryId: Number(data.category_id),
           active: Boolean(data.active),
           image: data.image ? String(data.image) : "",
         }
@@ -335,8 +349,8 @@ export const AdditionalService = {
   // Excluir adicional
   async deleteAdditional(id: number): Promise<boolean> {
     try {
-      const supabase = createSupabaseClient()
-      const { error } = await supabase
+      const adminSupabase = createAdminSupabaseClient()
+      const { error } = await adminSupabase
         .from("additionals")
         .delete()
         .eq("id", id)

@@ -346,6 +346,7 @@ export const OrderService = {
       const byStatus: Record<OrderStatus, number> = {
         new: 0,
         pending: 0,
+        pending_payment: 0,
         preparing: 0,
         ready: 0,
         delivering: 0,
@@ -378,6 +379,7 @@ export const OrderService = {
         byStatus: {
           new: 0,
           pending: 0,
+          pending_payment: 0,
           preparing: 0,
           ready: 0,
           delivering: 0,
@@ -607,13 +609,13 @@ export const OrderService = {
       )
 
       // Configurar handler de erro
-      channel.on('error', (error: any) => {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (error: any) => {
         console.warn('Erro no canal real-time de pedidos:', error)
         // Não propagar erro para evitar erros intrusivos
       })
 
       // Subscrever ao canal
-      channel.subscribe((status) => {
+      channel.subscribe((status, err) => {
         console.log('Status da subscrição real-time de pedidos:', status)
         if (status === 'SUBSCRIBED') {
           console.log('✅ Subscrição real-time de pedidos ativa')
@@ -621,6 +623,9 @@ export const OrderService = {
           console.warn('⚠️ Erro na subscrição real-time de pedidos - funcionando em modo offline')
           // Não chamar onError para evitar erros intrusivos no console
           // A aplicação continuará funcionando normalmente sem real-time
+        }
+        if (err && onError) {
+          onError(err)
         }
       })
 

@@ -1,6 +1,20 @@
 import { createSupabaseClient } from "../supabase-client"
+import { createClient } from "@supabase/supabase-js"
 import type { Category } from "../types"
 import { DEFAULT_STORE_ID } from "../constants"
+
+// Função para criar cliente administrativo do Supabase
+function createAdminSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!
+  
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
 
 // Exportar o tipo Category para uso em outros arquivos
 export type { Category }
@@ -172,8 +186,9 @@ export const CategoryService = {
 
           console.log('Atualizando categoria existente:', { id: category.id, ...updateData });
 
-          // Fazer o update e retornar os dados atualizados em uma única operação
-          const { data: updatedData, error: updateError } = await supabase
+          // Fazer o update usando cliente administrativo
+          const adminSupabase = createAdminSupabaseClient()
+          const { data: updatedData, error: updateError } = await adminSupabase
             .from("categories")
             .update(updateData)
             .eq("id", category.id)
@@ -268,7 +283,8 @@ export const CategoryService = {
             store_id_length: insertData.store_id?.length
           });
 
-          const { data, error } = await supabase
+          const adminSupabase = createAdminSupabaseClient()
+          const { data, error } = await adminSupabase
             .from("categories")
             .insert(insertData)
             .select()
@@ -366,8 +382,9 @@ export const CategoryService = {
         throw new Error(errorMessage)
       }
 
-      // Se não há dependências, prosseguir com a exclusão
-      const { error } = await supabase
+      // Se não há dependências, prosseguir com a exclusão usando cliente administrativo
+      const adminSupabase = createAdminSupabaseClient()
+      const { error } = await adminSupabase
         .from("categories")
         .delete()
         .eq("id", id)

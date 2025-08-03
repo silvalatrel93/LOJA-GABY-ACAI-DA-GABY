@@ -118,9 +118,14 @@ function PixKeyCopyComponent({ pixKey }: PixKeyCopyComponentProps) {
 }
 
 // Componente para exibir um item com nome à esquerda e valor à direita
-function ItemRow({ name, value }: { name: string; value: string }) {
+function ItemRow({ name, value, className, style }: { 
+  name: string; 
+  value: string; 
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
-    <div className="flex items-center w-full">
+    <div className={`flex items-center w-full ${className || ''}`} style={style}>
       <div className="flex-grow">{name}</div>
       <div className="flex-shrink-0 w-16 text-right tabular-nums">{value}</div>
     </div>

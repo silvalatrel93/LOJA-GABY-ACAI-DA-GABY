@@ -32,7 +32,7 @@ export default function PagesAdminPage() {
         if (sobreContent) {
           pagesList.push({
             id: sobreContent.id,
-            title: sobreContent.title,
+            title: sobreContent.title || 'Sobre',
             lastUpdated: sobreContent.lastUpdated,
           })
         }
@@ -40,7 +40,7 @@ export default function PagesAdminPage() {
         if (deliveryContent) {
           pagesList.push({
             id: deliveryContent.id,
-            title: deliveryContent.title,
+            title: deliveryContent.title || 'Delivery',
             lastUpdated: deliveryContent.lastUpdated,
           })
         }

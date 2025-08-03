@@ -27,7 +27,7 @@ export default function DeliveryVisibilityToggle({
 
       const { error } = await supabase
         .from("products")
-        .update({ hidden_from_delivery: newHiddenState })
+        .update({ active: !newHiddenState })
         .eq("id", productId)
 
       if (error) {

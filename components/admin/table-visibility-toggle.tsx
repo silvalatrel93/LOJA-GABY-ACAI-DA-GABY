@@ -29,13 +29,11 @@ export function TableVisibilityToggle({
       const newHiddenFromTableState = !isHiddenFromTable
       const { error } = await supabase
         .from("products")
-        .update({ hidden_from_table: newHiddenFromTableState })
+        .update({ active: !newHiddenFromTableState })
         .eq("id", productId)
       
       if (error) {
         console.error(`Erro ao atualizar visibilidade em mesa do produto ${productId}:`, error)
-        // Se der erro, tenta um fallback sem a coluna
-        console.warn("Coluna hidden_from_table pode não existir ainda. Aplicar migração.")
         alert("Erro ao alterar visibilidade do produto na mesa")
         return
       }
@@ -97,4 +95,4 @@ export function TableVisibilityToggle({
       </span>
     </button>
   )
-} 
+}

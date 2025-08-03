@@ -309,10 +309,10 @@ function CartPageContent() {
               onMouseEnter={(e) => {
                 const color = storeConfig?.storeColor || '#8B5CF6';
                 const darkerColor = `${color}CC`;
-                e.target.style.backgroundColor = darkerColor;
+                (e.target as HTMLElement).style.backgroundColor = darkerColor;
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = storeConfig?.storeColor || '#8B5CF6';
+                (e.target as HTMLElement).style.backgroundColor = storeConfig?.storeColor || '#8B5CF6';
               }}
             >
               Ver produtos
@@ -373,6 +373,7 @@ function CartPageContent() {
                           src={item.image || "/placeholder.svg"}
                           alt={item.name}
                           fill
+                          sizes="(max-width: 640px) 64px, 72px"
                           className="object-cover rounded-md"
                         />
                       </div>
@@ -421,11 +422,11 @@ function CartPageContent() {
                                           color: storeConfig?.storeColor || '#8B5CF6'
                                         }}
                                         onMouseEnter={(e) => {
-                                          e.target.style.backgroundColor = `${storeConfig?.storeColor || '#8B5CF6'}20`;
-                                        }}
-                                        onMouseLeave={(e) => {
-                                          e.target.style.backgroundColor = 'transparent';
-                                        }}
+                          (e.target as HTMLElement).style.backgroundColor = `${storeConfig?.storeColor || '#8B5CF6'}20`;
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                        }}
                                         disabled={isUpdating[item.id]}
                                         aria-label="Diminuir quantidade"
                                       >
@@ -449,11 +450,11 @@ function CartPageContent() {
                                           color: storeConfig?.storeColor || '#8B5CF6'
                                         }}
                                         onMouseEnter={(e) => {
-                                          e.target.style.backgroundColor = `${storeConfig?.storeColor || '#8B5CF6'}20`;
-                                        }}
-                                        onMouseLeave={(e) => {
-                                          e.target.style.backgroundColor = 'transparent';
-                                        }}
+                          (e.target as HTMLElement).style.backgroundColor = `${storeConfig?.storeColor || '#8B5CF6'}20`;
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                        }}
                                         disabled={isUpdating[item.id]}
                                         aria-label="Aumentar quantidade"
                                       >
@@ -549,12 +550,12 @@ function CartPageContent() {
                               color: storeConfig?.storeColor || '#8B5CF6'
                             }}
                             onMouseEnter={(e) => {
-                              const color = storeConfig?.storeColor || '#8B5CF6';
-                              e.target.style.color = `${color}CC`;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.target.style.color = storeConfig?.storeColor || '#8B5CF6';
-                            }}
+                const color = storeConfig?.storeColor || '#8B5CF6';
+                (e.target as HTMLElement).style.color = `${color}CC`;
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.color = storeConfig?.storeColor || '#8B5CF6';
+              }}
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -597,12 +598,12 @@ function CartPageContent() {
                                     backgroundColor: storeConfig?.storeColor || '#8B5CF6'
                                   }}
                                   onMouseEnter={(e) => {
-                                    const color = storeConfig?.storeColor || '#8B5CF6';
-                                    e.target.style.backgroundColor = `${color}CC`;
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.target.style.backgroundColor = storeConfig?.storeColor || '#8B5CF6';
-                                  }}
+                const color = storeConfig?.storeColor || '#8B5CF6';
+                (e.target as HTMLElement).style.backgroundColor = `${color}CC`;
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.backgroundColor = storeConfig?.storeColor || '#8B5CF6';
+              }}
                                 >
                                   Salvar
                                 </button>
@@ -827,14 +828,14 @@ function CartPageContent() {
                      color: storeConfig?.storeColor || '#8B5CF6'
                    }}
                   onMouseEnter={(e) => {
-                    const color = storeConfig?.storeColor || '#8B5CF6';
-                    e.target.style.backgroundColor = `${color}10`;
-                    e.target.style.boxShadow = `0 0 0 2px ${color}40`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = 'transparent';
-                    e.target.style.boxShadow = 'none';
-                  }}
+              const color = storeConfig?.storeColor || '#8B5CF6';
+              (e.target as HTMLElement).style.backgroundColor = `${color}10`;
+              (e.target as HTMLElement).style.boxShadow = `0 0 0 2px ${color}40`;
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLElement).style.backgroundColor = 'transparent';
+              (e.target as HTMLElement).style.boxShadow = 'none';
+            }}
                 >
                   <span className="relative z-10 flex items-center justify-center">
                     <ArrowLeft size={18} className="mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
@@ -862,15 +863,15 @@ function CartPageContent() {
                 boxShadow: `0 4px 6px -1px ${storeConfig?.storeColor || '#8B5CF6'}40`
               }}
               onMouseEnter={(e) => {
-                const color = storeConfig?.storeColor || '#8B5CF6';
-                e.target.style.background = `linear-gradient(to right, ${color}CC, ${color}BB)`;
-                e.target.style.boxShadow = `0 10px 15px -3px ${color}40, 0 4px 6px -2px ${color}20`;
-              }}
-              onMouseLeave={(e) => {
-                const color = storeConfig?.storeColor || '#8B5CF6';
-                e.target.style.background = `linear-gradient(to right, ${color}, ${color}DD)`;
-                e.target.style.boxShadow = `0 4px 6px -1px ${color}40`;
-              }}
+              const color = storeConfig?.storeColor || '#8B5CF6';
+              (e.target as HTMLElement).style.background = `linear-gradient(to right, ${color}CC, ${color}BB)`;
+              (e.target as HTMLElement).style.boxShadow = `0 10px 15px -3px ${color}40, 0 4px 6px -2px ${color}20`;
+            }}
+            onMouseLeave={(e) => {
+              const color = storeConfig?.storeColor || '#8B5CF6';
+              (e.target as HTMLElement).style.background = `linear-gradient(to right, ${color}, ${color}DD)`;
+              (e.target as HTMLElement).style.boxShadow = `0 4px 6px -1px ${color}40`;
+            }}
             >
               <span className="relative z-10 flex items-center justify-center">
                 Finalizar Pedido

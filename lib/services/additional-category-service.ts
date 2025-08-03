@@ -1,4 +1,18 @@
 import { createSupabaseClient } from "../supabase-client"
+import { createClient } from "@supabase/supabase-js"
+
+// Função para criar cliente administrativo do Supabase
+function createAdminSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!
+  
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
 
 export interface AdditionalCategory {
   id: number
@@ -14,9 +28,9 @@ export const AdditionalCategoryService = {
     try {
       const supabase = createSupabaseClient()
       const { data, error } = await supabase
-        .from("additional_categories")
+        .from("categories")
         .select("*")
-        .order("display_order", { ascending: true })
+        .order("order", { ascending: true })
 
       if (error) {
         console.error("Erro ao buscar categorias de adicionais:", error)
@@ -26,9 +40,9 @@ export const AdditionalCategoryService = {
       return (data || []).map((category: any) => ({
         id: Number(category.id),
         name: String(category.name),
-        order: Number(category.display_order || 0),
+        order: Number(category.order || 0),
         active: Boolean(category.active),
-        selectionLimit: category.selection_limit ? Number(category.selection_limit) : undefined,
+        selectionLimit: undefined,
       }))
     } catch (error) {
       console.error("Erro ao buscar categorias de adicionais:", error)
@@ -41,10 +55,10 @@ export const AdditionalCategoryService = {
     try {
       const supabase = createSupabaseClient()
       const { data, error } = await supabase
-        .from("additional_categories")
+        .from("categories")
         .select("*")
         .eq("active", true)
-        .order("display_order", { ascending: true })
+        .order("order", { ascending: true })
 
       if (error) {
         console.error("Erro ao buscar categorias ativas de adicionais:", error)
@@ -54,9 +68,9 @@ export const AdditionalCategoryService = {
       return (data || []).map((category: any) => ({
         id: Number(category.id),
         name: String(category.name),
-        order: Number(category.display_order || 0),
+        order: Number(category.order || 0),
         active: Boolean(category.active),
-        selectionLimit: category.selection_limit ? Number(category.selection_limit) : undefined,
+        selectionLimit: undefined,
       }))
     } catch (error) {
       console.error("Erro ao buscar categorias ativas de adicionais:", error)
@@ -69,7 +83,7 @@ export const AdditionalCategoryService = {
     try {
       const supabase = createSupabaseClient()
       const { data, error } = await supabase
-        .from("additional_categories")
+        .from("categories")
         .select("*")
         .eq("id", id)
         .maybeSingle()
@@ -86,9 +100,9 @@ export const AdditionalCategoryService = {
       return {
         id: Number(data.id),
         name: String(data.name),
-        order: Number(data.display_order || 0),
+        order: Number(data.order || 0),
         active: Boolean(data.active),
-        selectionLimit: data.selection_limit ? Number(data.selection_limit) : undefined,
+        selectionLimit: undefined,
       }
     } catch (error) {
       console.error(`Erro ao buscar categoria de adicional ${id}:`, error)
@@ -104,7 +118,7 @@ export const AdditionalCategoryService = {
       if (category.id && category.id > 0) {
         // Verificar se a categoria existe antes de tentar atualizar
         const { data: existingCategory, error: fetchError } = await supabase
-          .from("additional_categories")
+          .from("categories")
           .select("*")
           .eq("id", category.id)
           .maybeSingle()
@@ -120,13 +134,13 @@ export const AdditionalCategoryService = {
           category.id = 0
         } else {
           // Atualizar categoria existente
-          const { data, error } = await supabase
-            .from("additional_categories")
+          const adminSupabase = createAdminSupabaseClient()
+          const { data, error } = await adminSupabase
+            .from("categories")
             .update({
               name: category.name,
-              display_order: category.order,
+              order: category.order,
               active: category.active,
-              selection_limit: category.selectionLimit || null,
             })
             .eq("id", category.id)
             .select()
@@ -144,9 +158,9 @@ export const AdditionalCategoryService = {
           const result: AdditionalCategory = {
             id: Number(data.id),
             name: String(data.name),
-            order: Number(data.display_order || 0),
+            order: Number(data.order || 0),
             active: Boolean(data.active),
-            selectionLimit: data.selection_limit ? Number(data.selection_limit) : undefined,
+            selectionLimit: undefined,
           }
 
           return { data: result, error: null }
@@ -156,18 +170,13 @@ export const AdditionalCategoryService = {
       // Criar nova categoria (quando ID é 0 ou não existe)
       if (!category.id || category.id <= 0) {
         // Corrigir sequência antes de inserir
-        console.log('Corrigindo sequência de additional_categories antes da inserção...')
-        const { error: sequenceError } = await supabase.rpc('fix_additional_categories_sequence')
-        if (sequenceError) {
-          console.warn('Aviso: Não foi possível corrigir a sequência:', sequenceError)
-        }
+        console.log('Corrigindo sequência de categories antes da inserção...')
 
         // Criar nova categoria
         const insertData = {
           name: category.name,
-          display_order: category.order,
+          order: category.order,
           active: category.active,
-          selection_limit: category.selectionLimit || null,
         }
 
         // Remover explicitamente qualquer propriedade id
@@ -175,8 +184,9 @@ export const AdditionalCategoryService = {
 
         console.log('Inserindo nova categoria de adicional:', insertData)
 
-        const { data, error } = await supabase
-          .from("additional_categories")
+        const adminSupabase = createAdminSupabaseClient()
+        const { data, error } = await adminSupabase
+          .from("categories")
           .insert(insertData)
           .select()
           .maybeSingle()
@@ -193,9 +203,9 @@ export const AdditionalCategoryService = {
         const result: AdditionalCategory = {
           id: Number(data.id),
           name: String(data.name),
-          order: Number(data.display_order || 0),
+          order: Number(data.order || 0),
           active: Boolean(data.active),
-          selectionLimit: data.selection_limit ? Number(data.selection_limit) : undefined,
+          selectionLimit: undefined,
         }
 
         return { data: result, error: null }
@@ -212,9 +222,9 @@ export const AdditionalCategoryService = {
   // Excluir categoria de adicional
   async deleteAdditionalCategory(id: number): Promise<boolean> {
     try {
-      const supabase = createSupabaseClient()
-      const { error } = await supabase
-        .from("additional_categories")
+      const adminSupabase = createAdminSupabaseClient()
+      const { error } = await adminSupabase
+        .from("categories")
         .delete()
         .eq("id", id)
 

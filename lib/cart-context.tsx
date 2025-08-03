@@ -42,7 +42,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setCart(items)
       setItemCount(items.reduce((count, item) => count + item.quantity, 0))
     } catch (error) {
-      console.error("Erro ao carregar carrinho:", error)
+      console.error("Erro ao carregar carrinho:", {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      })
     } finally {
       setIsLoading(false)
     }
@@ -141,7 +145,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         await addToCart(item)
         await loadCart()
       } catch (error) {
-        console.error("Erro ao adicionar item ao carrinho:", error)
+        console.error("Erro ao adicionar item ao carrinho:", {
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          item
+        })
       }
     },
     [loadCart],
@@ -174,7 +182,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         // Atualizar no banco de dados
         await updateCartItemQuantity(id, quantity, updatedFields)
       } catch (error) {
-        console.error("Erro ao atualizar item do carrinho:", error)
+        console.error("Erro ao atualizar item do carrinho:", {
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          itemId: id,
+          quantity
+        })
         // Em caso de erro, recarregar o carrinho para garantir consistência
         await loadCart()
       }
@@ -200,7 +213,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         // Remover do banco de dados
         await removeFromCart(id)
       } catch (error) {
-        console.error("Erro ao remover item:", error)
+        console.error("Erro ao remover item:", {
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          itemId: id
+        })
         // Em caso de erro, recarregar o carrinho para garantir consistência
         await loadCart()
       }
@@ -228,7 +245,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           await updateCartItemQuantity(id, currentItem.quantity, { notes })
         }
       } catch (error) {
-        console.error("Erro ao atualizar observações do item:", error)
+        console.error("Erro ao atualizar observações do item:", {
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          itemId: id,
+          notes
+        })
         // Em caso de erro, recarregar o carrinho para garantir consistência
         await loadCart()
       }
@@ -243,7 +265,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setItemCount(0)
       await clearCart()
     } catch (error) {
-      console.error("Erro ao limpar carrinho:", error)
+      console.error("Erro ao limpar carrinho:", {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error)
+      })
       await loadCart()
     }
   }, [loadCart])

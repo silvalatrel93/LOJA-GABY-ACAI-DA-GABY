@@ -196,20 +196,21 @@ export default function AdminPage() {
     if (confirm("Tem certeza que deseja excluir este produto?")) {
       try {
         setDeleteStatus({ id, status: "pending" })
-        await deleteProduct(id)
+        const success = await deleteProduct(id)
 
-        // Verificar se o produto foi realmente excluído
-        const updatedProducts = await getAllProducts()
-        const stillExists = updatedProducts.some((p) => p.id === id)
-
-        if (stillExists) {
-          console.error(`Produto com ID ${id} ainda existe após tentativa de exclusão`)
-          setDeleteStatus({ id, status: "error" })
-          alert("Erro ao excluir produto. O produto ainda existe no banco de dados.")
-        } else {
-          setProducts(updatedProducts)
+        if (success) {
+          // Remover o produto do estado local imediatamente
+          setProducts(prevProducts => prevProducts.filter(product => product.id !== id))
           setDeleteStatus({ id, status: "success" })
           console.log(`Produto com ID ${id} excluído com sucesso`)
+          
+          // Limpar o status após um tempo
+          setTimeout(() => {
+            setDeleteStatus(null)
+          }, 2000)
+        } else {
+          setDeleteStatus({ id, status: "error" })
+          alert("Erro ao excluir produto. Tente novamente.")
         }
       } catch (error) {
         console.error("Erro ao excluir produto:", error)
@@ -228,12 +229,31 @@ export default function AdminPage() {
     }
 
     try {
-      await saveProduct(editingProduct)
-
-      // Atualizar a lista de produtos após salvar
-      const updatedProducts = await getAllProducts()
-      setProducts(updatedProducts)
-      setIsModalOpen(false)
+      const result = await saveProduct(editingProduct)
+      
+      if (result.error) {
+        console.error("Erro ao salvar produto:", result.error)
+        alert(`Erro ao salvar produto: ${result.error.message}`)
+        return
+      }
+      
+      if (result.data) {
+        // Atualizar o estado local diretamente
+        if (editingProduct.id === 0) {
+          // Produto novo - adicionar à lista
+          setProducts(prevProducts => [...prevProducts, result.data])
+        } else {
+          // Produto existente - atualizar na lista
+          setProducts(prevProducts => 
+            prevProducts.map(p => p.id === editingProduct.id ? result.data : p)
+          )
+        }
+        
+        alert("Produto salvo com sucesso!")
+        setIsModalOpen(false)
+      } else {
+        alert("Erro inesperado ao salvar produto.")
+      }
     } catch (error) {
       console.error("Erro ao salvar produto:", error)
       alert("Erro ao salvar produto. Tente novamente.")
@@ -386,7 +406,7 @@ export default function AdminPage() {
           </div>
           <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => loadData()}
               className="bg-white/10 hover:bg-white/20 p-1.5 sm:p-2 rounded-lg transition-colors"
               title="Atualizar dados"
             >

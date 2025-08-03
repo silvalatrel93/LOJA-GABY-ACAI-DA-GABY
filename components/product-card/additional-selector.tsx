@@ -133,6 +133,7 @@ export function AdditionalSelector({ product }: AdditionalSelectorProps) {
                           src={additional.image || "/placeholder.svg"}
                           alt={additional.name}
                           fill
+                          sizes="24px"
                           className="object-cover"
                         />
                       ) : (

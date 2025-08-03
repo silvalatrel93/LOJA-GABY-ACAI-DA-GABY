@@ -1041,7 +1041,7 @@ export default function OrdersPage() {
                     <div className="mt-3">
                       <h4 className="font-medium text-sm text-gray-700">Itens do Pedido</h4>
                       <ul className="space-y-3">
-                        {(Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? JSON.parse(order.items) : [])).map((item, index) => (
+                        {(Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? JSON.parse(order.items) : [])).map((item: any, index: number) => (
                           <li key={index} className="border-b pb-2 last:border-b-0">
                             <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                               <span className="font-medium">
@@ -1053,7 +1053,7 @@ export default function OrdersPage() {
                               <div className="mt-1">
                                 <p className="text-sm text-purple-700 italic">Adicionais Complementos:</p>
                                 <ul className="pl-4 space-y-1">
-                                  {item.additionals.map((additional, idx) => (
+                                  {item.additionals.map((additional: any, idx: number) => (
                                     <li key={idx} className="text-sm flex flex-col sm:flex-row sm:justify-between">
                                       <span>
                                         • {additional.quantity || 1}x {additional.name}

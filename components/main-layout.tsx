@@ -136,6 +136,7 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
                         src={storeConfig.logoUrl || "/placeholder.svg"}
                         alt={`Logo ${storeConfig?.name || "Loja Virtual"}`}
                         fill
+                        sizes="(max-width: 640px) 32px, 40px"
                         className="object-cover rounded-full"
                         priority
                       />
