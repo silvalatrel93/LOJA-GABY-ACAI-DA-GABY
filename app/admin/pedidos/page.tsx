@@ -1160,11 +1160,9 @@ export default function OrdersPage() {
                           <span className="text-right font-medium">
                             {order.paymentMethod === "pix"
                               ? "Pix na Entrega"
-                              : order.paymentMethod === "mercado_pago_pix"
-                                ? "PIX - Mercado Pago"
-                                : order.paymentMethod === "card"
-                                  ? "Cartão na Entrega"
-                                  : "Dinheiro"
+                              : order.paymentMethod === "card"
+                                ? "Cartão na Entrega"
+                                : "Dinheiro"
                             }
                           </span>
 

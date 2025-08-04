@@ -383,7 +383,7 @@ function CheckoutPageContent() {
         ...(formData.paymentMethod === "money" && {
           paymentChange: formData.paymentChange || "0"
         }),
-        status: formData.paymentMethod === "mercado_pago_pix" ? "pending_payment" as const : "new" as const,
+        status: "new" as const,
         date: new Date(),
         printed: false,
         notified: false,
@@ -408,25 +408,7 @@ function CheckoutPageContent() {
         setOrderId(savedOrderId)
       }
 
-      // Se for pagamento PIX do Mercado Pago, redirecionar para página de pagamento
-      if (formData.paymentMethod === "mercado_pago_pix") {
-        // Limpar carrinho antes de redirecionar
-        await clearCart()
-        
-        // Redirecionar para página de pagamento PIX
-        const pixParams = new URLSearchParams({
-          amount: total.toString(),
-          description: `Pedido #${savedOrderId} - ${storeConfig?.name || 'Loja'}`,
-          email: formData.name.toLowerCase().replace(/\s+/g, '') + '@email.com', // Email temporário
-          name: formData.name,
-          order_id: savedOrderId
-        })
-        
-        router.push(`/checkout/pix?${pixParams.toString()}`)
-        return
-      }
-
-      // Limpar carrinho para outros métodos de pagamento
+      // Limpar carrinho
       await clearCart()
 
       // Mostrar notificação de sucesso
@@ -770,29 +752,6 @@ function CheckoutPageContent() {
               <div className="flex items-center">
                 <input
                   type="radio"
-                  id="mercado_pago_pix"
-                  name="paymentMethod"
-                  value="mercado_pago_pix"
-                  checked={formData.paymentMethod === "mercado_pago_pix"}
-                  onChange={handleChange}
-                  className="h-5 w-5 text-purple-600 focus:ring-purple-500"
-                />
-                <label htmlFor="mercado_pago_pix" className="ml-3 block text-base text-gray-700">
-                  <div className="flex items-center">
-                    <span>PIX - Mercado Pago</span>
-                    <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                      Instantâneo
-                    </span>
-                  </div>
-                  <span className="text-sm text-gray-500 ml-0">
-                    Pagamento imediato via PIX
-                  </span>
-                </label>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="radio"
                   id="card"
                   name="paymentMethod"
                   value="card"
@@ -987,7 +946,6 @@ function CheckoutPageContent() {
                 </>
               ) : storeStatus.isOpen ? (
                 formData.paymentMethod === "pix" ? "Pix na Entrega" :
-                  formData.paymentMethod === "mercado_pago_pix" ? "Pagar com PIX" :
                     formData.paymentMethod === "card" ? "Cartão na Entrega" :
                       formData.paymentMethod === "money" ? "Pagar em Dinheiro" :
                         "Finalizar e Enviar Pedido"

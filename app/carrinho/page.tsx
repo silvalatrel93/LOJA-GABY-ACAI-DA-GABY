@@ -769,12 +769,10 @@ function CartPageContent() {
             </div>
 
             <div className="pt-3 mt-1 border-t border-gray-300">
-              <ItemRow
-                name="Total"
-                value={formatCurrency(total)}
-                className="text-lg sm:text-xl md:text-2xl font-bold"
-                style={{ color: storeConfig?.storeColor || '#8B5CF6' }}
-              />
+              <div className={`flex items-center justify-between w-full text-lg sm:text-xl md:text-2xl font-bold`} style={{ color: storeConfig?.storeColor || '#8B5CF6' }}>
+                <div className="flex-1 text-sm sm:text-base text-gray-600">Total</div>
+                <div className="flex-shrink-0 text-right tabular-nums text-sm sm:text-base md:text-lg font-bold text-gray-900" data-component-name="ItemRow">{formatCurrency(total)}</div>
+              </div>
             </div>
           </div>
         </div>

@@ -667,7 +667,6 @@ export default function PedidosMesaPage() {
   const formatPaymentMethod = (method: string) => {
     switch (method) {
       case 'pix': return 'PIX'
-      case 'mercado_pago_pix': return 'PIX - Mercado Pago'
       case 'money': return 'Dinheiro'
       case 'card': return 'Cartão'
       default: return 'Outros'

@@ -203,8 +203,6 @@ export default function OrderLabelPrinter({ order, onPrintComplete, autoPrint = 
     const isTableOrder = order.orderType === 'table' || order.tableId
     if (order.paymentMethod === "pix") {
         paymentText += isTableOrder ? "Pix" : "Pix na Entrega"
-      } else if (order.paymentMethod === "mercado_pago_pix") {
-        paymentText += "PIX - Mercado Pago"
       } else if (order.paymentMethod === "card") {
         paymentText += isTableOrder ? "Cartão" : "Cartão na Entrega"
       } else if (order.paymentMethod === "money") {
@@ -863,8 +861,6 @@ export default function OrderLabelPrinter({ order, onPrintComplete, autoPrint = 
       const isTableOrder = order.orderType === 'table' || order.tableId
       if (order.paymentMethod === "pix") {
         paymentText += isTableOrder ? "Pix" : "Pix na Entrega"
-      } else if (order.paymentMethod === "mercado_pago_pix") {
-        paymentText += "PIX - Mercado Pago"
       } else if (order.paymentMethod === "card") {
         paymentText += isTableOrder ? "Cartão" : "Cartão na Entrega"
       } else if (order.paymentMethod === "money") {
@@ -1174,8 +1170,6 @@ export default function OrderLabelPrinter({ order, onPrintComplete, autoPrint = 
                   const isTableOrder = order.orderType === 'table' || order.tableId
                   if (order.paymentMethod === "pix") {
                     return isTableOrder ? "Pix" : "Pix na Entrega"
-                  } else if (order.paymentMethod === "mercado_pago_pix") {
-                    return "PIX - Mercado Pago"
                   } else if (order.paymentMethod === "card") {
                     return isTableOrder ? "Cartão" : "Cartão na Entrega"
                   } else {

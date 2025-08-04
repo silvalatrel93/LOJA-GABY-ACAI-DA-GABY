@@ -246,11 +246,11 @@ export default function AdminPage() {
         // Atualizar o estado local diretamente
         if (editingProduct.id === 0) {
           // Produto novo - adicionar à lista
-          setProducts(prevProducts => [...prevProducts, result.data])
+          setProducts(prevProducts => [...prevProducts, result.data as Product])
         } else {
           // Produto existente - atualizar na lista
           setProducts(prevProducts => 
-            prevProducts.map(p => p.id === editingProduct.id ? result.data : p)
+            prevProducts.map(p => p.id === editingProduct.id ? result.data as Product : p)
           )
         }
         

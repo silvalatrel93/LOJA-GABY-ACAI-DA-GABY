@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import MercadoPago from 'mercadopago'
+import { MercadoPagoConfig, Payment } from 'mercadopago'
 
 // Configurar Mercado Pago
-const client = new MercadoPago({
+const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!,
 })
+
+const payment = new Payment(client)
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +17,7 @@ export async function POST(request: NextRequest) {
       const paymentId = body.data.id
       
       // Buscar detalhes do pagamento
-      const payment = await client.payment.get({ id: paymentId })
+      const paymentData = await payment.get({ id: paymentId })
       
       console.log('Webhook recebido:', {
         paymentId,
