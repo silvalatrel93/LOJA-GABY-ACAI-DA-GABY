@@ -45,7 +45,7 @@ function ProductCardContent({ product }: ProductCardProps) {
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false)
   const [storeStatus, setStoreStatus] = useState({ isOpen: true, statusText: "", statusClass: "" })
   const [showSuccess, setShowSuccess] = useState(false)
-  const [needsSpoon, setNeedsSpoon] = useState<boolean | undefined>(undefined) // Estado para controlar se precisa de colher
+  const [needsSpoon, setNeedsSpoon] = useState<boolean | null>(null) // Estado para controlar se precisa de colher
   const [spoonQuantity, setSpoonQuantity] = useState(1) // Estado para controlar a quantidade de colheres
   
   // Acesso ao contexto do carrinho
@@ -240,7 +240,7 @@ function ProductCardContent({ product }: ProductCardProps) {
   const getButtonText = () => {
     if (!storeStatus.isOpen) return "Loja fechada - Não é possível adicionar"
     if (!selectedSize || selectedSize === '') return "Selecione um tamanho"
-    if (product.needsSpoon && needsSpoon === undefined) return "Selecione se precisa de colher"
+    if (product.needsSpoon && needsSpoon === null) return "Selecione se precisa de colher"
     
     const total = calculateTotal()
     const isPicoléProduct = isPicolé(product.categoryName)
@@ -391,7 +391,7 @@ function ProductCardContent({ product }: ProductCardProps) {
                   )}
 
                   {/* Mensagem de aviso se não selecionou */}
-                  {needsSpoon === undefined && (
+                  {needsSpoon === null && (
                     <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-md">
                       <p className="text-xs text-red-700 flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-600 mr-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

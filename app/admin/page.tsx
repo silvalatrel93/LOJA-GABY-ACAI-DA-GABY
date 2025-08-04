@@ -163,7 +163,12 @@ export default function AdminPage() {
   }
 
   const handleEditProduct = (product: Product) => {
-    setEditingProduct({ ...product })
+    setEditingProduct({ 
+      ...product,
+      hidden: product.hidden ?? false, // Garantir que hidden seja sempre um booleano
+      hiddenFromTable: product.hiddenFromTable ?? false, // Garantir que hiddenFromTable seja sempre um booleano
+      needsSpoon: product.needsSpoon ?? false // Garantir que needsSpoon seja sempre um booleano
+    })
     setIsModalOpen(true)
   }
 
@@ -1083,7 +1088,7 @@ export default function AdminPage() {
                         <label className="block text-xs text-gray-500 mb-1 font-medium whitespace-nowrap">Limite de adicionais</label>
                         <input
                           type="number"
-                          value={size.additionalsLimit || ''}
+                          value={size.additionalsLimit ?? ''}
                           onChange={(e) => handleSizeChange(index, "additionalsLimit", e.target.value)}
                           className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           placeholder="Vazio = sem limite"
@@ -1238,6 +1243,7 @@ export default function AdminPage() {
                                         src={additional.image || "/placeholder.svg"}
                                         alt={additional.name}
                                         fill
+                                        sizes="40px"
                                         className="object-cover"
                                       />
                                     ) : (
@@ -1287,6 +1293,7 @@ export default function AdminPage() {
                                     src={additional.image || "/placeholder.svg"}
                                     alt={additional.name}
                                     fill
+                                    sizes="40px"
                                     className="object-cover"
                                   />
                                 ) : (

@@ -368,7 +368,7 @@ export default function RelatoriosPage() {
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Status</Label>
                 <Select
-                  value={filters.status?.[0] || 'all'}
+                  value={filters.status?.[0] ?? 'all'}
                   onValueChange={(value) => setFilters(prev => ({ 
                     ...prev, 
                     status: value === 'all' ? [] : [value as OrderStatus] 
@@ -464,4 +464,4 @@ export default function RelatoriosPage() {
       </div>
     </div>
   )
-} 
+}

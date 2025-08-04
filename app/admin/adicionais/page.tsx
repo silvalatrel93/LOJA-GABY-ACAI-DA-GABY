@@ -116,6 +116,18 @@ export default function AdditionalsAdminPage() {
       return
     }
 
+    if (!editingAdditional.categoryId || editingAdditional.categoryId === 0) {
+      alert("Por favor, selecione uma categoria para o adicional")
+      return
+    }
+
+    // Verificar se a categoria selecionada existe
+    const categoryExists = additionalCategories.find(cat => cat.id === editingAdditional.categoryId)
+    if (!categoryExists) {
+      alert("A categoria selecionada não é válida. Por favor, selecione uma categoria existente.")
+      return
+    }
+
     // Se não tem preço definido, garantir que o preço seja zero
     const additionalToSave = {
       ...editingAdditional,
@@ -123,10 +135,14 @@ export default function AdditionalsAdminPage() {
     };
 
     // Remover a propriedade hasPricing antes de salvar no banco
-    const { hasPricing: _hasPricing, ...additionalForDatabase } = additionalToSave as Additional & { hasPricing?: boolean };
+    const { hasPricing: _hasPricing, priceInput: _priceInput, ...additionalForDatabase } = additionalToSave as Additional & { hasPricing?: boolean; priceInput?: string };
+
+    console.log("Salvando adicional:", additionalForDatabase)
+    console.log("Categoria selecionada:", categoryExists)
 
     try {
-      await saveAdditional(additionalForDatabase)
+      const result = await saveAdditional(additionalForDatabase)
+      console.log("Resultado do salvamento:", result)
 
       // Atualizar a lista de adicionais após salvar
       await loadData()
@@ -230,6 +246,7 @@ export default function AdditionalsAdminPage() {
                         src={additional.image || "/placeholder.svg"}
                         alt={additional.name}
                         fill
+                        sizes="(max-width: 640px) 100vw, 96px"
                         className="object-cover"
                       />
                     ) : (
@@ -356,7 +373,7 @@ export default function AdditionalsAdminPage() {
                 {editingAdditional.hasPricing ? (
                   <input
                     type="number"
-                    value={editingAdditional.priceInput}
+                    value={editingAdditional.priceInput || ""}
                     onChange={(e) => {
                       const inputValue = e.target.value;
                       setEditingAdditional({
@@ -381,8 +398,8 @@ export default function AdditionalsAdminPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
                 <select
-                  value={editingAdditional.categoryId}
-                  onChange={(e) => setEditingAdditional({ ...editingAdditional, categoryId: Number(e.target.value) })}
+                  value={editingAdditional.categoryId || ""}
+                  onChange={(e) => setEditingAdditional({ ...editingAdditional, categoryId: Number(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">Selecione uma categoria</option>
@@ -398,7 +415,7 @@ export default function AdditionalsAdminPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">URL da Imagem (opcional)</label>
                 <input
                   type="text"
-                  value={editingAdditional.image || ""}
+                  value={editingAdditional.image ?? ""}
                   onChange={(e) => setEditingAdditional({ ...editingAdditional, image: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="URL da imagem"

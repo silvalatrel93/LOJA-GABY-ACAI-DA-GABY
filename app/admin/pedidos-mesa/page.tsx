@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { OrderService, subscribeToOrderChanges } from "@/lib/services/order-service"
 import { TableService } from "@/lib/services/table-service"
 import { updateOrderStatus, markOrderAsPrinted } from "@/lib/db"
@@ -1323,6 +1323,9 @@ export default function PedidosMesaPage() {
               <DialogTitle className="text-base sm:text-lg">
                 Detalhes do Pedido #{selectedOrder?.id}
               </DialogTitle>
+              <DialogDescription className="sr-only">
+                Modal com informações detalhadas do pedido selecionado
+              </DialogDescription>
             </DialogHeader>
 
             {selectedOrder && (

@@ -30,6 +30,7 @@ export const AdditionalCategoryService = {
       const { data, error } = await supabase
         .from("categories")
         .select("*")
+        .eq("type", "additional")
         .order("order", { ascending: true })
 
       if (error) {
@@ -57,6 +58,7 @@ export const AdditionalCategoryService = {
       const { data, error } = await supabase
         .from("categories")
         .select("*")
+        .eq("type", "additional")
         .eq("active", true)
         .order("order", { ascending: true })
 
@@ -177,6 +179,7 @@ export const AdditionalCategoryService = {
           name: category.name,
           order: category.order,
           active: category.active,
+          type: 'additional',
         }
 
         // Remover explicitamente qualquer propriedade id

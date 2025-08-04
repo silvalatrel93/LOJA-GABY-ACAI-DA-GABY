@@ -227,13 +227,13 @@ export default function StoreConfigPage() {
                 <div className="flex items-center space-x-3">
                   <input
                     type="color"
-                    value={storeConfig.storeColor || "#8B5CF6"}
+                    value={storeConfig.storeColor ?? "#8B5CF6"}
                     onChange={(e) => setStoreConfig({ ...storeConfig, storeColor: e.target.value })}
                     className="w-16 h-10 border border-gray-300 rounded-md cursor-pointer"
                   />
                   <input
                     type="text"
-                    value={storeConfig.storeColor || "#8B5CF6"}
+                    value={storeConfig.storeColor ?? "#8B5CF6"}
                     onChange={(e) => setStoreConfig({ ...storeConfig, storeColor: e.target.value })}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="#8B5CF6"
@@ -278,7 +278,7 @@ export default function StoreConfigPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Valor da Taxa Padrão (R$)</label>
                       <input
                         type="number"
-                        value={(storeConfig as any)?._deliveryFee || ""}
+                        value={(storeConfig as any)?._deliveryFee ?? ""}
                         onChange={(e) => {
                           const value = e.target.value;
                           setStoreConfig({
@@ -299,7 +299,7 @@ export default function StoreConfigPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Taxa de Entrega para Maringá (R$)</label>
                       <input
                         type="number"
-                        value={(storeConfig as any)?._maringaDeliveryFee || ""}
+                        value={(storeConfig as any)?._maringaDeliveryFee ?? ""}
                         onChange={(e) => {
                           const value = e.target.value;
                           setStoreConfig({

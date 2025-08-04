@@ -173,7 +173,7 @@ function TablePricingManager({ product, onUpdate }: TablePricingManagerProps) {
                         </div>
                         <Input
                           type="number"
-                          value={size.price === 0 ? '' : size.price}
+                          value={size.price === 0 ? '' : size.price.toString()}
                           onChange={(e) => updateTableSize(index, 'price', e.target.value)}
                           className="w-full pl-8 pr-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                           placeholder="0,00"
@@ -188,7 +188,7 @@ function TablePricingManager({ product, onUpdate }: TablePricingManagerProps) {
                       <Label className="block text-xs text-gray-500 mb-1 font-medium whitespace-nowrap">Limite de adicionais</Label>
                       <Input
                         type="number"
-                        value={size.additionalsLimit || ''}
+                        value={size.additionalsLimit ?? ''}
                         onChange={(e) => updateTableSize(index, 'additionalsLimit', e.target.value ? parseInt(e.target.value) : undefined)}
                         className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                         placeholder="Vazio = sem limite"

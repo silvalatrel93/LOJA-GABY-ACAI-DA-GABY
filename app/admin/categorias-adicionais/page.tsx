@@ -275,7 +275,7 @@ export default function AdditionalCategoriesAdminPage() {
                 <div className="flex items-center">
                   <input
                     type="number"
-                    value={editingCategory.selectionLimit !== undefined ? editingCategory.selectionLimit : ""}
+                    value={editingCategory.selectionLimit !== undefined ? editingCategory.selectionLimit.toString() : ""}
                     onChange={(e) => {
                       const value = e.target.value.trim();
                       setEditingCategory({

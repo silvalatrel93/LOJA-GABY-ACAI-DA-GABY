@@ -45,7 +45,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
   const [storeStatus, setStoreStatus] = useState({ isOpen: true, statusText: "", statusClass: "" })
   const [showSuccess, setShowSuccess] = useState(false)
   const [isAddingToCart, setIsAddingToCart] = useState(false) // Novo estado para loading
-  const [needsSpoon, setNeedsSpoon] = useState<boolean | undefined>(undefined)
+  const [needsSpoon, setNeedsSpoon] = useState<boolean | null>(null)
   const [spoonQuantity, setSpoonQuantity] = useState(1)
 
   // Estados específicos para COMBO 2 COPOS
@@ -386,7 +386,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
   const isButtonDisabled = () => {
     return !storeStatus.isOpen ||
       !selectedSize ||
-      (product.needsSpoon && needsSpoon === undefined) ||
+      (product.needsSpoon && needsSpoon === null) ||
       isAddingToCart
   }
 
@@ -523,7 +523,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
                       </div>
                     )}
 
-                    {needsSpoon === undefined && (
+                    {needsSpoon === null && (
                       <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-md">
                         <p className="text-xs text-red-700 flex items-center">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-600 mr-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

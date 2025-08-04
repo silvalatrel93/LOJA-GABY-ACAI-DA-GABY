@@ -37,7 +37,10 @@ export const ProductService = {
           categories!products_category_id_fkey(name),
           active,
           allowed_additionals,
-          additionals_limit
+          additionals_limit,
+          needs_spoon,
+          hidden_from_delivery,
+          hidden_from_table
         `)
         .order("id")
 
@@ -61,12 +64,12 @@ export const ProductService = {
           : "",
         active: Boolean(item.active),
         hidden: false, // Coluna não existe na tabela
-        hiddenFromTable: false, // Coluna não existe na tabela
-        hiddenFromDelivery: false, // Coluna não existe na tabela
+        hiddenFromTable: Boolean(item.hidden_from_table),
+        hiddenFromDelivery: Boolean(item.hidden_from_delivery),
         allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
         hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
         additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
-        needsSpoon: undefined, // Coluna não existe na tabela
+        needsSpoon: Boolean(item.needs_spoon),
       }))
     } catch (error) {
       console.error("Erro ao buscar produtos:", error)
@@ -91,7 +94,8 @@ export const ProductService = {
           categories!products_category_id_fkey(name),
           active,
           allowed_additionals,
-          additionals_limit
+          additionals_limit,
+          needs_spoon
         `)
         .eq("active", true)
         .order("id")
@@ -121,7 +125,7 @@ export const ProductService = {
         allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
         hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
         additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
-        needsSpoon: undefined, // Coluna não existe na tabela
+        needsSpoon: Boolean(item.needs_spoon),
       }))
     } catch (error) {
       console.error("Erro ao buscar produtos ativos:", error)
@@ -146,7 +150,8 @@ export const ProductService = {
           categories!products_category_id_fkey(name),
           active,
           allowed_additionals,
-          additionals_limit
+          additionals_limit,
+          needs_spoon
         `)
         .eq("active", true)
         .order("id")
@@ -176,7 +181,7 @@ export const ProductService = {
         allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
         hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
         additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
-        needsSpoon: undefined, // Coluna não existe na tabela
+        needsSpoon: Boolean(item.needs_spoon),
       }))
     } catch (error) {
       console.error("Erro ao buscar produtos visíveis:", error)
@@ -201,7 +206,8 @@ export const ProductService = {
           categories!products_category_id_fkey(name),
           active,
           allowed_additionals,
-          additionals_limit
+          additionals_limit,
+          needs_spoon
         `)
         .eq("id", id)
         .single()
@@ -235,7 +241,7 @@ export const ProductService = {
         allowedAdditionals: Array.isArray(data.allowed_additionals) ? data.allowed_additionals : [],
         hasAdditionals: Array.isArray(data.allowed_additionals) && data.allowed_additionals.length > 0,
         additionalsLimit: typeof data.additionals_limit === 'number' ? data.additionals_limit : undefined,
-        needsSpoon: undefined, // Coluna não existe na tabela
+        needsSpoon: Boolean(data.needs_spoon),
       }
     } catch (error) {
       console.error(`Erro ao buscar produto ${id}:`, error)
@@ -262,6 +268,7 @@ export const ProductService = {
           active: Boolean(product.active),
           allowed_additionals: product.allowedAdditionals || [],
           additionals_limit: product.additionalsLimit || 5,
+          needs_spoon: Boolean(product.needsSpoon),
         }
 
         console.log("Dados para atualização:", updateData)
@@ -306,7 +313,7 @@ export const ProductService = {
           allowedAdditionals: Array.isArray(data.allowed_additionals) ? data.allowed_additionals : [],
           hasAdditionals: Array.isArray(data.allowed_additionals) && data.allowed_additionals.length > 0,
           additionalsLimit: typeof data.additionals_limit === 'number' ? data.additionals_limit : undefined,
-          needsSpoon: undefined, // Coluna não existe na tabela
+          needsSpoon: Boolean(data.needs_spoon),
         }
 
         return { data: result, error: null }
@@ -321,6 +328,7 @@ export const ProductService = {
           active: Boolean(product.active !== undefined ? product.active : true),
           allowed_additionals: product.allowedAdditionals || [],
           additionals_limit: product.additionalsLimit || 5,
+          needs_spoon: Boolean(product.needsSpoon),
         }
 
         console.log("Dados para criação:", insertData)
@@ -363,7 +371,7 @@ export const ProductService = {
           allowedAdditionals: Array.isArray(data.allowed_additionals) ? data.allowed_additionals : [],
           hasAdditionals: Array.isArray(data.allowed_additionals) && data.allowed_additionals.length > 0,
           additionalsLimit: typeof data.additionals_limit === 'number' ? data.additionals_limit : undefined,
-          needsSpoon: undefined, // Coluna não existe na tabela
+          needsSpoon: Boolean(data.needs_spoon),
         }
 
         return { data: result, error: null }
@@ -546,10 +554,13 @@ export async function getVisibleProductsForDelivery(): Promise<Product[]> {
           category_id,
           categories!products_category_id_fkey(name),
           active,
+          hidden_from_delivery,
           allowed_additionals,
-          additionals_limit
+          additionals_limit,
+          needs_spoon
         `)
       .eq("active", true)
+      .eq("hidden_from_delivery", false)
       .order("id")
 
     if (error) {
@@ -570,12 +581,12 @@ export async function getVisibleProductsForDelivery(): Promise<Product[]> {
         : "",
       active: Boolean(item.active),
       hidden: false, // Coluna não existe na tabela
-      hiddenFromTable: false, // Coluna não existe na tabela
-      hiddenFromDelivery: false, // Coluna não existe na tabela
+      hiddenFromTable: false, // Não selecionada nesta query
+      hiddenFromDelivery: Boolean(item.hidden_from_delivery),
       allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
       hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
       additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
-      needsSpoon: undefined, // Coluna não existe na tabela
+      needsSpoon: Boolean(item.needs_spoon),
     }))
   } catch (error) {
     console.error("Erro ao buscar produtos visíveis no delivery:", error)
@@ -600,10 +611,13 @@ export async function getVisibleProductsForTable(): Promise<Product[]> {
           category_id,
           categories!products_category_id_fkey(name),
           active,
+          hidden_from_table,
           allowed_additionals,
-          additionals_limit
+          additionals_limit,
+          needs_spoon
         `)
       .eq("active", true)
+      .eq("hidden_from_table", false)
       .order("id")
 
     if (error) {
@@ -624,12 +638,12 @@ export async function getVisibleProductsForTable(): Promise<Product[]> {
         : "",
       active: Boolean(item.active),
       hidden: false, // Coluna não existe na tabela
-      hiddenFromTable: false, // Coluna não existe na tabela
-      hiddenFromDelivery: false, // Coluna não existe na tabela
+      hiddenFromTable: Boolean(item.hidden_from_table),
+      hiddenFromDelivery: Boolean(item.hidden_from_delivery),
       allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
       hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
       additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
-      needsSpoon: undefined, // Coluna não existe na tabela
+      needsSpoon: Boolean(item.needs_spoon),
     }))
   } catch (error) {
     console.error("Erro ao buscar produtos visíveis em mesa:", error)
@@ -638,7 +652,7 @@ export async function getVisibleProductsForTable(): Promise<Product[]> {
 }
 
 /**
- * Alternar visibilidade do produto no delivery (usando campo 'active')
+ * Alternar visibilidade do produto no delivery (usando campo 'hidden_from_delivery')
  */
 export async function toggleDeliveryVisibility(productId: number): Promise<boolean> {
   try {
@@ -647,7 +661,7 @@ export async function toggleDeliveryVisibility(productId: number): Promise<boole
     // Primeiro, obter o estado atual
     const { data: currentProduct, error: fetchError } = await supabase
       .from("products")
-      .select("active")
+      .select("hidden_from_delivery")
       .eq("id", productId)
       .single()
 
@@ -656,13 +670,13 @@ export async function toggleDeliveryVisibility(productId: number): Promise<boole
       return false
     }
 
-    // Alternar o estado
-    const newActiveValue = !currentProduct.active
+    // Alternar o estado (inverter hidden_from_delivery)
+    const newHiddenValue = !currentProduct.hidden_from_delivery
 
     const adminSupabase = createAdminSupabaseClient()
     const { error } = await adminSupabase
       .from("products")
-      .update({ active: newActiveValue })
+      .update({ hidden_from_delivery: newHiddenValue })
       .eq("id", productId)
 
     if (error) {
@@ -670,7 +684,7 @@ export async function toggleDeliveryVisibility(productId: number): Promise<boole
       return false
     }
 
-    console.log(`Produto ${productId} ${newActiveValue ? 'ativado' : 'desativado'}`)
+    console.log(`Produto ${productId} ${newHiddenValue ? 'oculto do' : 'visível no'} delivery`)
     return true
   } catch (error) {
     console.error("Erro ao alternar visibilidade do produto no delivery:", error)

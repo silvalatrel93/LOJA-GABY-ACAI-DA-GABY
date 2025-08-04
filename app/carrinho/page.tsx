@@ -583,7 +583,7 @@ function CartPageContent() {
                           {expandedNotes[item.id] && (
                             <div className="mt-2 space-y-2">
                               <textarea
-                                value={notesValues[item.id] || ""}
+                                value={notesValues[item.id] ?? ""}
                                 onChange={(e) => handleNotesChange(item.id, e.target.value)}
                                 placeholder="Ex: remover banana, sem açúcar, etc."
                                 className="w-full text-xs border border-gray-300 rounded p-2 resize-none"

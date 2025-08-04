@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogPortal, DialogOverlay } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogPortal, DialogOverlay } from "@/components/ui/dialog"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { cn } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -507,6 +507,9 @@ export default function MesasAdminPage() {
             <DialogTitle className="text-lg sm:text-xl">
               {selectedTable ? "Editar Mesa" : "Nova Mesa"}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Formulário para {selectedTable ? "editar" : "criar"} mesa
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
@@ -582,6 +585,9 @@ export default function MesasAdminPage() {
             <DialogTitle className="text-lg sm:text-xl text-center mb-4">
               QR Code - {selectedTable?.name}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Modal exibindo QR Code da mesa selecionada
+            </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center space-y-4">
             <div className="w-full">

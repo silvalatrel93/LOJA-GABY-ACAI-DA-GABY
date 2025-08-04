@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 export const homeMetadata: Metadata = {
+  metadataBase: new URL('https://pedi-facil-loja-2.vercel.app'),
   title: 'PediFacil - Sistema de Delivery Completo',
   description: 'Sistema completo de delivery com gestão de pedidos, cardápio digital e painel administrativo. Faça seu pedido online!',
   keywords: ['delivery', 'pedidos', 'restaurante', 'cardápio', 'sistema', 'pedifacil'],

@@ -43,7 +43,7 @@ export const AdditionalService = {
         id: Number(item.id),
         name: String(item.name),
         price: Number(item.price),
-        categoryId: Number(item.additional_category_id),
+        categoryId: Number(item.category_id),
         categoryName: item.category && typeof item.category === 'object' && item.category !== null && 'name' in item.category ? String((item.category as any).name) : "",
         active: Boolean(item.active),
         image: item.image ? String(item.image) : "",
@@ -81,7 +81,7 @@ export const AdditionalService = {
         id: Number(item.id),
         name: String(item.name),
         price: Number(item.price),
-        categoryId: Number(item.additional_category_id),
+        categoryId: Number(item.category_id),
         categoryName: item.category && typeof item.category === 'object' && item.category !== null && 'name' in item.category ? String((item.category as any).name) : "",
         active: Boolean(item.active),
         image: item.image ? String(item.image) : "",
@@ -136,7 +136,7 @@ export const AdditionalService = {
         id: Number(item.id),
         name: String(item.name),
         price: Number(item.price),
-        categoryId: Number(item.additional_category_id),
+        categoryId: Number(item.category_id),
         categoryName: item.category && typeof item.category === 'object' && item.category !== null && 'name' in item.category ? String((item.category as any).name) : "",
         active: Boolean(item.active),
         image: item.image ? String(item.image) : "",
@@ -386,7 +386,7 @@ export const AdditionalService = {
       // Buscar os registros da página
       const { data, error } = await supabase
         .from("additionals")
-        .select("*, category:additional_categories(name)")
+        .select("*, category:categories(name)")
         .order("name")
         .range(offset, offset + limit - 1)
 
