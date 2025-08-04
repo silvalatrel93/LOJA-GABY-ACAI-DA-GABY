@@ -40,11 +40,11 @@ export default function PixPaymentContent() {
     }
   }, [amount, description, customerEmail, customerName, orderId, router])
 
-  const handlePaymentSuccess = (paymentId: string) => {
+  const handlePaymentSuccess = () => {
     setPaymentCompleted(true)
     // Redirecionar para página de sucesso após 3 segundos
     setTimeout(() => {
-      router.push(`/checkout/success?payment_id=${paymentId}&order_id=${orderId}`)
+      router.push(`/checkout/success?order_id=${orderId}`)
     }, 3000)
   }
 
@@ -111,9 +111,10 @@ export default function PixPaymentContent() {
         {!paymentCompleted && (
           <PixPayment
             amount={parseFloat(amount)}
-            description={description}
             customerEmail={customerEmail}
             customerName={customerName}
+            customerPhone=""
+            customerDocument=""
             orderId={orderId}
             onPaymentSuccess={handlePaymentSuccess}
             onPaymentError={handlePaymentError}

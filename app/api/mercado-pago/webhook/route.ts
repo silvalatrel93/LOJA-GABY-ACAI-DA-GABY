@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
       
       console.log('Webhook recebido:', {
         paymentId,
-        status: payment.status,
-        statusDetail: payment.status_detail
+        status: paymentData.status,
+        statusDetail: paymentData.status_detail
       })
       
       // Aqui você pode adicionar lógica para atualizar o status do pedido

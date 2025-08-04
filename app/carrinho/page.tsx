@@ -813,11 +813,10 @@ function CartPageContent() {
                 <button
                   className="
                     w-full relative overflow-hidden group
-                    border-2 transition-all duration-300
+                    border-2 transition-all duration-300 ease-in-out
                     py-4 sm:py-3 px-4 rounded-xl sm:rounded-lg 
                     font-semibold text-sm sm:text-base
                     shadow-sm hover:shadow-md
-                    transition-all duration-300 ease-in-out
                     active:scale-[0.98]
                     focus:outline-none focus:ring-2 focus:ring-opacity-50
                     touch-manipulation"
@@ -848,11 +847,10 @@ function CartPageContent() {
             <button
               className="
                 w-full relative overflow-hidden group
-                text-white transition-all duration-300
+                text-white transition-all duration-300 ease-in-out
                 py-4 sm:py-3 px-4 rounded-xl sm:rounded-lg 
                 font-semibold text-sm sm:text-base
                 shadow-md hover:shadow-lg
-                transition-all duration-300 ease-in-out
                 active:scale-[0.98]
                 focus:outline-none focus:ring-2 focus:ring-opacity-50
                 touch-manipulation"
