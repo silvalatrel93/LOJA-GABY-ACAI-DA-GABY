@@ -510,6 +510,7 @@ function ProductCardContent({ product }: ProductCardProps) {
           imageUrl={product.image || "/placeholder.svg"}
           alt={product.name}
           onClose={() => setIsImageViewerOpen(false)}
+          storeColor={storeColor}
         />
       )}
     </>

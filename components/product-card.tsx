@@ -711,6 +711,7 @@ function ProductCardContent({ product, priority = false, storeColor = "#8B5CF6" 
           imageUrl={product.image || "/placeholder.svg"}
           alt={product.name}
           onClose={() => setIsImageViewerOpen(false)}
+          storeColor={storeColor}
         />
       )}
 

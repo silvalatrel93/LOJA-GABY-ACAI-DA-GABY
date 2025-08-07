@@ -9,9 +9,10 @@ interface ImageViewerProps {
   imageUrl: string
   alt: string
   onClose: () => void
+  storeColor?: string
 }
 
-export default function ImageViewer({ imageUrl, alt, onClose }: ImageViewerProps) {
+export default function ImageViewer({ imageUrl, alt, onClose, storeColor = "#8B5CF6" }: ImageViewerProps) {
   // Impedir o scroll da página enquanto o visualizador está aberto
   useEffect(() => {
     document.body.style.overflow = "hidden"
@@ -53,7 +54,17 @@ export default function ImageViewer({ imageUrl, alt, onClose }: ImageViewerProps
       {/* Botão de fechar - posicionamento responsivo */}
       <button
         onClick={handleCloseButtonClick}
-        className="absolute top-4 right-4 sm:top-4 sm:right-4 max-sm:top-auto max-sm:bottom-8 max-sm:right-4 bg-gradient-to-r from-purple-500 to-purple-800 hover:from-purple-600 hover:to-purple-900 p-2 rounded-full text-white shadow-sm transition-all duration-200 z-10"
+        className="absolute top-4 right-4 sm:top-4 sm:right-4 max-sm:top-auto max-sm:bottom-8 max-sm:right-4 p-2 rounded-full text-white shadow-sm transition-all duration-200 z-10"
+        style={{
+          background: `linear-gradient(to right, ${storeColor}, ${storeColor}dd)`,
+          filter: 'brightness(0.9)'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.filter = 'brightness(1.1)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.filter = 'brightness(0.9)'
+        }}
         aria-label="Fechar"
       >
         <X size={24} />
