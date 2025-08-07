@@ -281,21 +281,37 @@ export const OrderService = {
   // Excluir pedido
   async deleteOrder(id: number): Promise<boolean> {
     try {
-      const supabase = createSupabaseClient()
-      const { error } = await supabase
-        .from("orders")
-        .delete()
-        .eq("id", id)
+      const supabase = createSupabaseClient();
 
-      if (error) {
-        console.error(`Erro ao deletar pedido ${id}:`, error)
-        return false
+      // 1. Excluir itens do pedido da tabela 'order_items'
+      // Esta tabela pode não existir em todas as versões, então tratamos o erro.
+      const { error: deleteItemsError } = await supabase
+        .from('order_items')
+        .delete()
+        .eq('order_id', id);
+
+      if (deleteItemsError && deleteItemsError.code !== '42P01') { // 42P01: undefined_table
+        console.error(`Erro ao excluir itens do pedido ${id}:`, deleteItemsError);
+        // Continuar mesmo se a tabela não existir ou se houver outro erro,
+        // pois o objetivo principal é excluir o pedido.
       }
 
-      return true
+      // 2. Excluir o pedido da tabela 'orders'
+      const { error: deleteOrderError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', id);
+
+      if (deleteOrderError) {
+        console.error(`Erro ao excluir o pedido ${id} da tabela 'orders':`, deleteOrderError);
+        return false;
+      }
+
+      console.log(`Pedido ${id} e seus itens foram excluídos com sucesso.`);
+      return true;
     } catch (error) {
-      console.error(`Erro ao deletar pedido ${id}:`, error)
-      return false
+      console.error(`Erro inesperado ao excluir o pedido ${id}:`, error);
+      return false;
     }
   },
 

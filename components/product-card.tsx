@@ -208,7 +208,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
             additionals: selectedAdditionalsArray,
             originalPrice: selectedSizeInfo.price + additionalsTotalPrice,
             categoryName: product.categoryName,
-            needsSpoon: needsSpoon,
+            needsSpoon: needsSpoon === null ? undefined : needsSpoon,
             spoonQuantity: needsSpoon === true ? spoonQuantity : undefined
           }
 
@@ -246,7 +246,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
             additionals: selectedAdditionalsArray,
             originalPrice: additionalsTotalPrice, // Apenas o preço dos adicionais
             categoryName: product.categoryName,
-            needsSpoon: needsSpoon,
+            needsSpoon: needsSpoon === null ? undefined : needsSpoon,
             spoonQuantity: needsSpoon === true ? spoonQuantity : undefined
           }
 
@@ -286,7 +286,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
           additionals: selectedAdditionalsArray,
           originalPrice: selectedSizeInfo.price + additionalsTotalPrice,
           categoryName: product.categoryName,
-          needsSpoon: needsSpoon,
+          needsSpoon: needsSpoon === null ? undefined : needsSpoon,
           spoonQuantity: needsSpoon === true ? spoonQuantity : undefined
         }
 

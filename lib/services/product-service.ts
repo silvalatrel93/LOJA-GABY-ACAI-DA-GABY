@@ -51,6 +51,10 @@ export const ProductService = {
         return []
       }
 
+      if (!data) {
+        return []
+      }
+
       return data.map((item: any) => ({
         id: Number(item.id),
         name: String(item.name),
@@ -104,6 +108,10 @@ export const ProductService = {
 
       if (error) {
         console.error("Erro ao buscar produtos ativos:", error)
+        return []
+      }
+
+      if (!data) {
         return []
       }
 
@@ -163,6 +171,10 @@ export const ProductService = {
         return []
       }
 
+      if (!data) {
+        return []
+      }
+
       return data.map((item: any) => ({
         id: Number(item.id),
         name: String(item.name),
@@ -185,6 +197,65 @@ export const ProductService = {
       }))
     } catch (error) {
       console.error("Erro ao buscar produtos visíveis:", error)
+      return []
+    }
+  },
+
+  // Obter produtos por categoria
+  async getProductsByCategory(categoryId: number): Promise<Product[]> {
+    try {
+      const supabase = createSupabaseClient()
+
+      let { data, error } = await supabase
+        .from("products")
+        .select(`
+          id,
+          name,
+          description,
+          image,
+          sizes,
+          category_id,
+          categories!products_category_id_fkey(name),
+          active,
+          allowed_additionals,
+          additionals_limit,
+          needs_spoon
+        `)
+        .eq("category_id", categoryId)
+        .eq("active", true)
+        .order("id")
+
+      if (error) {
+        console.error(`Erro ao buscar produtos da categoria ${categoryId}:`, error)
+        return []
+      }
+
+      if (!data) {
+        return []
+      }
+
+      return data.map((item: any) => ({
+        id: Number(item.id),
+        name: String(item.name),
+        description: String(item.description || ""),
+        image: String(item.image || ""),
+        sizes: Array.isArray(item.sizes) ? item.sizes : [],
+        tableSizes: undefined,
+        categoryId: Number(item.category_id),
+        categoryName: item.categories && typeof item.categories === 'object' && item.categories !== null && 'name' in item.categories
+          ? String((item.categories as any).name)
+          : "",
+        active: Boolean(item.active),
+        hidden: false,
+        hiddenFromTable: false,
+        hiddenFromDelivery: false,
+        allowedAdditionals: Array.isArray(item.allowed_additionals) ? item.allowed_additionals : [],
+        hasAdditionals: Array.isArray(item.allowed_additionals) && item.allowed_additionals.length > 0,
+        additionalsLimit: typeof item.additionals_limit === 'number' ? item.additionals_limit : undefined,
+        needsSpoon: Boolean(item.needs_spoon),
+      }))
+    } catch (error) {
+      console.error(`Erro ao buscar produtos da categoria ${categoryId}:`, error)
       return []
     }
   },
@@ -696,6 +767,7 @@ export async function toggleDeliveryVisibility(productId: number): Promise<boole
 export const getAllProducts = ProductService.getAllProducts.bind(ProductService)
 export const getActiveProducts = ProductService.getActiveProducts.bind(ProductService)
 export const getVisibleProducts = ProductService.getVisibleProducts.bind(ProductService)
+export const getProductsByCategory = ProductService.getProductsByCategory.bind(ProductService)
 export const getProductById = ProductService.getProductById.bind(ProductService)
 export const saveProduct = ProductService.saveProduct.bind(ProductService)
 export const deleteProduct = ProductService.deleteProduct.bind(ProductService)

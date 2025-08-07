@@ -263,7 +263,10 @@ export const ReportsService = {
       status: order.status as OrderStatus,
       date: new Date(order.date),
       printed: order.printed || false,
-      notified: order.notified || false
+      notified: order.notified || false,
+      orderType: order.order_type || 'delivery',
+      tableId: order.table_id,
+      tableName: order.table_name
     }
   },
 
@@ -325,4 +328,4 @@ export const ReportsService = {
       }
     }
   }
-} 
+}

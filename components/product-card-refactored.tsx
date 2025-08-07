@@ -181,7 +181,7 @@ function ProductCardContent({ product }: ProductCardProps) {
       additionals: selectedAdditionalsArray,
       originalPrice: selectedSizeInfo.price + additionalsTotalPrice,
       categoryName: product.categoryName,
-      needsSpoon: needsSpoon, // Usar o estado local para determinar se precisa de colher
+      needsSpoon: needsSpoon === null ? undefined : needsSpoon, // Usar o estado local para determinar se precisa de colher
       spoonQuantity: needsSpoon === true ? spoonQuantity : undefined // Quantidade só é relevante se precisa de colher
     };
     

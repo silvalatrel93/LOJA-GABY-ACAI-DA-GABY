@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
-import { Order, OrderStatus } from '@/lib/types'
+import { Order, OrderStatus, OrderItem } from '@/lib/types'
 
 interface RecentOrdersProps {
   recentOrders: Order[]
@@ -193,7 +193,7 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({
                       <div className="order-1">
                         <h4 className="font-semibold text-gray-900 text-sm mb-2 sm:mb-3">📋 Itens do Pedido</h4>
                         <div className="space-y-2">
-                          {(Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? JSON.parse(order.items) : [])).map((item, index) => (
+                          {(Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? JSON.parse(order.items) : [])).map((item: OrderItem, index: number) => (
                             <div key={index} className="flex flex-col sm:flex-row sm:justify-between sm:items-start bg-white p-2 sm:p-3 rounded border gap-2 sm:gap-0">
                               <div className="flex-1">
                                 <div className="font-medium text-sm text-gray-900">
@@ -326,4 +326,4 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({
       </CardContent>
     </Card>
   )
-} 
+}

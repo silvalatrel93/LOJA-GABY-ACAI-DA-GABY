@@ -211,6 +211,10 @@ export interface SupabaseStoreConfig {
   logo_url: string
   delivery_fee: number
   maringa_delivery_fee?: number
+  picole_delivery_fee?: number
+  minimum_picole_order?: number
+  moreninha_delivery_fee?: number
+  minimum_moreninha_order?: number
   store_color?: string
   is_open: boolean
   operating_hours: OperatingHours
@@ -219,6 +223,8 @@ export interface SupabaseStoreConfig {
   created_at?: string
   updated_at?: string
   max_picoles?: number
+  whatsapp_number?: string
+  pix_key?: string
   carousel_initialized?: boolean
 }
 

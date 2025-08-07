@@ -79,20 +79,20 @@ export default function OrderCounterReset() {
           <Button
             onClick={openConfirmDialog}
             disabled={isResetting}
-            variant="outline"
-            className="flex items-center gap-2 bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 w-full sm:w-auto justify-center sm:justify-start px-3 sm:px-4"
+            variant="destructive"
+            className="flex items-center gap-2 bg-red-600 text-white hover:bg-red-700 w-full sm:w-auto justify-center sm:justify-start px-3 sm:px-4"
           >
             {isResetting ? (
               <>
                 <RefreshCw className="h-4 w-4 animate-spin" />
-                <span>Redefinindo contador...</span>
+                <span>Limpando histórico...</span>
               </>
             ) : (
               <>
                 <RefreshCw className="h-4 w-4 flex-shrink-0" />
                 <span className="whitespace-nowrap">
-                  <span className="hidden sm:inline">Zerar contador de pedidos</span>
-                  <span className="sm:hidden">Zerar contador</span>
+                  <span className="hidden sm:inline">Limpar Histórico de Pedidos</span>
+                  <span className="sm:hidden">Limpar Histórico</span>
                 </span>
               </>
             )}
@@ -107,15 +107,17 @@ export default function OrderCounterReset() {
 
       {/* Diálogo de confirmação */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent>
+        <DialogContent className="border-red-500 bg-red-50">
           <DialogHeader>
-            <DialogTitle>Zerar contador de pedidos</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja zerar o contador de pedidos?
-              O próximo pedido começará com o ID #1.
+            <DialogTitle className="text-red-700">Atenção: Ação Irreversível!</DialogTitle>
+            <DialogDescription className="text-gray-700">
+              <span className="font-bold text-lg block mb-2">Você está prestes a excluir PERMANENTEMENTE todos os pedidos do sistema.</span>
+              <span className="block">Esta ação não pode ser desfeita e resultará na perda de todo o histórico de vendas.</span>
+              <span className="block mt-2">O contador de pedidos será reiniciado e o próximo pedido terá o ID #1.</span>
+              <span className="font-bold block mt-4">Tem certeza absoluta que deseja continuar?</span>
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
             <Button
               variant="outline"
               onClick={closeConfirmDialog}
@@ -126,15 +128,16 @@ export default function OrderCounterReset() {
             <Button
               onClick={resetOrderCounter}
               disabled={isResetting}
-              className="bg-amber-600 hover:bg-amber-700 sm:flex-1"
+              variant="destructive"
+              className="bg-red-700 hover:bg-red-800 sm:flex-1"
             >
               {isResetting ? (
                 <>
                   <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                  Redefinindo...
+                  Excluindo Tudo...
                 </>
               ) : (
-                "Sim, zerar contador"
+                "Sim, excluir tudo"
               )}
             </Button>
           </DialogFooter>

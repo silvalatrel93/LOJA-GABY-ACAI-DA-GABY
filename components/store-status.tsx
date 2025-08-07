@@ -123,22 +123,24 @@ export default function StoreStatus({ inSideMenu = false }: StoreStatusProps) {
     <div className="flex items-center text-sm animate-float">
       <Clock size={16} className={`mr-1 ${status.isOpen ? "text-green-600" : "text-red-600"}`} />
       <span className={status.statusClass}>{status.statusText}</span>
-      <style jsx global>{`
-        @keyframes float {
-          0% {
-            transform: translateY(0px);
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes float {
+            0% {
+              transform: translateY(0px);
+            }
+            50% {
+              transform: translateY(-3px);
+            }
+            100% {
+              transform: translateY(0px);
+            }
           }
-          50% {
-            transform: translateY(-3px);
+          .animate-float {
+            animation: float 4s ease-in-out infinite;
           }
-          100% {
-            transform: translateY(0px);
-          }
-        }
-        .animate-float {
-          animation: float 4s ease-in-out infinite;
-        }
-      `}</style>
+        `
+      }} />
     </div>
   )
 }

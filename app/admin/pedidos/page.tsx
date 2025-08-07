@@ -22,6 +22,7 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false)
   const [isSoundEnabled, setIsSoundEnabled] = useState(true)
+  const [lastPlayedSoundForOrder, setLastPlayedSoundForOrder] = useState<number | null>(null)
   const [showNewOrderNotification, setShowNewOrderNotification] = useState(false)
   const [newOrdersCount, setNewOrdersCount] = useState(0)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -181,12 +182,14 @@ export default function OrdersPage() {
         console.error("Erro ao marcar pedidos como notificados:", error);
         // Continuar mesmo em caso de erro
       }
-    } else if (JSON.stringify(prevOrdersRef.current) !== JSON.stringify(orders)) {
-      // Se não houver novos pedidos, mas houver outras mudanças, atualizar a lista
+    } else {
+      // Sempre atualizar a lista para garantir sincronização após exclusões
+      console.log(`🔄 Atualizando lista de pedidos. Novos pedidos: ${orders.length}, Anteriores: ${prevOrdersRef.current?.length || 0}`);
       React.startTransition(() => {
         if (isMounted) {
           prevOrdersRef.current = orders;
           setOrders(orders);
+          console.log(`✅ Lista de pedidos atualizada com ${orders.length} pedidos`);
         }
       });
     }
@@ -243,26 +246,51 @@ export default function OrdersPage() {
       realtimeChannel = subscribeToOrderChanges(
         (payload) => {
           console.log('📨 Mudança real-time detectada:', payload);
+          if (!isMounted) return;
 
-          // Se for um novo pedido (INSERT), recarregar imediatamente
-          if (payload.type === 'INSERT' && isMounted) {
-            console.log('🆕 Novo pedido detectado via real-time, recarregando...');
-            void loadAndProcessOrders(true);
-          }
-          // Se for uma atualização (UPDATE), também recarregar para manter sincronizado
-          else if (payload.type === 'UPDATE' && isMounted) {
-            console.log('🔄 Pedido atualizado via real-time, recarregando...');
-            void loadAndProcessOrders(true);
-          }
-          // Se for uma exclusão (DELETE), recarregar para remover da lista
-          else if (payload.type === 'DELETE' && isMounted) {
-            console.log('🗑️ Pedido excluído via real-time, recarregando...');
-            void loadAndProcessOrders(true);
+          // Usar payload.eventType que é o campo correto para postgres_changes
+          switch (payload.eventType) {
+            case 'INSERT':
+              console.log('🆕 Novo pedido recebido, adicionando à lista...');
+              setOrders(currentOrders => {
+                const newOrder = payload.new as Order;
+                // Evitar adicionar duplicados
+                if (currentOrders.some(o => o.id === newOrder.id)) {
+                  return currentOrders;
+                }
+                // Tocar som para novo pedido
+                if (isSoundEnabled) {
+                  startContinuousSound();
+                  setLastPlayedSoundForOrder(newOrder.id);
+                }
+                return [newOrder, ...currentOrders];
+              });
+              break;
+
+            case 'UPDATE':
+              console.log(`🔄 Pedido #${payload.new.id} atualizado, atualizando na lista...`);
+              setOrders(currentOrders =>
+                currentOrders.map(order =>
+                  order.id === payload.new.id ? { ...order, ...(payload.new as Order) } : order
+                )
+              );
+              break;
+
+            case 'DELETE':
+              console.log(`🗑️ Pedido #${payload.old.id} excluído, removendo da lista...`);
+              setOrders(currentOrders =>
+                currentOrders.filter(order => order.id !== payload.old.id)
+              );
+              break;
+
+            default:
+              // Apenas logar eventos não esperados, sem recarregar a lista inteira
+              console.log(`Evento não tratado ou desconhecido: ${payload.eventType}`);
+              break;
           }
         },
         (error) => {
           console.error('❌ Erro na subscrição real-time de pedidos:', error);
-          // Em caso de erro, continuar com polling apenas
         }
       );
     };
@@ -270,12 +298,15 @@ export default function OrdersPage() {
     // Configurar subscrição real-time
     setupRealtimeSubscription();
 
-    // Configurar polling como fallback (intervalo maior agora que temos real-time)
+    // Polling de fallback desativado para priorizar a atualização granular por real-time
+    const pollingInterval = null; // Desativado temporariamente para teste
+    /*
     const pollingInterval = setInterval(() => {
       if (isMounted) {
         void loadAndProcessOrders(true);
       }
-    }, 30000); // Aumentado para 30 segundos já que temos real-time
+    }, 60000); // Aumentado para 60 segundos para ser um fallback menos agressivo
+    */
 
     // Armazenar a referência do intervalo
     checkIntervalRef.current = pollingInterval;
@@ -433,19 +464,21 @@ export default function OrdersPage() {
 
   const handleStatusChange = React.useCallback(async (orderId: Order['id'], status: OrderStatus, order?: Order): Promise<void> => {
     try {
-      await updateOrderStatus(orderId, status);
-      // Atualizar a lista de pedidos
-      await loadOrders(true); // Usar carregamento silencioso
+      // Otimisticamente atualiza o estado local primeiro
+      setOrders(currentOrders =>
+        currentOrders.map(o => (o.id === orderId ? { ...o, status } : o))
+      );
 
-      // Se o status for 'completed' e temos o objeto do pedido, configurar impressão automática
+      // Envia a atualização para o backend
+      await updateOrderStatus(orderId, status);
+      // A subscrição real-time (evento UPDATE) cuidará de re-sincronizar o estado
+      // caso haja alguma discrepância, eliminando a necessidade de `loadOrders`.
+
+      // Lógica de impressão para o status 'completed'
       if (status === 'completed' && order) {
-        console.log(`Configurando impressão automática para o pedido #${orderId} após marcar como concluído`)
-        
-        // Para pedidos únicos, configurar fila com apenas um item
+        console.log(`Configurando impressão automática para o pedido #${orderId} após marcar como concluído`);
         setPrintQueue([order]);
         setCurrentPrintIndex(0);
-        
-        // Iniciar impressão
         setSelectedOrder(order);
         setIsPrinterModalOpen(true);
         setShouldAutoPrint(true);
@@ -454,8 +487,11 @@ export default function OrdersPage() {
     } catch (error) {
       console.error("Erro ao atualizar status do pedido:", error);
       alert("Erro ao atualizar status do pedido. Tente novamente.");
+      // Reverter a mudança otimista em caso de erro
+      // (Opcional, mas recomendado para uma UI robusta)
+      // Para isso, seria necessário buscar o estado original do pedido.
     }
-  }, [loadOrders, openPrintPage]);
+  }, []);
 
   const handlePrintLabel = React.useCallback((order: Order) => {
     setSelectedOrder(order);
@@ -476,24 +512,44 @@ export default function OrdersPage() {
     if (!confirmDelete) return;
 
     try {
-      console.log(`Excluindo pedido #${order.id}...`);
+      console.log(`🗑️ Iniciando exclusão do pedido #${order.id}...`);
+      console.log(`📊 Lista atual tem ${orders.length} pedidos`);
+      
+      // Remover imediatamente da lista local para feedback visual instantâneo
+      setOrders(currentOrders => {
+        const filteredOrders = currentOrders.filter(o => o.id !== order.id);
+        console.log(`🔄 Removendo pedido #${order.id} da lista local. Antes: ${currentOrders.length}, Depois: ${filteredOrders.length}`);
+        return filteredOrders;
+      });
+      
+      // Atualizar também a referência para evitar conflitos
+      prevOrdersRef.current = prevOrdersRef.current.filter(o => o.id !== order.id);
+      
       const success = await OrderService.deleteOrder(order.id);
 
       if (success) {
-        console.log(`Pedido #${order.id} excluído com sucesso`);
-        // Recarregar a lista de pedidos
-        await loadOrders(true);
+        console.log(`✅ Pedido #${order.id} excluído com sucesso no banco de dados`);
+
+        // A lista já foi atualizada localmente. A subscrição em tempo real cuidará da sincronização final.
+        // Não é necessário recarregar a lista inteira.
 
         // Mostrar mensagem de sucesso
+        console.log(`🎉 Exclusão do pedido #${order.id} concluída com sucesso`);
         alert(`Pedido #${order.id} excluído com sucesso!`);
       } else {
+        console.error(`❌ Falha ao excluir pedido #${order.id} no banco de dados`);
+        // Se a exclusão falhar, a UI pode ficar dessincronizada.
+        // A melhor abordagem seria reverter a atualização otimista.
+        // Por enquanto, um alerta informa o usuário e a subscrição real-time deve corrigir.
+        alert(`Falha ao excluir o pedido #${order.id}. A lista pode estar dessincronizada.`);
         throw new Error('Falha ao excluir pedido');
       }
     } catch (error) {
-      console.error(`Erro ao excluir pedido #${order.id}:`, error);
+      console.error(`💥 Erro ao excluir pedido #${order.id}:`, error);
+      // Em caso de erro, a UI pode ficar dessincronizada.
       alert(`Erro ao excluir o pedido #${order.id}. Tente novamente.`);
     }
-  }, [loadOrders]);
+  }, [loadOrders, orders]);
 
   // Função para processar a fila de impressão
   const processNextPrintInQueue = React.useCallback(() => {
@@ -604,6 +660,9 @@ export default function OrdersPage() {
 
   // Função para formatar número de telefone no padrão brasileiro
   const formatPhoneNumber = (phone: string): string => {
+    if (!phone) {
+      return 'Não informado';
+    }
     // Remover todos os caracteres não numéricos
     const numbers = phone.replace(/\D/g, '');
 
@@ -990,28 +1049,32 @@ export default function OrdersPage() {
                             </div>
                           </div>
                           <div className="flex space-x-2 ml-4">
-                            <a
-                              href={`tel:${order.customerPhone}`}
-                              className="text-xs flex items-center text-blue-600 hover:text-blue-800"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                              </svg>
-                              Ligar
-                            </a>
-                            <a
-                              href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}`}
-                              className="text-xs flex items-center text-green-600 hover:text-green-800"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 448 512" fill="currentColor">
-                                <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z" />
-                              </svg>
-                              WhatsApp
-                            </a>
+                            {order.customerPhone && (
+                              <>
+                                <a
+                                  href={`tel:${order.customerPhone}`}
+                                  className="text-xs flex items-center text-blue-600 hover:text-blue-800"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                                  </svg>
+                                  Ligar
+                                </a>
+                                <a
+                                  href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}`}
+                                  className="text-xs flex items-center text-green-600 hover:text-green-800"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 448 512" fill="currentColor">
+                                    <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z" />
+                                  </svg>
+                                  WhatsApp
+                                </a>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>

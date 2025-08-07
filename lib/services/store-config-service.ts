@@ -28,7 +28,6 @@ const DEFAULT_STORE_CONFIG: StoreConfig = {
   lastUpdated: new Date().toISOString(),
   maxPicolesPerOrder: 10,
   // Campos extras removidos que não existem na tabela real
-  maringaDeliveryFee: 0,
   picoleDeliveryFee: 0,
   minimumPicoleOrder: 0,
   moreninhaDeliveryFee: 0,
@@ -52,19 +51,27 @@ export const StoreConfigService = {
 
 
 
-      const { data, error } = await withRetry(async () => {
-        const result = await supabase
-          .from("store_config")
-          .select("*")
-          .eq("id", DEFAULT_STORE_ID)
-          .maybeSingle()
+      let data: any = null
+      let error: any = null
 
-        if (result.error) {
-          throw result.error
-        }
+      try {
+        const result = await withRetry(async () => {
+          const queryResult = await supabase
+            .from("store_config")
+            .select("*")
+            .eq("id", DEFAULT_STORE_ID)
+            .maybeSingle()
 
-        return result
-      })
+          if (queryResult.error) {
+            throw queryResult.error
+          }
+
+          return queryResult
+        })
+        data = result.data
+      } catch (err) {
+        error = err
+      }
 
       if (error) {
         console.warn("Erro ao buscar configurações da loja:", {

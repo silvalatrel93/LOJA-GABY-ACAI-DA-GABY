@@ -1,5 +1,6 @@
 // Este arquivo agora apenas exporta os serviços do Supabase
 import * as ProductService from "./services/product-service"
+import { getProductsByCategory as getProductsByCategoryFromService } from "./services/product-service"
 import * as CategoryService from "./services/category-service"
 import * as AdditionalService from "./services/additional-service"
 import * as AdditionalCategoryService from "./services/additional-category-service"
@@ -206,6 +207,7 @@ export async function importData(data: any) {
 // Exportar funções individuais para manter compatibilidade com código existente
 export const getAllProducts = ProductService.getAllProducts
 export const getActiveProducts = ProductService.getActiveProducts
+export const getProductsByCategory = getProductsByCategoryFromService
 // Removidas funções que não existem no ProductService
 export const getProductById = ProductService.getProductById
 export const saveProduct = ProductService.saveProduct

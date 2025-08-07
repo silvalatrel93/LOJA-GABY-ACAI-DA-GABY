@@ -113,11 +113,6 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
               <button
                 onClick={toggleMenu}
                 className="mr-2 sm:mr-3 p-1 sm:p-2 rounded-md transition-all duration-300"
-                style={{
-                  ':hover': {
-                    backgroundColor: `${storeConfig?.storeColor || '#8B5CF6'}80`
-                  }
-                }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = `${storeConfig?.storeColor || '#8B5CF6'}80`
                 }}
@@ -167,28 +162,30 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
         {/* Carrossel */}
         {carouselSlides.length > 0 && <HeroCarousel slides={carouselSlides} />}
 
-        {/* Estilo global para animações */}
-        <style jsx global>{`
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          
-          @keyframes slideInDown {
-            from { transform: translateY(-100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-          }
-          
-          .header-animation {
-            animation: slideInDown 0.4s ease-out;
-          }
-          
-          /* Efeito de vidro para o cabeçalho quando rolado */
-          .backdrop-blur-md {
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-          }
-        `}</style>
+        {/* Estilos CSS inline para animações */}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes fadeIn {
+              from { opacity: 0; transform: translateY(-10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            
+            @keyframes slideInDown {
+              from { transform: translateY(-100%); opacity: 0; }
+              to { transform: translateY(0); opacity: 1; }
+            }
+            
+            .header-animation {
+              animation: slideInDown 0.4s ease-out;
+            }
+            
+            /* Efeito de vidro para o cabeçalho quando rolado */
+            .backdrop-blur-md {
+              backdrop-filter: blur(8px);
+              -webkit-backdrop-filter: blur(8px);
+            }
+          `
+        }} />
 
         {/* Conteúdo principal */}
         <main className="flex-1 flex flex-col overflow-x-hidden w-full">{children}</main>

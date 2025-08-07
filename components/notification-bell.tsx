@@ -300,7 +300,7 @@ export default function NotificationBell() {
 
   return (
     <>
-      <style jsx>{animations}</style>
+      <style dangerouslySetInnerHTML={{ __html: animations }} />
       <div className="relative" ref={dropdownRef}>
         <div className="flex items-center">
           <button

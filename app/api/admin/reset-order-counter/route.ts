@@ -1,8 +1,26 @@
-import { supabase } from "@/lib/services/supabase-client";
+import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from "next/server";
+
+// Cliente Supabase com service_role para operações administrativas
+function createAdminSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const serviceRoleKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || '';
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Variáveis de ambiente do Supabase não configuradas para admin');
+  }
+  
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = createAdminSupabaseClient();
     
     // Passo 1: Excluir todos os pedidos existentes
     console.log("Excluindo todos os pedidos existentes...");
