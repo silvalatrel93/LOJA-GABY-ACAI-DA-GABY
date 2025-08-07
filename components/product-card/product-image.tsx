@@ -12,6 +12,7 @@ interface ProductImageProps {
   size?: "small" | "large"
   priority?: boolean
   loading?: "eager" | "lazy"
+  storeColor?: string
 }
 
 export function ProductImage({ 
@@ -20,7 +21,8 @@ export function ProductImage({
   onOpenViewer, 
   size = "small", 
   priority = false,
-  loading = "lazy"
+  loading = "lazy",
+  storeColor = "#8B5CF6"
 }: ProductImageProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
@@ -123,7 +125,11 @@ export function ProductImage({
         data-component-name="ProductImage"
         aria-label="Ampliar imagem"
       >
-        <Maximize2 size={18} className={size === "large" ? "text-purple-700" : "text-gray-800"} />
+        <Maximize2 
+          size={18} 
+          className={size === "large" ? "" : "text-gray-800"}
+          style={size === "large" ? { color: storeColor } : {}}
+        />
       </button>
     </div>
   )

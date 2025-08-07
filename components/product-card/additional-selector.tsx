@@ -15,9 +15,10 @@ import { ToggleButton } from "@/lib/components/ui/toggle-button"
 
 interface AdditionalSelectorProps {
   product: Product
+  storeColor?: string
 }
 
-export function AdditionalSelector({ product }: AdditionalSelectorProps) {
+export function AdditionalSelector({ product, storeColor = "#8B5CF6" }: AdditionalSelectorProps) {
   // Usar o hook personalizado para acessar o contexto
   const {
     additionals,
@@ -89,9 +90,15 @@ export function AdditionalSelector({ product }: AdditionalSelectorProps) {
       {additionalsByCategory.map(({ category, additionals }) => (
         <div key={category.id} className="mb-3 sm:mb-4" data-component-name="AdditionalCategoryGroup">
           {/* Nome da categoria e informações de limite */}
-          <div className="flex flex-col mb-1 sm:mb-1.5 pb-0.5 border-b border-purple-200">
+          <div 
+            className="flex flex-col mb-1 sm:mb-1.5 pb-0.5 border-b"
+            style={{ borderColor: `${storeColor}33` }}
+          >
             <div className="flex justify-between items-center">
-              <h5 className="font-medium text-purple-700 text-[10px] sm:text-xs">
+              <h5 
+                className="font-medium text-[10px] sm:text-xs"
+                style={{ color: storeColor }}
+              >
                 {category.name}
               </h5>
               {category.selectionLimit && (
@@ -127,7 +134,10 @@ export function AdditionalSelector({ product }: AdditionalSelectorProps) {
                   data-component-name="AdditionalSelector"
                 >
                   <div className="flex items-center flex-1 pr-1 min-w-0">
-                    <div className="w-5 h-5 sm:w-6 sm:h-6 relative mr-1 sm:mr-1.5 bg-purple-100 rounded-md overflow-hidden flex-shrink-0">
+                    <div 
+                      className="w-5 h-5 sm:w-6 sm:h-6 relative mr-1 sm:mr-1.5 rounded-md overflow-hidden flex-shrink-0"
+                      style={{ backgroundColor: `${storeColor}1a` }}
+                    >
                       {additional.image ? (
                         <Image
                           src={additional.image || "/placeholder.svg"}
@@ -137,7 +147,10 @@ export function AdditionalSelector({ product }: AdditionalSelectorProps) {
                           className="object-cover"
                         />
                       ) : (
-                        <div className="flex items-center justify-center h-full text-purple-300">
+                        <div 
+                          className="flex items-center justify-center h-full"
+                          style={{ color: `${storeColor}66` }}
+                        >
                           <Plus size={10} className="sm:w-3 sm:h-3" />
                         </div>
                       )}

@@ -1427,17 +1427,16 @@ export default function PedidosMesaPage() {
                         )}
 
                         {/* Informação sobre colher */}
-                        {item.needsSpoon !== undefined && (
-                          <div className={`mt-2 ${item.needsSpoon ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'} border-l-4 p-2 rounded-r-md`}>
+                        {item.needsSpoon === true && (
+                          <div className="mt-2 bg-green-50 border-green-400 border-l-4 p-2 rounded-r-md">
                             <div className="flex items-start">
-                              <span className={`inline-block w-2.5 h-2.5 ${item.needsSpoon ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-red-400 to-red-600'} rounded-full mr-1.5 mt-0.5 flex-shrink-0`}></span>
+                              <span className="inline-block w-2.5 h-2.5 bg-gradient-to-r from-green-400 to-green-600 rounded-full mr-1.5 mt-0.5 flex-shrink-0"></span>
                               <div className="text-sm">
-                                <span className={`font-semibold ${item.needsSpoon ? 'text-green-800' : 'text-red-800'}`}>
-                                  Precisa de colher: {item.needsSpoon ? (
-                                    item.spoonQuantity && item.spoonQuantity > 1 ?
-                                      `Sim (${item.spoonQuantity} colheres)` :
-                                      'Sim (1 colher)'
-                                  ) : 'Não'}
+                                <span className="font-semibold text-green-800">
+                                  Precisa de colher: {item.spoonQuantity && item.spoonQuantity > 1 ?
+                                    `Sim (${item.spoonQuantity} colheres)` :
+                                    'Sim (1 colher)'
+                                  }
                                 </span>
                               </div>
                             </div>

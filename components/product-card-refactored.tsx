@@ -239,7 +239,7 @@ function ProductCardContent({ product }: ProductCardProps) {
   // Função para obter o texto do botão
   const getButtonText = () => {
     if (!storeStatus.isOpen) return "Loja fechada - Não é possível adicionar"
-    if (!selectedSize || selectedSize === '') return "Selecione um tamanho"
+    if (product.sizes.length > 0 && (!selectedSize || selectedSize === '')) return "Selecione um tamanho"
     if (product.needsSpoon && needsSpoon === null) return "Selecione se precisa de colher"
     
     const total = calculateTotal()

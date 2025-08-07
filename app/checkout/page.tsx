@@ -14,6 +14,7 @@ import { getStoreStatus } from "@/lib/store-utils"
 import { OrderService } from "@/lib/services/order-service"
 import { getProductById } from "@/lib/services/product-service"
 import { generateSimplePixQRCode } from "@/lib/pix-utils"
+import { DeliveryAddressLookup } from "@/components/delivery-address-lookup"
 
 
 
@@ -157,6 +158,7 @@ function CheckoutPageContent() {
   const [storeStatus, setStoreStatus] = useState({ isOpen: true, statusText: "", statusClass: "" })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [productCategories, setProductCategories] = useState<Record<number, string>>({})
+  const [selectedAddress, setSelectedAddress] = useState<any>(null)
 
 
   // Carregar configurações da loja e status
@@ -319,6 +321,51 @@ function CheckoutPageContent() {
         } else if (storeConfig.deliveryFee !== undefined) {
           setDeliveryFee(storeConfig.deliveryFee)
         }
+      }
+    }
+  }
+
+  // Função para lidar com a seleção de endereços
+  const handleAddressSelect = (address: any) => {
+    if (!address) {
+      handleAddressClear()
+      return
+    }
+    
+    setSelectedAddress(address)
+    
+    // Atualizar os campos do formulário com os dados do endereço
+    setFormData(prev => ({
+      ...prev,
+      address: address.address || '',
+      number: address.number || '',
+      neighborhood: address.neighborhood || '',
+      city: address.city || ''
+    }))
+    
+    // Atualizar a taxa de entrega
+    if (address.delivery_fee !== undefined) {
+      setDeliveryFee(address.delivery_fee)
+    }
+    
+    // Verificar se é Maringá
+    const cityIsMaringa = address.city && (
+      address.city.trim().toLowerCase() === 'maringá' ||
+      address.city.trim().toLowerCase() === 'maringa'
+    )
+    setIsMaringa(cityIsMaringa)
+  }
+
+  // Função para limpar a seleção de endereço
+  const handleAddressClear = () => {
+    setSelectedAddress(null)
+    
+    // Restaurar taxa de entrega padrão
+    if (storeConfig) {
+      if (isMaringa && storeConfig.maringaDeliveryFee !== undefined) {
+        setDeliveryFee(storeConfig.maringaDeliveryFee)
+      } else if (storeConfig.deliveryFee !== undefined) {
+        setDeliveryFee(storeConfig.deliveryFee)
       }
     }
   }
@@ -704,7 +751,20 @@ function CheckoutPageContent() {
                       </label>
                     </div>
                   </div>
+                </div>
 
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-1">
+                      Buscar Endereço
+                    </label>
+                    <DeliveryAddressLookup
+                      onAddressSelect={handleAddressSelect}
+                      onAddressClear={handleAddressClear}
+                      selectedAddress={selectedAddress}
+                    />
+
+                  </div>
                 </div>
 
                 <div>
@@ -719,8 +779,9 @@ function CheckoutPageContent() {
                     onChange={handleChange}
                     required={!isTableOrder}
                     className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Digite a cidade ou use a busca acima"
                   />
-                  {isMaringa && (
+                  {isMaringa && !selectedAddress && (
                     <p className="text-xs text-purple-600 mt-1">
                       Taxa de entrega específica para Maringá: {formatCurrency(deliveryFee)}
                     </p>
@@ -859,18 +920,18 @@ function CheckoutPageContent() {
                     </div>
                   ) : null}
 
-                  {/* Exibir informação de colher */}
-                  {item.needsSpoon !== undefined && (
-                    <div className={`ml-4 mt-2 ${item.needsSpoon ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'} border-l-4 p-2 rounded-r-md`}>
+                  {/* Exibir informação de colher apenas quando necessário */}
+                  {item.needsSpoon === true && (
+                    <div className="ml-4 mt-2 bg-green-50 border-green-400 border-l-4 p-2 rounded-r-md">
                       <div className="flex items-start">
-                        <span className={`inline-block w-2.5 h-2.5 ${item.needsSpoon ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-red-400 to-red-600'} rounded-full mr-1.5 mt-1 flex-shrink-0`}></span>
+                        <span className="inline-block w-2.5 h-2.5 bg-gradient-to-r from-green-400 to-green-600 rounded-full mr-1.5 mt-1 flex-shrink-0"></span>
                         <div className="text-sm">
-                          <span className={`font-semibold ${item.needsSpoon ? 'text-green-800' : 'text-red-800'}`}>
-                            Precisa de colher: {item.needsSpoon ? (
+                          <span className="font-semibold text-green-800">
+                            Precisa de colher: {
                               item.spoonQuantity && item.spoonQuantity > 1 ?
                                 `Sim (${item.spoonQuantity} colheres)` :
                                 'Sim (1 colher)'
-                            ) : 'Não'}
+                            }
                           </span>
                         </div>
                       </div>

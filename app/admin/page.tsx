@@ -28,6 +28,7 @@ import {
   Shield,
   LogOut,
   Calculator,
+  MapPin,
 } from "lucide-react"
 import { TableVisibilityToggle } from "@/components/admin/table-visibility-toggle"
 import DeliveryVisibilityToggle from "@/components/admin/delivery-visibility-toggle"
@@ -293,10 +294,6 @@ export default function AdminPage() {
     if (!editingProduct) return;
 
     const updatedSizes = editingProduct.sizes.filter((_, i) => i !== index);
-    // Garantir que sempre haja pelo menos um tamanho
-    if (updatedSizes.length === 0) {
-      updatedSizes.push({ size: "300ml", price: 0 });
-    }
     setEditingProduct({ ...editingProduct, sizes: updatedSizes });
   };
 
@@ -592,6 +589,19 @@ export default function AdminPage() {
             <div>
               <h2 className="text-lg font-semibold text-orange-600 mb-0.5">Pedidos das Mesas</h2>
               <p className="text-sm text-gray-600">Gerenciar pedidos presenciais</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/enderecos"
+            className="bg-white rounded-xl shadow-sm hover:shadow-md p-4 sm:p-5 flex items-center hover:bg-purple-50 transition-all duration-300 hover:translate-y-[-2px] group border border-transparent hover:border-purple-200"
+          >
+            <div className="bg-purple-100 p-3 rounded-full mr-4 transition-all duration-300 group-hover:scale-110">
+              <MapPin size={22} className="text-purple-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-purple-600 mb-0.5">Endereços de Entrega</h2>
+              <p className="text-sm text-gray-600">Gerenciar endereços e taxas de entrega</p>
             </div>
           </Link>
 
@@ -1102,9 +1112,8 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={() => handleRemoveSize(index)}
-                          disabled={editingProduct.sizes.length <= 1}
-                          className={`p-2 rounded-full transition-colors ${editingProduct.sizes.length <= 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer'}`}
-                          title={editingProduct.sizes.length <= 1 ? "Deve ter pelo menos um tamanho" : "Remover tamanho"}
+                          className="p-2 rounded-full transition-colors bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer"
+                          title="Remover tamanho"
                           aria-label="Remover tamanho"
                         >
                           <Trash2 size={18} />
@@ -1114,7 +1123,7 @@ export default function AdminPage() {
                   </div>
                 ))}
                 {editingProduct.sizes.length === 0 && (
-                  <p className="text-sm text-gray-500 italic">Adicione pelo menos um tamanho para o produto.</p>
+                  <p className="text-sm text-gray-500 italic">Nenhum tamanho adicionado. O produto será vendido sem variação de tamanho.</p>
                 )}
               </div>
 

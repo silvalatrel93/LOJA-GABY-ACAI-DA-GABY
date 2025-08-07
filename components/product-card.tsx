@@ -20,25 +20,26 @@ import { ProductImage } from "@/components/product-card/product-image"
 import { ProductInfo } from "@/components/product-card/product-info"
 import { SizeSelector } from "@/components/product-card/size-selector"
 import { AdditionalSelector } from "@/components/product-card/additional-selector"
-import { AcaiPattern } from "@/components/ui/acai-pattern"
+
 
 interface ProductCardProps {
   product: Product
   priority?: boolean
+  storeColor?: string
 }
 
-export default function ProductCard({ product, priority = false }: ProductCardProps) {
+export default function ProductCard({ product, priority = false, storeColor = "#8B5CF6" }: ProductCardProps) {
   return (
     <AdditionalsProvider
       maxAdditionalsLimit={999} // Não usar limite geral, apenas limites por tamanho
       productSizes={product.sizes}
     >
-      <ProductCardContent product={product} priority={priority} />
+      <ProductCardContent product={product} priority={priority} storeColor={storeColor} />
     </AdditionalsProvider>
   )
 }
 
-function ProductCardContent({ product, priority = false }: ProductCardProps) {
+function ProductCardContent({ product, priority = false, storeColor = "#8B5CF6" }: ProductCardProps) {
   // Estado local do componente
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false)
@@ -176,7 +177,8 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
 
   // Função para adicionar ao carrinho com loading state
   const handleAddToCart = async () => {
-    if (!selectedSize || !selectedSizeInfo) return
+    // Para produtos sem tamanho, permitir adicionar ao carrinho
+    if (product.sizes.length > 0 && (!selectedSize || !selectedSizeInfo)) return
 
     setIsAddingToCart(true)
 
@@ -279,12 +281,12 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
         const cartItem = {
           productId: product.id,
           name: product.name,
-          price: selectedSizeInfo.price,
+          price: selectedSizeInfo?.price || 0,
           image: product.image || "",
-          size: selectedSize,
+          size: selectedSize || "",
           quantity: (isPicolé(product.categoryName) || isMoreninha(product.categoryName)) ? quantity : 1,
           additionals: selectedAdditionalsArray,
-          originalPrice: selectedSizeInfo.price + additionalsTotalPrice,
+          originalPrice: (selectedSizeInfo?.price || 0) + additionalsTotalPrice,
           categoryName: product.categoryName,
           needsSpoon: needsSpoon === null ? undefined : needsSpoon,
           spoonQuantity: needsSpoon === true ? spoonQuantity : undefined
@@ -317,7 +319,16 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
 
   // Função para calcular o total
   const calculateTotal = () => {
-    const basePrice = Number(selectedSizeInfo?.price) || 0
+    // Para produtos sem tamanho, usar o preço base do produto
+    let basePrice = 0
+    if (product.sizes.length === 0) {
+      // Se não há tamanhos, usar o preço base do produto (assumindo que existe um campo price)
+      basePrice = Number(product.price) || 0
+    } else {
+      // Se há tamanhos, usar o preço do tamanho selecionado
+      basePrice = Number(selectedSizeInfo?.price) || 0
+    }
+    
     const additionalsPrice = Number(additionalsTotalPrice) || 0
     
     // Validar se os valores são números válidos
@@ -326,7 +337,9 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
         selectedSizeInfo: selectedSizeInfo,
         basePrice: basePrice,
         additionalsTotalPrice: additionalsTotalPrice,
-        additionalsPrice: additionalsPrice
+        additionalsPrice: additionalsPrice,
+        productPrice: product.price,
+        hasSizes: product.sizes.length > 0
       })
       return 0
     }
@@ -357,7 +370,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
   const getButtonText = () => {
     if (isAddingToCart) return "Adicionando..."
     if (!storeStatus.isOpen) return "Loja fechada - Não é possível adicionar"
-    if (!selectedSize || selectedSize === '') return "Selecione um tamanho"
+    if (product.sizes.length > 0 && (!selectedSize || selectedSize === '')) return "Selecione um tamanho"
     if (product.needsSpoon && needsSpoon === undefined) return "Selecione se precisa de colher"
 
     const total = calculateTotal()
@@ -385,7 +398,7 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
   // Função para verificar se o botão deve estar desabilitado
   const isButtonDisabled = () => {
     return !storeStatus.isOpen ||
-      !selectedSize ||
+      (product.sizes.length > 0 && !selectedSize) ||
       (product.needsSpoon && needsSpoon === null) ||
       isAddingToCart
   }
@@ -393,13 +406,14 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
   return (
     <>
       <div
-        className="relative bg-gradient-to-br from-purple-50 via-white to-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+        className="relative rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+        style={{
+          background: `linear-gradient(to bottom right, ${storeColor}0D, #ffffff, #ffffff)`
+        }}
         onClick={() => setIsModalOpen(true)}
         data-component-name="ProductCard"
       >
-        {/* Padrão de açaí sutil no fundo */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-50/80 via-white/80 to-white/80 rounded-xl z-0" />
-        <AcaiPattern className="text-purple-200" />
+        {/* Padrão de açaí sutil no fundo removido */}
         <div className="relative z-10">
           {/* Componente de imagem do produto */}
           <ProductImage
@@ -409,18 +423,27 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
             size="small"
             priority={priority}
             loading={priority ? "eager" : "lazy"}
+            storeColor={storeColor}
           />
 
           {/* Componente de informações do produto */}
-          <ProductInfo product={product} />
+          <ProductInfo product={product} storeColor={storeColor} />
         </div>
       </div>
 
       {/* Modal de detalhes do produto */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
-          <div className="relative bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-purple-50">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-white to-white rounded-xl" />
+          <div 
+            className="relative bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border"
+            style={{ borderColor: `${storeColor}0D` }}
+          >
+            <div 
+              className="absolute inset-0 rounded-xl" 
+              style={{
+                background: `linear-gradient(to bottom right, ${storeColor}0D, #ffffff, #ffffff)`
+              }}
+            />
             <div className="relative z-10">
               <div className="flex justify-between items-center border-b sticky top-0 bg-white z-10">
                 <h2 className="font-semibold text-lg sm:text-xl p-3 sm:p-4 break-words leading-tight">{product.name}</h2>
@@ -440,11 +463,12 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
                   alt={product.name}
                   onOpenViewer={handleOpenImageViewer}
                   size="large"
+                  storeColor={storeColor}
                 />
 
                 {/* Categoria e descrição */}
                 {product.categoryName && (
-                  <p className="text-sm text-purple-700 mb-1">{product.categoryName}</p>
+                  <p className="text-sm mb-1" style={{ color: storeColor }}>{product.categoryName}</p>
                 )}
                 {product.description && (
                   <div className="text-gray-700 mb-4 border-b pb-4 text-sm sm:text-base leading-relaxed">
@@ -539,7 +563,8 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
                 {/* Componentes de adicionais */}
                 {product.categoryName !== "TOPS HEAI AÇAI COPO PRONTO" && product.hasAdditionals && (
                   <>
-                    <AdditionalSelector product={product} />
+                    <AdditionalSelector product={product} storeColor={storeColor} />
+                    <AdditionalSummary storeColor={storeColor} />
                   </>
                 )}
 
@@ -584,26 +609,29 @@ function ProductCardContent({ product, priority = false }: ProductCardProps) {
                     <button
                       onClick={handleAddToCart}
                       disabled={isButtonDisabled()}
-                      className={`
-                        flex-1 relative overflow-hidden
-                        bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800
-                        hover:from-purple-700 hover:via-purple-800 hover:to-purple-900
-                        active:from-purple-800 active:via-purple-900 active:to-purple-950
-                        text-white py-2.5 sm:py-3.5 px-3 sm:px-4 
-                        rounded-lg sm:rounded-xl 
-                        font-semibold text-sm sm:text-base
-                        transition-all duration-300 ease-out
-                        shadow-lg hover:shadow-xl hover:shadow-purple-500/25
-                        transform hover:scale-[1.02] active:scale-[0.98]
-                        disabled:opacity-60 disabled:cursor-not-allowed 
-                        disabled:hover:scale-100 disabled:hover:shadow-lg
-                        focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
-                        group
-                      `}
+                      className="flex-1 relative overflow-hidden text-white py-2.5 sm:py-3.5 px-3 sm:px-4 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base transition-all duration-300 ease-out shadow-lg transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 group"
+                      style={{
+                        background: `linear-gradient(to right, ${storeColor}, ${storeColor}E6, ${storeColor}CC)`,
+                        boxShadow: `0 10px 15px -3px ${storeColor}40, 0 4px 6px -2px ${storeColor}40`,
+                        focusRingColor: storeColor
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = `linear-gradient(to right, ${storeColor}E6, ${storeColor}CC, ${storeColor}B3)`
+                        e.currentTarget.style.boxShadow = `0 20px 25px -5px ${storeColor}40, 0 10px 10px -5px ${storeColor}40`
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = `linear-gradient(to right, ${storeColor}, ${storeColor}E6, ${storeColor}CC)`
+                        e.currentTarget.style.boxShadow = `0 10px 15px -3px ${storeColor}40, 0 4px 6px -2px ${storeColor}40`
+                      }}
                       aria-label={getButtonText()}
                     >
                       {/* Gradiente animado de fundo */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-purple-700 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-gradient-x" />
+                      <div 
+                        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-gradient-x" 
+                        style={{
+                          background: `linear-gradient(to right, ${storeColor}, ${storeColor}E6, ${storeColor})`
+                        }}
+                      />
 
                       {/* Conteúdo do botão */}
                       <div className="relative flex items-center justify-center gap-2">

@@ -7,9 +7,10 @@ import { createSafeKey } from "@/lib/key-utils"
 
 interface ProductsLoaderProps {
   categoryId: number | null
+  storeColor?: string
 }
 
-export default function ProductsLoader({ categoryId }: ProductsLoaderProps) {
+export default function ProductsLoader({ categoryId, storeColor = "#8B5CF6" }: ProductsLoaderProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -84,7 +85,16 @@ export default function ProductsLoader({ categoryId }: ProductsLoaderProps) {
     return (
       <div className="col-span-full text-center p-8">
         <p className="text-red-500 mb-4">{error}</p>
-        <button onClick={loadProducts} className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-md">
+        <button 
+          onClick={loadProducts} 
+          className="text-white px-4 py-2 rounded-md transition-colors duration-200"
+          style={{
+            backgroundColor: storeColor,
+            ':hover': { backgroundColor: `${storeColor}dd` }
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${storeColor}dd`}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = storeColor}
+        >
           Tentar novamente
         </button>
       </div>
@@ -102,7 +112,7 @@ export default function ProductsLoader({ categoryId }: ProductsLoaderProps) {
   return (
     <>
       {products.map((product, index) => (
-        <ProductCard key={createSafeKey(product.id, 'product-card-loader', index)} product={product} />
+        <ProductCard key={createSafeKey(product.id, 'product-card-loader', index)} product={product} storeColor={storeColor} />
       ))}
     </>
   )

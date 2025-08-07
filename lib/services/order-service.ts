@@ -1,6 +1,7 @@
 import { createSupabaseClient } from "../supabase-client"
 import type { Order, OrderStatus, OrderType } from "../types"
 import { DEFAULT_STORE_ID } from "../constants"
+import { DeliveryAddressService } from "./delivery-address-service"
 
 // Função utilitária para fazer o parsing correto dos items
 const parseItems = (items: any): any[] => {
@@ -144,6 +145,38 @@ export const OrderService = {
   async createOrder(order: Omit<Order, "id">): Promise<{ data: Order | null; error: Error | null }> {
     try {
       const supabase = createSupabaseClient()
+
+      // Se for um pedido de entrega, verificar e criar endereço automaticamente
+      if (order.orderType === 'delivery' && order.address) {
+        try {
+          // Verificar se o endereço já existe usando rua, número e bairro
+          const existingAddress = await DeliveryAddressService.findDeliveryAddressByComponents(
+            order.address.street || '',
+            order.address.number || '',
+            order.address.neighborhood || ''
+          )
+          
+          // Se não existir, criar novo endereço
+          if (!existingAddress) {
+            const newAddressData = {
+              address: order.address.street || '',
+              number: order.address.number || '',
+              neighborhood: order.address.neighborhood || '',
+              city: order.address.city || 'Maringá',
+              delivery_fee: order.deliveryFee || 0,
+              is_active: true,
+              notes: ''
+            }
+            
+            await DeliveryAddressService.createDeliveryAddress(newAddressData)
+            const addressKey = `${order.address.street}, ${order.address.number || ''}, ${order.address.neighborhood}, ${order.address.city}`.trim()
+            console.log('Novo endereço de entrega criado automaticamente:', addressKey)
+          }
+        } catch (addressError) {
+          // Log do erro mas não interrompe a criação do pedido
+          console.warn('Erro ao criar endereço automaticamente:', addressError)
+        }
+      }
 
       const orderData = {
         customer_name: order.customerName,

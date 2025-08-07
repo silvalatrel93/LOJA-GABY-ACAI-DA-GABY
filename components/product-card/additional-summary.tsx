@@ -5,11 +5,12 @@ import { Card } from "@/lib/components/ui/card"
 import { PriceDisplay } from "@/lib/components/ui/price-display"
 import { cn } from "@/lib/utils"
 
-// Interface vazia pois agora usamos o contexto
-interface AdditionalSummaryProps {}
+interface AdditionalSummaryProps {
+  storeColor?: string
+}
 
 
-export function AdditionalSummary(_props: AdditionalSummaryProps) {
+export function AdditionalSummary({ storeColor = "#8B5CF6" }: AdditionalSummaryProps) {
   // Usar o hook personalizado para acessar o contexto
   const {
     selectedAdditionals,
@@ -32,16 +33,26 @@ export function AdditionalSummary(_props: AdditionalSummaryProps) {
 
   return (
     <Card 
-      className="mt-3 sm:mt-4 bg-purple-50 p-2 sm:p-3"
+      className="mt-3 sm:mt-4 p-2 sm:p-3"
+      style={{ backgroundColor: `${storeColor}0d` }}
     >
-      <h5 className="font-medium text-sm sm:text-base text-purple-900 mb-2 sm:mb-3">
+      <h5 
+        className="font-medium text-sm sm:text-base mb-2 sm:mb-3"
+        style={{ color: `${storeColor}dd` }}
+      >
         Resumo dos complementos premium selecionados
       </h5>
       
       <div className="mb-3 sm:mb-4">
-        <h6 className="font-medium text-xs sm:text-sm text-purple-900 border-b pb-1 mb-1.5 sm:mb-2 flex justify-between">
+        <h6 
+          className="font-medium text-xs sm:text-sm border-b pb-1 mb-1.5 sm:mb-2 flex justify-between"
+          style={{ color: `${storeColor}dd`, borderColor: `${storeColor}33` }}
+        >
           <span>Tamanho: {selectedSize}</span>
-          <span className="text-[10px] sm:text-xs text-purple-700">
+          <span 
+            className="text-[10px] sm:text-xs"
+            style={{ color: storeColor }}
+          >
             {isFreeSize 
               ? `(${selectedAdditionalsCount}/${FREE_ADDITIONALS_LIMIT} grátis)` 
               : `(${selectedAdditionalsCount}/${maxAdditionalsPerSize} máx)`
@@ -65,7 +76,10 @@ export function AdditionalSummary(_props: AdditionalSummaryProps) {
         </ul>
         
         {(isFreeSize && reachedLimit) || (selectedAdditionalsCount >= maxAdditionalsPerSize) ? (
-          <p className="text-[9px] sm:text-xs text-purple-700 mt-1 font-medium">
+          <p 
+            className="text-[9px] sm:text-xs mt-1 font-medium"
+            style={{ color: storeColor }}
+          >
             {selectedAdditionalsCount >= maxAdditionalsPerSize 
               ? `Você atingiu o limite de ${maxAdditionalsPerSize} adicionais para este tamanho.`
               : `Você atingiu o limite de ${FREE_ADDITIONALS_LIMIT} complementos premium grátis para este tamanho.`
@@ -76,7 +90,10 @@ export function AdditionalSummary(_props: AdditionalSummaryProps) {
         {/* Limites por categoria */}
         {additionalsByCategory.some(({category}) => category.selectionLimit) && (
           <div className="mt-2 sm:mt-3">
-            <h6 className="text-[9px] sm:text-xs font-medium text-purple-900 border-b pb-0.5 sm:pb-1 mb-1">
+            <h6 
+              className="text-[9px] sm:text-xs font-medium border-b pb-0.5 sm:pb-1 mb-1"
+              style={{ color: `${storeColor}dd`, borderColor: `${storeColor}33` }}
+            >
               Limites por categoria:
             </h6>
             <p className="text-[9px] sm:text-xs text-gray-600 mb-1 sm:mb-2">

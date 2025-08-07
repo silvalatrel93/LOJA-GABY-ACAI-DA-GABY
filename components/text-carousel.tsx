@@ -6,9 +6,10 @@ import { createSafeKey } from "@/lib/key-utils"
 
 interface TextCarouselProps {
   phrases: Phrase[]
+  storeColor?: string
 }
 
-export default function TextCarousel({ phrases }: TextCarouselProps) {
+export default function TextCarousel({ phrases, storeColor = "#8B5CF6" }: TextCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAutoPlaying, setIsAutoPlaying] = useState(true)
 
@@ -40,8 +41,14 @@ export default function TextCarousel({ phrases }: TextCarouselProps) {
 
   return (
     <div
-      className="relative overflow-hidden bg-gradient-to-r from-purple-800 to-purple-950 text-white py-1 shadow-md w-full"
-      style={{ width: "100vw", marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)", marginBottom: "0" }}
+      className="relative overflow-hidden text-white py-1 shadow-md w-full"
+      style={{ 
+        width: "100vw", 
+        marginLeft: "calc(-50vw + 50%)", 
+        marginRight: "calc(-50vw + 50%)", 
+        marginBottom: "0",
+        background: `linear-gradient(to right, ${storeColor}, ${storeColor}dd)`
+      }}
       data-component-name="TextCarousel"
     >
       <div className="w-full flex items-center justify-center h-full">

@@ -104,7 +104,7 @@ export default function Home() {
   return (
     <MainLayout carouselSlides={slides} showCart={true}>
       {/* Carrossel de frases */}
-      {phrases && phrases.length > 0 && <TextCarousel phrases={phrases} />}
+      {phrases && phrases.length > 0 && <TextCarousel phrases={phrases} storeColor={storeConfig?.storeColor} />}
 
       {/* Aviso de loja fechada logo após o carrossel de frases */}
       {!storeOpen && <StoreClosedNotice />}
@@ -130,7 +130,7 @@ export default function Home() {
             </button>
           </div>
         ) : (
-          <ProductList products={products} categories={categories} />
+          <ProductList products={products} categories={categories} storeColor={storeConfig?.storeColor} />
         )}
       </div>
 

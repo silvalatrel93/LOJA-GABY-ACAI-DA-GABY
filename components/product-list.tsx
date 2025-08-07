@@ -11,6 +11,7 @@ import { createSafeKey } from "@/lib/key-utils"
 interface ProductListProps {
   products?: Product[]
   categories?: Category[]
+  storeColor?: string
 }
 
 // Função auxiliar para abreviar nomes de categorias
@@ -43,7 +44,7 @@ const abbreviateCategory = (name: string, isMobile: boolean): string => {
   return name;
 };
 
-export default function ProductList({ products: _initialProducts = [], categories: initialCategories = [] }: ProductListProps) {
+export default function ProductList({ products: _initialProducts = [], categories: initialCategories = [], storeColor = "#8B5CF6" }: ProductListProps) {
   const [allProducts, setAllProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>(initialCategories)
   const [selectedCategory, setSelectedCategory] = useState<number | null>(0)
@@ -365,9 +366,13 @@ export default function ProductList({ products: _initialProducts = [], categorie
           >
             <div className="relative mb-6">
               <div className="flex flex-col items-center">
-                <h2 className="text-xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-purple-900 text-transparent bg-clip-text relative z-10 text-center" data-component-name="ProductList">{category.name}</h2>
+                <h2 className="text-xl font-bold mb-2 text-transparent bg-clip-text relative z-10 text-center" data-component-name="ProductList" style={{
+                  backgroundImage: `linear-gradient(to right, ${storeColor}, ${storeColor}dd)`
+                }}>{category.name}</h2>
                 {selectedCategory === 0 && (
-                  <div className="w-3/4 h-0.5 bg-gradient-to-r from-transparent via-purple-600 to-transparent"></div>
+                  <div className="w-3/4 h-0.5" style={{
+                    backgroundImage: `linear-gradient(to right, transparent, ${storeColor}, transparent)`
+                  }}></div>
                 )}
               </div>
             </div>
@@ -377,6 +382,7 @@ export default function ProductList({ products: _initialProducts = [], categorie
                   key={createSafeKey(product.id, 'product')}
                   product={product}
                   priority={index < 2} // Prioridade para os primeiros 2 produtos por categoria 
+                  storeColor={storeColor}
                 />
               ))}
             </div>
@@ -445,12 +451,23 @@ export default function ProductList({ products: _initialProducts = [], categorie
                   if (el) categoryButtonsRef.current.set(category.id, el);
                 }}
                 onClick={() => handleCategoryChange(category.id)}
-                className={`category-button px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-400 scroll-snap-align-center ${
-                  // Destacar o botão se for a categoria selecionada OU se for a categoria ativa durante o scroll
-                  selectedCategory === category.id || (selectedCategory === 0 && activeCategory === category.id)
-                    ? "bg-gradient-to-r from-purple-600 to-purple-900 text-white shadow-sm font-medium"
-                    : "bg-white text-gray-700 border border-gray-200 hover:bg-gradient-to-r hover:from-purple-100 hover:to-purple-200"
-                  }`}
+                className="category-button px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 scroll-snap-align-center"
+                style={{
+                  ...(selectedCategory === category.id || (selectedCategory === 0 && activeCategory === category.id)
+                    ? {
+                        backgroundImage: `linear-gradient(to right, ${storeColor}, ${storeColor}dd)`,
+                        color: 'white',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                        fontWeight: '500',
+                        focusRingColor: `${storeColor}66`
+                      }
+                    : {
+                        backgroundColor: 'white',
+                        color: '#374151',
+                        border: '1px solid #e5e7eb'
+                      }
+                  )
+                }}
                 data-component-name="ProductList"
                 title={category.name} // Mostrar o nome completo no tooltip
               >
@@ -494,7 +511,7 @@ export default function ProductList({ products: _initialProducts = [], categorie
               // Exibição normal para categorias específicas
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 {filteredProducts.map((product) => (
-                  <ProductCard key={createSafeKey(product.id, 'product')} product={product} />
+                  <ProductCard key={createSafeKey(product.id, 'product')} product={product} storeColor={storeColor} />
                 ))}
               </div>
             )}

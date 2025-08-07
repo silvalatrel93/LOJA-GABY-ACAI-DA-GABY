@@ -209,7 +209,7 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({
                                     Adicionais: {item.additionals.map(add => add.name).join(', ')}
                                   </div>
                                 )}
-                                {item.needsSpoon && (
+                                {item.needsSpoon === true && (
                                   <div className="text-xs text-blue-600 mt-1">
                                     🥄 Precisa de colher
                                   </div>

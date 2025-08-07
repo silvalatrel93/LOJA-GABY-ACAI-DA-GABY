@@ -182,7 +182,7 @@ export default function OrderLabelPrinter({ order, onPrintComplete, autoPrint = 
       }
       
       // Colher
-      if (item.needsSpoon !== undefined) {
+      if (item.needsSpoon === true) {
         estimatedHeight += 5
       }
       
@@ -752,16 +752,12 @@ export default function OrderLabelPrinter({ order, onPrintComplete, autoPrint = 
         }
 
         // Adicionar informação da colher
-        if (item.needsSpoon !== undefined) {
+        if (item.needsSpoon === true) {
           doc.setFont("courier", "bold")
           let spoonText = "Precisa de colher: "
-          if (item.needsSpoon) {
-            spoonText += item.spoonQuantity && item.spoonQuantity > 1 ? 
-              `Sim (${item.spoonQuantity} colheres)` : 
-              'Sim (1 colher)'
-          } else {
-            spoonText += "Não"
-          }
+          spoonText += item.spoonQuantity && item.spoonQuantity > 1 ? 
+            `Sim (${item.spoonQuantity} colheres)` : 
+            'Sim (1 colher)'
           doc.text(spoonText, margin + 3, yPos)
           yPos += 5
           doc.setFont("courier", "normal")
@@ -1072,14 +1068,13 @@ export default function OrderLabelPrinter({ order, onPrintComplete, autoPrint = 
                   </div>
                 ) : null}
 
-                {/* Indicar se precisa de colher */}
-                {item.needsSpoon !== undefined && (
+                {/* Indicar se precisa de colher - só exibe se a opção estiver ativada */}
+                {item.needsSpoon === true && (
                   <div className="spoon-info">
-                    Precisa de colher: {item.needsSpoon ? (
-                      item.spoonQuantity && item.spoonQuantity > 1 ? 
-                        `Sim (${item.spoonQuantity} colheres)` : 
-                        'Sim (1 colher)'
-                    ) : 'Não'}
+                    Precisa de colher: {item.spoonQuantity && item.spoonQuantity > 1 ? 
+                      `Sim (${item.spoonQuantity} colheres)` : 
+                      'Sim (1 colher)'
+                    }
                   </div>
                 )}
 

@@ -103,7 +103,7 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
             marginLeft: "calc(-50vw + 50%)",
             marginRight: "calc(-50vw + 50%)",
             height: "56px",
-            background: storeConfig?.storeColor || '#8B5CF6',
+            background: isLoadingConfig ? '#6B7280' : (storeConfig?.storeColor || '#8B5CF6'),
             boxShadow: scrolled ? `0 10px 25px -5px ${storeConfig?.storeColor || '#8B5CF6'}30` : 'none'
           }}
           data-component-name="MainLayout"
@@ -197,7 +197,7 @@ export default function MainLayout({ children, carouselSlides = [], showCart = f
             width: "100vw", 
             marginLeft: "calc(-50vw + 50%)", 
             marginRight: "calc(-50vw + 50%)",
-            background: storeConfig?.storeColor || '#8B5CF6'
+            background: isLoadingConfig ? '#6B7280' : (storeConfig?.storeColor || '#8B5CF6')
           }}
           data-component-name="MainLayout"
         >

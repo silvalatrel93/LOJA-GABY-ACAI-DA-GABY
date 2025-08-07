@@ -7,13 +7,14 @@ import { PriceDisplay } from "@/lib/components/ui/price-display"
 
 interface ProductInfoProps {
   product: Product
+  storeColor?: string
 }
 
-export function ProductInfo({ product }: ProductInfoProps) {
+export function ProductInfo({ product, storeColor = "#8B5CF6" }: ProductInfoProps) {
   return (
     <div className="p-3">
       <h3 
-        className="font-bold text-base xs:text-lg sm:text-xl md:text-2xl bg-gradient-to-r from-purple-600 to-purple-900 text-transparent bg-clip-text leading-tight" 
+        className="font-bold text-base xs:text-lg sm:text-xl md:text-2xl text-transparent bg-clip-text leading-tight" 
         data-component-name="ProductInfo"
         style={{
           wordBreak: 'break-word',
@@ -21,6 +22,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
           display: '-webkit-box',
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical',
+          backgroundImage: `linear-gradient(to right, ${storeColor}, ${storeColor}dd)`
         }}
       >
         {product.name}
@@ -40,6 +42,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
           size="sm" 
           className="p-1.5 rounded-full" 
           icon={<ShoppingCart size={18} />}
+          storeColor={storeColor}
           data-component-name="ProductInfo"
         >
           {/* O Button precisa de children, mesmo que vazio */}

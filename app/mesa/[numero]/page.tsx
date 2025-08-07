@@ -253,7 +253,7 @@ export default function MesaPage() {
             </button>
           </div>
         ) : (
-          <ProductList products={products} categories={categories} />
+          <ProductList products={products} categories={categories} storeColor={storeConfig?.storeColor} />
         )}
       </div>
 

@@ -6,6 +6,7 @@ export interface Product {
   name: string
   description: string
   image: string
+  price?: number // Preço base para produtos sem variações de tamanho
   sizes: ProductSize[]
   tableSizes?: ProductSize[] // Preços específicos para mesa (opcional)
   categoryId: number
