@@ -449,7 +449,13 @@ function ProductCardContent({ product, priority = false, storeColor = "#8B5CF6" 
                 <h2 className="font-semibold text-lg sm:text-xl p-3 sm:p-4 break-words leading-tight">{product.name}</h2>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="text-gray-500 hover:text-gray-700 p-3 sm:p-4 flex-shrink-0"
+                  className="p-3 sm:p-4 flex-shrink-0 transition-colors duration-200"
+                  style={{
+                    color: storeColor,
+                    ':hover': { color: `${storeColor}dd` }
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = `${storeColor}dd`}
+                  onMouseLeave={(e) => e.currentTarget.style.color = storeColor}
                   aria-label="Fechar"
                 >
                   <X size={20} />
