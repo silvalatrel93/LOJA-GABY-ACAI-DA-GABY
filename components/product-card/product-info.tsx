@@ -35,6 +35,7 @@ export function ProductInfo({ product, storeColor = "#8B5CF6" }: ProductInfoProp
           price={product.sizes[0]?.price || 0} 
           showPrefix={true} 
           prefixText="A PARTIR DE" 
+          storeColor={storeColor}
           data-component-name="ProductInfo"
         />
         <Button 

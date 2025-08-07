@@ -12,6 +12,7 @@ interface PriceDisplayProps {
   prefixText?: string
   className?: string
   freeText?: string
+  storeColor?: string
 }
 
 export function PriceDisplay({
@@ -20,7 +21,8 @@ export function PriceDisplay({
   showPrefix = false,
   prefixText = "A PARTIR DE",
   className,
-  freeText = "Grátis"
+  freeText = "Grátis",
+  storeColor = "#8B5CF6"
 }: PriceDisplayProps) {
   const variantStyles = {
     default: "bg-gradient-to-r from-green-500 to-green-700 text-transparent bg-clip-text font-bold",
@@ -31,7 +33,12 @@ export function PriceDisplay({
   return (
     <div className={cn("font-medium", className)}>
       {showPrefix && (
-        <span className="text-xs bg-gradient-to-r from-purple-600 to-purple-900 text-transparent bg-clip-text font-bold block">
+        <span 
+          className="text-xs text-transparent bg-clip-text font-bold block"
+          style={{
+            backgroundImage: `linear-gradient(to right, ${storeColor}, ${storeColor}dd)`
+          }}
+        >
           {prefixText}
         </span>
       )}
