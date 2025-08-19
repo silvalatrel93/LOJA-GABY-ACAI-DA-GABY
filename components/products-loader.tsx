@@ -89,8 +89,7 @@ export default function ProductsLoader({ categoryId, storeColor = "#8B5CF6" }: P
           onClick={loadProducts} 
           className="text-white px-4 py-2 rounded-md transition-colors duration-200"
           style={{
-            backgroundColor: storeColor,
-            ':hover': { backgroundColor: `${storeColor}dd` }
+            backgroundColor: storeColor
           }}
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${storeColor}dd`}
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = storeColor}

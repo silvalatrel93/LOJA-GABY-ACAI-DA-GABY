@@ -9,7 +9,6 @@ import { toast } from "sonner"
 import { ArrowLeft, AlertTriangle, Info, Shield, Eye, EyeOff, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AuthService } from "@/lib/services/auth-service"
 import { testSupabaseConnection, reconnectSupabase } from "@/lib/services/supabase-client"
 
 export default function AdminPasswordPage() {
@@ -23,12 +22,10 @@ export default function AdminPasswordPage() {
   const [connectionError, setConnectionError] = useState(false)
   const [isReconnecting, setIsReconnecting] = useState(false)
   
-  // Estados para controlar a visibilidade das senhas
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  // Função para verificar a conexão com o banco de dados
   const checkDatabaseConnection = async () => {
     try {
       const isConnected = await testSupabaseConnection();
@@ -41,7 +38,6 @@ export default function AdminPasswordPage() {
     }
   };
 
-  // Função para tentar reconectar ao banco de dados
   const handleReconnect = async () => {
     setIsReconnecting(true);
     try {
@@ -49,7 +45,6 @@ export default function AdminPasswordPage() {
       if (success) {
         toast.success("Conexão restabelecida com sucesso!");
         setConnectionError(false);
-        // Recarregar a configuração após reconectar
         checkPasswordSetup();
       } else {
         toast.error("Não foi possível restabelecer a conexão.");
@@ -62,176 +57,88 @@ export default function AdminPasswordPage() {
     }
   };
 
-  // Função para verificar a configuração de senha
   const checkPasswordSetup = async () => {
     setIsCheckingAuth(true);
     try {
-      // Verificar primeiro a conexão com o banco de dados
       const isConnected = await checkDatabaseConnection();
       if (!isConnected) {
         setIsCheckingAuth(false);
         return;
       }
       
-      const hasPassword = await AuthService.hasAdminPassword();
-      setInitialSetup(!hasPassword);
+      const response = await fetch('/api/admin/password');
+      const data = await response.json();
+
+      if (response.ok) {
+        setInitialSetup(!data.hasPassword);
+      } else {
+        throw new Error(data.error || "Erro ao verificar a configuração da senha");
+      }
     } catch (error) {
       console.error("Erro ao verificar configuração de senha:", error);
+      toast.error("Erro ao verificar a configuração da senha.");
+      setConnectionError(true);
     } finally {
       setIsCheckingAuth(false);
     }
   };
 
   useEffect(() => {
-    // Verificar se está autenticado
     const authStatus = localStorage.getItem("admin_authenticated");
     setIsAuthenticated(authStatus === "true");
-
-    // Iniciar a verificação da configuração de senha
     checkPasswordSetup();
   }, [])
 
   const handleSavePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    toast.loading(initialSetup ? "Salvando senha..." : "Alterando senha...");
 
     try {
-      // Verificar primeiro a conexão com o banco de dados
-      const isConnected = await checkDatabaseConnection();
-      if (!isConnected) {
-        toast.error("Não foi possível conectar ao banco de dados. Tente reconectar.");
-        setIsLoading(false);
+      if (newPassword !== confirmPassword) {
+        toast.error("As senhas não coincidem!");
         return;
       }
 
-      // Verificação para configuração inicial
-      if (initialSetup) {
-        if (newPassword !== confirmPassword) {
-          toast.error("As senhas não coincidem!")
-          setIsLoading(false)
-          return
-        }
+      if (newPassword.length < 6) {
+        toast.error("A senha deve ter pelo menos 6 caracteres!");
+        return;
+      }
 
-        if (newPassword.length < 6) {
-          toast.error("A senha deve ter pelo menos 6 caracteres!")
-          setIsLoading(false)
-          return
-        }
+      const body: any = { password: newPassword };
+      if (!initialSetup) {
+        body.currentPassword = currentPassword;
+      }
 
-        try {
-          console.log('Iniciando processo de configuração inicial de senha...');
-          toast.loading("Salvando senha...");
-          
-          // Salvar a nova senha no banco de dados com hash seguro
-          const result = await AuthService.saveAdminPassword(newPassword);
-          
-          if (result.success) {
-            console.log('Senha inicial definida com sucesso!');
-            toast.dismiss();
-            toast.success("Senha definida com sucesso!");
-            toast.info("Sua senha foi armazenada de forma segura no banco de dados.");
-            
-            // Autenticar o usuário após definir a senha inicial
+      const response = await fetch('/api/admin/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const result = await response.json();
+      toast.dismiss();
+
+      if (response.ok && result.success) {
+        toast.success(initialSetup ? "Senha definida com sucesso!" : "Senha alterada com sucesso!");
+        if (initialSetup) {
             localStorage.setItem("admin_authenticated", "true");
             setIsAuthenticated(true);
             setInitialSetup(false);
-            setCurrentPassword("");
-            setNewPassword("");
-            setConfirmPassword("");
-          } else {
-            console.error('Erro ao salvar a senha inicial:', result.error);
-            toast.dismiss();
-            toast.error("Erro ao salvar a senha no banco de dados!");
-            
-            if (result.error) {
-              if (typeof result.error === 'object') {
-                toast.error(`Detalhes: ${JSON.stringify(result.error)}`);
-              } else {
-                toast.error(`Detalhes: ${result.error}`);
-              }
-            }
-            
-            // Verificar se é um problema de conexão
-            if (result.error && (typeof result.error === 'string' && result.error.includes('conexão'))) {
-              setConnectionError(true);
-            }
-          }
-        } catch (saveError) {
-          console.error('Exceção ao salvar senha inicial:', saveError);
-          toast.dismiss();
-          toast.error("Erro inesperado ao salvar a senha!");
-          setConnectionError(true);
         }
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
       } else {
-        // Verificação para alteração de senha
-        // Primeiro verificar se a senha atual está correta
-        toast.loading("Verificando senha atual...");
-        const isCurrentPasswordValid = await AuthService.verifyAdminPassword(currentPassword)
-        toast.dismiss();
-        
-        if (!isCurrentPasswordValid) {
-          toast.error("Senha atual incorreta!")
-          setIsLoading(false)
-          return
-        }
-
-        if (newPassword !== confirmPassword) {
-          toast.error("As senhas não coincidem!")
-          setIsLoading(false)
-          return
-        }
-
-        if (newPassword.length < 6) {
-          toast.error("A senha deve ter pelo menos 6 caracteres!")
-          setIsLoading(false)
-          return
-        }
-
-        try {
-          console.log('Iniciando processo de alteração de senha...');
-          toast.loading("Salvando nova senha...");
-          
-          // Salvar a nova senha no banco de dados com hash seguro
-          const result = await AuthService.saveAdminPassword(newPassword);
-          toast.dismiss();
-          
-          if (result.success) {
-            console.log('Senha alterada com sucesso!');
-            toast.success("Senha alterada com sucesso!");
-            toast.info("Sua senha foi armazenada de forma segura no banco de dados.");
-            
-            // Limpar os campos do formulário
-            setCurrentPassword("");
-            setNewPassword("");
-            setConfirmPassword("");
-          } else {
-            console.error('Erro ao salvar a senha:', result.error);
-            toast.error("Erro ao salvar a senha no banco de dados!");
-            
-            if (result.error) {
-              if (typeof result.error === 'object') {
-                toast.error(`Detalhes: ${JSON.stringify(result.error)}`);
-              } else {
-                toast.error(`Detalhes: ${result.error}`);
-              }
-            }
-            
-            // Verificar se é um problema de conexão
-            if (result.error && (typeof result.error === 'string' && result.error.includes('conexão'))) {
-              setConnectionError(true);
-            }
-          }
-        } catch (saveError) {
-          console.error('Exceção ao salvar senha:', saveError);
-          toast.dismiss();
-          toast.error("Erro inesperado ao salvar a senha!");
-          setConnectionError(true);
-        }
+        throw new Error(result.error || "Ocorreu um erro desconhecido.");
       }
-    } catch (error) {
-      toast.error("Erro ao processar a senha!")
-      console.error(error)
-      setConnectionError(true);
+    } catch (error: any) {
+      toast.dismiss();
+      toast.error(`Erro: ${error.message}`);
+      console.error(error);
+      if (error.message.includes('conexão') || error.message.includes('Failed to fetch')) {
+          setConnectionError(true);
+      }
     } finally {
       setIsLoading(false)
     }

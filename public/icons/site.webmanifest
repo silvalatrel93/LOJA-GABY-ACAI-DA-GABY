@@ -1,21 +1,21 @@
 {
-  "name": "PediFacil - Sistema de Delivery",
-  "short_name": "PediFacil",
+  "name": "Açaí da Gaby",
+  "short_name": "Açaí da Gaby",
   "icons": [
     {
-      "src": "/icons/web-app-manifest-192x192.png",
+      "src": "/web-app-manifest-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icons/web-app-manifest-512x512.png",
+      "src": "/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#6B21A8",
-  "background_color": "#6B21A8",
+  "theme_color": "#7030b8",
+  "background_color": "#7030b8",
   "display": "standalone"
 }

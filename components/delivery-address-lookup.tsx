@@ -11,11 +11,12 @@ import { formatCurrency } from "@/lib/utils"
 
 interface DeliveryAddressLookupProps {
   onAddressSelect: (address: DeliveryAddress | null) => void
+  onAddressClear: () => void
   initialAddress?: string
   className?: string
 }
 
-export function DeliveryAddressLookup({ onAddressSelect, initialAddress = "", className = "" }: DeliveryAddressLookupProps) {
+export function DeliveryAddressLookup({ onAddressSelect, onAddressClear, initialAddress = "", className = "" }: DeliveryAddressLookupProps) {
   const [address, setAddress] = useState(initialAddress)
   const [searchResults, setSearchResults] = useState<DeliveryAddress[]>([])
   const [selectedAddress, setSelectedAddress] = useState<DeliveryAddress | null>(null)
@@ -34,6 +35,7 @@ export function DeliveryAddressLookup({ onAddressSelect, initialAddress = "", cl
       setShowResults(false)
       setSelectedAddress(null)
       onAddressSelect(null)
+      if (onAddressClear) onAddressClear()
       return
     }
 

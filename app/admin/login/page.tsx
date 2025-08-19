@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { AuthService } from "@/lib/services/auth-service"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertTriangle, Eye, EyeOff, RefreshCw } from "lucide-react"
 import { testSupabaseConnection, reconnectSupabase } from "@/lib/services/supabase-client"
@@ -20,11 +19,9 @@ export default function AdminLoginPage() {
   const [connectionError, setConnectionError] = useState(false)
   const [isReconnecting, setIsReconnecting] = useState(false)
 
-  // Verificar a conexão com o banco de dados e se existe uma senha configurada
   const checkDatabaseAndSetup = async () => {
     setIsCheckingSetup(true);
     try {
-      // Verificar conexão com o banco de dados
       const isConnected = await testSupabaseConnection();
       setConnectionError(!isConnected);
       
@@ -33,23 +30,27 @@ export default function AdminLoginPage() {
         return;
       }
       
-      // Verificar se já existe uma senha configurada
-      const hasPassword = await AuthService.hasAdminPassword();
-      setInitialSetup(!hasPassword);
-    } catch (error) {
+      const response = await fetch('/api/admin/password');
+      const data = await response.json();
+
+      if (response.ok) {
+        setInitialSetup(!data.hasPassword);
+      } else {
+        throw new Error(data.error || "Erro ao verificar a configuração");
+      }
+    } catch (error: any) {
       console.error("Erro ao verificar configuração:", error);
+      toast.error(`Erro ao verificar configuração: ${error.message}`);
       setConnectionError(true);
     } finally {
       setIsCheckingSetup(false);
     }
   };
   
-  // Carregar a verificação inicial
   useEffect(() => {
     checkDatabaseAndSetup();
   }, []);
   
-  // Função para tentar reconectar ao banco de dados
   const handleReconnect = async () => {
     setIsReconnecting(true);
     try {
@@ -57,7 +58,6 @@ export default function AdminLoginPage() {
       if (success) {
         toast.success("Conexão restabelecida com sucesso!");
         setConnectionError(false);
-        // Recarregar a configuração após reconectar
         checkDatabaseAndSetup();
       } else {
         toast.error("Não foi possível restabelecer a conexão.");
@@ -70,49 +70,36 @@ export default function AdminLoginPage() {
     }
   };
 
-  // Função para fazer login usando o AuthService
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      // Verificar conexão com o banco de dados
-      const isConnected = await testSupabaseConnection();
-      if (!isConnected) {
-        toast.error("Não foi possível conectar ao banco de dados. Tente reconectar.");
-        setConnectionError(true);
-        setIsLoading(false);
-        return;
-      }
-      
-      // Se estiver em configuração inicial, redirecionar para a página de configuração de senha
       if (initialSetup) {
         toast.info("Você precisa configurar uma senha primeiro.");
         window.location.href = "/admin/configuracoes/senha";
         return;
       }
       
-      // Verificar a senha usando o AuthService
       toast.loading("Verificando senha...");
-      const isValid = await AuthService.verifyAdminPassword(password);
+      const response = await fetch(`/api/admin/password?password=${encodeURIComponent(password)}`);
+      const result = await response.json();
       toast.dismiss();
       
-      if (isValid) {
-        // Salvar status de autenticação
+      if (response.ok && result.isValid) {
         localStorage.setItem("admin_authenticated", "true");
         toast.success("Login realizado com sucesso!");
         
-        // Redirecionar para o painel administrativo
         setTimeout(() => {
           window.location.href = "/admin";
         }, 1000);
       } else {
-        toast.error("Senha incorreta!");
-        setIsLoading(false);
+        throw new Error(result.error || "Senha incorreta!");
       }
-    } catch (error) {
+    } catch (error: any) {
+      toast.dismiss();
       console.error("Erro ao fazer login:", error);
-      toast.error("Erro ao processar o login. Tente novamente.");
+      toast.error(`Erro ao fazer login: ${error.message}`);
       setIsLoading(false);
     }
   };

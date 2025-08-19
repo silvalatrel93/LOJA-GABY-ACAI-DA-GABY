@@ -1,7 +1,7 @@
 "use client"
 
 import { useAdditionalsLogic } from "@/lib/hooks/use-additionals-logic"
-import { Card } from "@/lib/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { PriceDisplay } from "@/lib/components/ui/price-display"
 import { cn } from "@/lib/utils"
 

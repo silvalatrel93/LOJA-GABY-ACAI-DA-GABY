@@ -20,6 +20,7 @@ import { ProductImage } from "@/components/product-card/product-image"
 import { ProductInfo } from "@/components/product-card/product-info"
 import { SizeSelector } from "@/components/product-card/size-selector"
 import { AdditionalSelector } from "@/components/product-card/additional-selector"
+import { AdditionalSummary } from "@/components/product-card/additional-summary"
 
 
 interface ProductCardProps {
@@ -203,12 +204,12 @@ function ProductCardContent({ product, priority = false, storeColor = "#8B5CF6" 
           const firstCupItem = {
             productId: product.id,
             name: product.name,
-            price: selectedSizeInfo.price,
+            price: selectedSizeInfo ? selectedSizeInfo.price : 0,
             image: product.image || "",
             size: selectedSize,
             quantity: 1,
             additionals: selectedAdditionalsArray,
-            originalPrice: selectedSizeInfo.price + additionalsTotalPrice,
+            originalPrice: (selectedSizeInfo ? selectedSizeInfo.price : 0) + additionalsTotalPrice,
             categoryName: product.categoryName,
             needsSpoon: needsSpoon === null ? undefined : needsSpoon,
             spoonQuantity: needsSpoon === true ? spoonQuantity : undefined
@@ -451,8 +452,7 @@ function ProductCardContent({ product, priority = false, storeColor = "#8B5CF6" 
                   onClick={() => setIsModalOpen(false)}
                   className="p-3 sm:p-4 flex-shrink-0 transition-colors duration-200"
                   style={{
-                    color: storeColor,
-                    ':hover': { color: `${storeColor}dd` }
+                    color: storeColor
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.color = `${storeColor}dd`}
                   onMouseLeave={(e) => e.currentTarget.style.color = storeColor}
@@ -618,8 +618,7 @@ function ProductCardContent({ product, priority = false, storeColor = "#8B5CF6" 
                       className="flex-1 relative overflow-hidden text-white py-2.5 sm:py-3.5 px-3 sm:px-4 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base transition-all duration-300 ease-out shadow-lg transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 group"
                       style={{
                         background: `linear-gradient(to right, ${storeColor}, ${storeColor}E6, ${storeColor}CC)`,
-                        boxShadow: `0 10px 15px -3px ${storeColor}40, 0 4px 6px -2px ${storeColor}40`,
-                        focusRingColor: storeColor
+                        boxShadow: `0 10px 15px -3px ${storeColor}40, 0 4px 6px -2px ${storeColor}40`
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = `linear-gradient(to right, ${storeColor}E6, ${storeColor}CC, ${storeColor}B3)`

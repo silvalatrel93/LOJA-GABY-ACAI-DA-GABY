@@ -761,7 +761,6 @@ function CheckoutPageContent() {
                     <DeliveryAddressLookup
                       onAddressSelect={handleAddressSelect}
                       onAddressClear={handleAddressClear}
-                      selectedAddress={selectedAddress}
                     />
 
                   </div>

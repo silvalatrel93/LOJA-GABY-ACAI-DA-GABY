@@ -26,20 +26,21 @@ import { Card } from "@/lib/components/ui/card"
 
 interface ProductCardProps {
   product: Product
+  storeColor?: string
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, storeColor = "#8B5CF6" }: ProductCardProps) {
   return (
     <AdditionalsProvider 
       maxAdditionalsLimit={999} // Não usar limite geral, apenas limites por tamanho
       productSizes={product.sizes}
     >
-      <ProductCardContent product={product} />
+      <ProductCardContent product={product} storeColor={storeColor} />
     </AdditionalsProvider>
   )
 }
 
-function ProductCardContent({ product }: ProductCardProps) {
+function ProductCardContent({ product, storeColor }: ProductCardProps) {
   // Estado local do componente
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false)
